@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Manutenções em Andamento</title>
-<link rel="stylesheet" href="styles.css?v=20260521-mobile-event-date">
+<link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
 </head>
 <body>
 <aside class="sidebar">
@@ -70,7 +70,7 @@
     </div>
   </div>
 </main>
-<script src="app.js?v=20260521-mobile-event-date"></script>
+<script src="app.js?v=20260521-mobile-header-controls"></script>
 <script>
 const tbody = document.querySelector("tbody");
 function renderManutencoes() {
@@ -89,6 +89,7 @@ function renderManutencoes() {
   }).join("") || `<tr><td colspan="5" style="color:var(--text3);font-family:var(--font)">Nenhuma manuten??o em andamento.</td></tr>`;
 }
 renderManutencoes();
+window.addEventListener("stocksync:sync", renderManutencoes);
 </script>
 </body>
 </html>
