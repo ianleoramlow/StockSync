@@ -1039,15 +1039,15 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
 
   .sidebar {
     width: 100%;
-    height: 158px;
+    height: 136px;
     min-height: 0;
     max-height: none;
-    padding: 12px 12px 10px;
+    padding: 10px 12px 8px;
     display: grid;
-    grid-template-columns: 78px repeat(7, minmax(32px, 1fr));
-    grid-template-rows: 38px 42px 46px;
-    column-gap: 7px;
-    row-gap: 7px;
+    grid-template-columns: 72px repeat(7, minmax(30px, 1fr));
+    grid-template-rows: 34px 32px 40px;
+    column-gap: 6px;
+    row-gap: 5px;
     align-items: center;
     overflow: hidden;
     background: var(--surface);
@@ -1059,8 +1059,8 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   .sidebar-logo {
     grid-column: 1;
     grid-row: 1 / 4;
-    width: 78px;
-    height: 136px;
+    width: 72px;
+    height: 118px;
     padding: 0;
     margin: 0;
     border: 0;
@@ -1070,7 +1070,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .brand-logo-frame {
-    width: 72px;
+    width: 66px;
   }
 
   .brand-name {
@@ -1078,28 +1078,22 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .sidebar-footer {
-    grid-column: 2 / -1;
-    grid-row: 1;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
+    display: contents;
   }
 
   .theme-toggle {
-    width: auto;
-    min-width: 76px;
+    grid-column: 8;
+    grid-row: 1;
+    justify-self: end;
+    width: 36px;
+    min-width: 36px;
     height: 34px;
     margin: 0;
-    padding: 0 9px;
+    padding: 0;
     justify-content: center;
-    gap: 6px;
-    border-radius: 8px;
-    font-size: 11px;
+    gap: 0;
+    border-radius: 50%;
+    font-size: 0;
   }
 
   .theme-toggle span:first-child {
@@ -1107,10 +1101,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .theme-toggle::before {
-    content: "Tema:";
-    color: var(--text2);
-    font-size: 11px;
-    font-weight: 700;
+    content: none;
   }
 
   .theme-toggle-icon {
@@ -1120,9 +1111,12 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .btn-logout {
+    grid-column: 5 / 8;
+    grid-row: 2;
+    justify-self: end;
     width: auto;
-    min-width: 62px;
-    height: 34px;
+    min-width: 66px;
+    height: 30px;
     padding: 0 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -1141,7 +1135,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     grid-row: 3;
     width: 100%;
     min-width: 0;
-    height: 42px;
+    height: 38px;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -1162,8 +1156,8 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   .sidebar > .nav-item:nth-of-type(8) { grid-column: 8; }
 
   .sidebar > .nav-item svg {
-    width: 20px;
-    height: 20px;
+    width: 19px;
+    height: 19px;
   }
 
   .sidebar > .nav-item.active {
@@ -1176,7 +1170,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
 
   .main {
     margin-left: 0;
-    padding: 20px 18px 28px;
+    padding: 18px 18px 28px;
     min-width: 0;
   }
 
@@ -1206,6 +1200,28 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     text-decoration: none !important;
   }
 
+
+  .breadcrumb {
+    display: block;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .breadcrumb a:first-child,
+  .breadcrumb span:first-child {
+    color: var(--text) !important;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.05;
+    text-decoration: none !important;
+  }
+
+  .breadcrumb svg,
+  .breadcrumb span:not(:first-child) {
+    display: none !important;
+  }
+
   .page-subtitle {
     max-width: 100%;
     margin-top: 7px;
@@ -1215,26 +1231,28 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
 
   .topbar .user-info {
     position: absolute;
-    top: -122px;
-    right: 0;
+    top: -132px;
+    right: 42px;
     z-index: 260;
-    width: min(196px, calc(100vw - 112px));
+    width: min(214px, calc(100vw - 118px));
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
   }
 
   .topbar .bell {
+    order: 2;
     width: 34px;
     height: 34px;
     flex-shrink: 0;
   }
 
   .topbar .user-profile-trigger {
+    order: 1;
     min-width: 0;
-    max-width: 150px;
-    padding: 3px 4px;
+    max-width: 164px;
+    padding: 2px 4px;
     gap: 8px;
   }
 
@@ -1245,7 +1263,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .topbar .user-name {
-    max-width: 94px;
+    max-width: 108px;
     font-size: 12px;
     line-height: 1.1;
     overflow: hidden;
@@ -1254,7 +1272,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .topbar .user-role {
-    max-width: 94px;
+    max-width: 108px;
     font-size: 10.5px;
     line-height: 1.1;
     overflow: hidden;
