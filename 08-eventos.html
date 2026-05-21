@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StockSync – Eventos</title>
-  <link rel="stylesheet" href="styles.css?v=20260521-no-freeze-global">
+  <link rel="stylesheet" href="styles.css?v=20260521-mobile-event-date">
   <style>
     .breadcrumb {
       display: flex;
@@ -300,6 +300,14 @@
       cursor: not-allowed;
     }
 
+    .status-pill-control.is-static {
+      padding-right: 10px;
+    }
+
+    .status-pill-control.is-static::after {
+      content: none;
+    }
+
     .event-finalized-note {
       color: var(--green);
       font-size: 12.5px;
@@ -437,7 +445,7 @@
           <div class="section-subtitle">Clique em um evento para ver os equipamentos separados</div>
         </div>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap event-list-table mobile-card-table">
         <table>
           <thead>
             <tr>
@@ -480,7 +488,7 @@
       <div class="section-header">
         <div class="section-title">Equipamentos do Evento</div>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap event-detail-table mobile-card-table">
         <table>
           <thead>
             <tr>
@@ -527,7 +535,7 @@
               <div class="section-subtitle" id="equipamentosEventoSubtitulo">Escolha a quantidade de cada item disponível para este evento</div>
             </div>
           </div>
-          <div class="table-wrap">
+          <div class="table-wrap event-equipment-select-table mobile-card-table">
             <table class="event-equipment-table">
               <thead>
                 <tr>
@@ -699,7 +707,7 @@
       </div>
     </div>
   </div>
-<script src="app.js?v=20260521-no-freeze-global"></script>
+<script src="app.js?v=20260521-mobile-event-date"></script>
 <script>
 function abrirModalEvento() {
   modoEvento = "novo";
@@ -998,6 +1006,52 @@ function opcoesStatusEvento(statusAtual) {
   `).join("");
 }
 
+function textoStatusEvento(statusAtual) {
+  if (statusAtual === "manutencao") return "Em manuten\u00e7\u00e3o";
+  const encontrado = statusFluxoEvento.find((status) => status.valor === statusAtual);
+  return encontrado ? encontrado.texto : (GE.statusInfo[statusAtual]?.texto || "Pendente");
+}
+
+function controleStatusGrupoHtml(grupo, eventoFinalizado) {
+  const statusAtual = grupo.status || "reservado";
+  const classe = classeStatusEvento(statusAtual);
+
+  if (statusAtual === "manutencao") {
+    return `<span class="status-pill-control ${classe} is-static"><span>${textoStatusEvento(statusAtual)}</span></span>`;
+  }
+
+  return `
+    <div class="status-pill-control ${classe} ${eventoFinalizado ? "is-disabled" : ""}">
+      <select class="status-pill-select" data-codigos="${grupo.codigos.join(",")}" onchange="mudarStatusGrupo(this)" title="Alterar situa\u00e7\u00e3o de ${textoSeguro(grupo.nome)}" ${eventoFinalizado ? "disabled" : ""}>
+        ${opcoesStatusEvento(statusAtual)}
+      </select>
+    </div>`;
+}
+
+function dataEventoAtualModal(evento = null) {
+  return campoEventoData.value || evento?.data || "";
+}
+
+function codigosOcupadosNaDataEvento(dataEvento, eventoIgnoradoId = "") {
+  const ocupados = new Set();
+  if (!dataEvento) return ocupados;
+
+  (GE.dados().eventos || []).forEach((evento) => {
+    if (evento.status === "Finalizado") return;
+    if (evento.id === eventoIgnoradoId) return;
+    if (evento.data !== dataEvento) return;
+    (evento.equipamentos || []).forEach((codigo) => ocupados.add(codigo));
+  });
+
+  return ocupados;
+}
+
+function equipamentoPodeEntrarNoEvento(eq, codigosSelecionados, codigosOcupadosNaData) {
+  if (codigosSelecionados.has(eq.codigo)) return true;
+  if (eq.status === "manutencao" || eq.status === "locado") return false;
+  return !codigosOcupadosNaData.has(eq.codigo);
+}
+
 function classeStatusEvento(status) {
   return GE.statusInfo[status]?.classe || "badge-purple";
 }
@@ -1249,29 +1303,30 @@ function renderEvento() {
 
   const grupos = agruparEquipamentosDoEvento(atualizado.equipamentos || []);
   const externos = (atualizado.equipamentosExternos || []).map(normalizarEquipamentoExterno);
-  const linhasInternas = grupos.map((grupo) => `
+  const linhasInternas = grupos.map((grupo) => {
+    const emManutencao = grupo.status === "manutencao";
+    const acaoDesabilitada = eventoFinalizado || emManutencao;
+    const codigosTexto = grupo.codigos.join(",");
+    const nomeSeguro = textoSeguro(grupo.nome);
+    const nomeAcao = grupo.nome.replace(/'/g, "\\'");
+
+    return `
     <tr>
       <td style="font-family:var(--mono);font-size:12px" title="${grupo.codigos.join(", ")}">${resumoCodigos(grupo.codigos)}</td>
-      <td style="color:var(--text);font-weight:500">${grupo.nome}</td>
-      <td style="color:var(--text2)">${grupo.categoria}</td>
+      <td style="color:var(--text);font-weight:500">${nomeSeguro}</td>
+      <td style="color:var(--text2)">${textoSeguro(grupo.categoria)}</td>
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.quantidade}</td>
-      <td>
-        <div class="status-pill-control ${classeStatusEvento(grupo.status)} ${eventoFinalizado ? "is-disabled" : ""}">
-          <select class="status-pill-select" data-codigos="${grupo.codigos.join(",")}" onchange="mudarStatusGrupo(this)" title="Alterar situação de ${textoSeguro(grupo.nome)}" ${eventoFinalizado ? "disabled" : ""}>
-            ${opcoesStatusEvento(grupo.status)}
-          </select>
-        </div>
-      </td>
+      <td>${controleStatusGrupoHtml(grupo, eventoFinalizado)}</td>
       <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
       <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(atualizado.data)}</td>
       <td>
         <div class="event-equipment-actions">
-        <button class="maintenance-action" title="Enviar para manutenção" aria-label="Enviar ${grupo.nome} para manutenção" onclick="abrirManutencaoEvento('${grupo.codigos.join(",")}', '${grupo.nome.replace(/'/g, "\\'")}')" ${eventoFinalizado ? "disabled" : ""}>
+        <button class="maintenance-action" title="${emManutencao ? "Item j\u00e1 est\u00e1 em manuten\u00e7\u00e3o" : "Enviar para manuten\u00e7\u00e3o"}" aria-label="Enviar ${nomeSeguro} para manuten\u00e7\u00e3o" onclick="abrirManutencaoEvento('${codigosTexto}', '${nomeAcao}')" ${acaoDesabilitada ? "disabled" : ""}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9l-3.8 3.8z" />
           </svg>
         </button>
-        <button class="remove-event-equipment" title="Remover do evento" aria-label="Remover ${grupo.nome} do evento" onclick="removerEquipamentosDoEvento('${grupo.codigos.join(",")}', '${grupo.nome.replace(/'/g, "\\'")}')" ${eventoFinalizado ? "disabled" : ""}>
+        <button class="remove-event-equipment" title="Remover do evento" aria-label="Remover ${nomeSeguro} do evento" onclick="removerEquipamentosDoEvento('${codigosTexto}', '${nomeAcao}')" ${eventoFinalizado ? "disabled" : ""}>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path d="M3 6h18" />
             <path d="M8 6V4h8v2" />
@@ -1281,8 +1336,8 @@ function renderEvento() {
         </button>
         </div>
       </td>
-    </tr>
-  `).join("");
+    </tr>`;
+  }).join("");
 
   const linhasExternas = externos.map((item) => `
     <tr>
@@ -1310,9 +1365,12 @@ function renderEvento() {
 function agruparDisponiveisParaEvento(evento = null) {
   const mapa = new Map();
   const codigosSelecionados = new Set((evento && evento.equipamentos) || []);
+  const dataEvento = dataEventoAtualModal(evento);
+  const eventoIgnoradoId = evento?.id || eventoEditandoId || "";
+  const codigosOcupadosNaData = codigosOcupadosNaDataEvento(dataEvento, eventoIgnoradoId);
 
   GE.dados().equipamentos
-    .filter((eq) => eq.status === "disponivel" || codigosSelecionados.has(eq.codigo))
+    .filter((eq) => equipamentoPodeEntrarNoEvento(eq, codigosSelecionados, codigosOcupadosNaData))
     .forEach((eq) => {
       const chave = `${GE.normalizar(nomeBaseEquipamento(eq.nome))}|${GE.normalizar(eq.categoria)}`;
       if (!mapa.has(chave)) {
@@ -1376,6 +1434,13 @@ escolher.addEventListener("click", () => {
 });
 
 adicionarExternoEvento.addEventListener("click", adicionarEquipamentoExternoEvento);
+
+campoEventoData.addEventListener("change", () => {
+  const evento = modoEvento === "editar"
+    ? (GE.dados().eventos || []).find((item) => item.id === eventoEditandoId)
+    : null;
+  renderEquipamentosParaEvento(evento);
+});
 
 salvarManutencaoEvento.addEventListener("click", registrarManutencaoDoEvento);
 
