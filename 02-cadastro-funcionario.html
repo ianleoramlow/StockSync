@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Cadastro de Funcionário</title>
-<link rel="stylesheet" href="styles.css?v=20260521-no-freeze-global">
+<link rel="stylesheet" href="styles.css?v=20260521-account-choice">
 <style>
 .modal-overlay {
   position: fixed; inset: 0;
@@ -338,7 +338,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260521-no-freeze-global"></script>
+<script src="app.js?v=20260521-account-choice"></script>
 <script>
 const modalFuncionario = document.getElementById("modalFuncionario");
 const tabelaFuncionarios = document.getElementById("funcionariosTabela");
@@ -434,19 +434,12 @@ function renderCadastroFuncionarioPublico() {
         <button class="btn btn-secondary" id="voltarLoginFuncionario">Voltar ao Login</button>
         <button class="btn btn-primary" id="criarFuncionario">Criar Conta</button>
       </div>
-      <div class="public-link-wrap">
-        <span class="public-link" id="abrirCadastroEmpresa">Acesso empresarial</span>
-      </div>
     </div>
   `;
   GE.atualizarLogosTema();
 
   document.getElementById("voltarLoginFuncionario").addEventListener("click", () => {
     window.location.href = "01-login.html";
-  });
-
-  document.getElementById("abrirCadastroEmpresa").addEventListener("click", () => {
-    renderCadastroEmpresa();
   });
 
   document.getElementById("criarFuncionario").addEventListener("click", () => {
