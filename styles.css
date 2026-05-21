@@ -1034,6 +1034,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
 
 
   body {
+    --mobile-profile-width: clamp(128px, 42vw, 164px);
     display: block;
   }
 
@@ -1082,9 +1083,9 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .theme-toggle {
-    grid-column: 8;
-    grid-row: 1;
-    justify-self: end;
+    position: absolute;
+    top: 10px;
+    right: calc(12px + var(--mobile-profile-width) + 48px);
     width: 36px;
     min-width: 36px;
     height: 34px;
@@ -1111,12 +1112,12 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .btn-logout {
-    grid-column: 5 / 8;
-    grid-row: 2;
-    justify-self: end;
-    width: auto;
-    min-width: 66px;
-    height: 30px;
+    position: absolute;
+    top: 50px;
+    right: 12px;
+    width: var(--mobile-profile-width);
+    min-width: 0;
+    height: 28px;
     padding: 0 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -1202,18 +1203,19 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
 
 
   .breadcrumb {
-    display: block;
-    margin-bottom: 18px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
+    display: block !important;
+    margin-bottom: 18px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid var(--border) !important;
+    font-size: 28px !important;
   }
 
   .breadcrumb a:first-child,
   .breadcrumb span:first-child {
     color: var(--text) !important;
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1.05;
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    line-height: 1.05 !important;
     text-decoration: none !important;
   }
 
@@ -1231,10 +1233,10 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
 
   .topbar .user-info {
     position: absolute;
-    top: -132px;
-    right: 42px;
+    top: -144px;
+    right: 12px;
     z-index: 260;
-    width: min(214px, calc(100vw - 118px));
+    width: calc(var(--mobile-profile-width) + 41px);
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -1242,16 +1244,17 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .topbar .bell {
-    order: 2;
+    order: 1;
     width: 34px;
     height: 34px;
     flex-shrink: 0;
   }
 
   .topbar .user-profile-trigger {
-    order: 1;
+    order: 2;
+    width: var(--mobile-profile-width);
     min-width: 0;
-    max-width: 164px;
+    max-width: var(--mobile-profile-width);
     padding: 2px 4px;
     gap: 8px;
   }
@@ -1263,7 +1266,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .topbar .user-name {
-    max-width: 108px;
+    max-width: calc(var(--mobile-profile-width) - 48px);
     font-size: 12px;
     line-height: 1.1;
     overflow: hidden;
@@ -1272,7 +1275,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .topbar .user-role {
-    max-width: 108px;
+    max-width: calc(var(--mobile-profile-width) - 48px);
     font-size: 10.5px;
     line-height: 1.1;
     overflow: hidden;
