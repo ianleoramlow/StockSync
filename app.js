@@ -10,6 +10,7 @@ const GE = (() => {
   const backendCache = new Map();
   const backendWriteTimers = new Map();
   const backendWriteQueue = new Map();
+  const snapshotsEmpresa = new Map();
   let backendDisponivel = null;
   let ultimaGravacaoLocal = 0;
   let sincronizacaoEmAndamento = false;
@@ -21,6 +22,50 @@ const GE = (() => {
       || chave.startsWith("ge_dados_");
   }
 
+
+  function ehChaveDadosEmpresa(chave) {
+    return /^ge_dados_/i.test(chave || "");
+  }
+
+  function empresaIdDaChave(chave) {
+    return String(chave || "").replace(/^ge_dados_/i, "");
+  }
+
+  function atualizarSnapshotEmpresa(chave, valor) {
+    if (!ehChaveDadosEmpresa(chave)) return;
+    snapshotsEmpresa.set(empresaIdDaChave(chave), clone(valor));
+  }
+
+  function payloadChaveBackend(chave, valor) {
+    if (chave === EMPRESAS_KEY) {
+      return { caminho: "/api/data", corpo: { action: "syncEmpresas", empresas: valor || [] } };
+    }
+
+    if (ehChaveDadosEmpresa(chave)) {
+      const empresaId = empresaIdDaChave(chave);
+      const empresa = empresasSemMigracao().find((item) => item.id === empresaId) || null;
+      return {
+        caminho: "/api/data",
+        corpo: {
+          action: "syncEmpresa",
+          empresaId,
+          empresa,
+          previousDb: snapshotsEmpresa.get(empresaId) || {},
+          db: valor || dadosVazios()
+        }
+      };
+    }
+
+    if (chave === SOLICITACOES_KEY) return null;
+
+    return { caminho: `/api/storage/${encodeURIComponent(chave)}`, corpo: { value: valor } };
+  }
+
+  function enviarChaveBackend(chave, valor) {
+    const payload = payloadChaveBackend(chave, valor);
+    if (!payload) return Promise.resolve(null);
+    return requisicaoBackendAsync("POST", payload.caminho, payload.corpo);
+  }
   function requisicaoBackend(metodo, caminho, corpo = null) {
     if (!location.protocol.startsWith("http")) return null;
 
@@ -70,7 +115,7 @@ const GE = (() => {
     if (!chaveCompartilhada(chave) || backendDisponivel === false) return BACKEND_MISSING;
     if (backendCache.has(chave)) return backendCache.get(chave);
 
-    const resposta = requisicaoBackend("GET", `/api/storage/${encodeURIComponent(chave)}`);
+    const resposta = requisicaoBackend("GET", `/api/data?key=${encodeURIComponent(chave)}`) || requisicaoBackend("GET", `/api/storage/${encodeURIComponent(chave)}`);
     backendDisponivel = Boolean(resposta?.ok);
     if (!resposta?.exists) return BACKEND_MISSING;
 
@@ -89,7 +134,7 @@ const GE = (() => {
       const value = backendWriteQueue.get(chave);
       backendWriteQueue.delete(chave);
       backendWriteTimers.delete(chave);
-      requisicaoBackendAsync("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value });
+      enviarChaveBackend(chave, value);
     }, 250));
   }
 
@@ -116,7 +161,7 @@ const GE = (() => {
 
     sincronizacaoEmAndamento = true;
     try {
-      const response = await fetch("/api/export", { headers: { "Accept": "application/json" }, cache: "no-store" });
+      const response = await fetch("/api/data", { headers: { "Accept": "application/json" }, cache: "no-store" });
       backendDisponivel = response.ok;
       if (!response.ok) return;
 
@@ -152,7 +197,7 @@ const GE = (() => {
   function iniciarSincronizacaoBackend() {
     if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
     setTimeout(() => sincronizarBackend(true), 900);
-    setInterval(() => sincronizarBackend(false), 12000);
+    setInterval(() => sincronizarBackend(false), 4000);
     window.addEventListener("focus", () => sincronizarBackend(true));
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") sincronizarBackend(true);
@@ -636,6 +681,7 @@ const GE = (() => {
     if (aplicarImagensEquipamentos(db)) alterou = true;
     if (alterou) salvarJSON(chaveEmpresa(id), db);
 
+    snapshotsEmpresa.set(id, clone(db));
     return db;
   }
 
@@ -651,6 +697,7 @@ const GE = (() => {
     const db = garantirEstrutura(dadosAtualizados);
     aplicarImagensEquipamentos(db);
     salvarJSON(chaveEmpresa(id), db);
+    snapshotsEmpresa.set(id, clone(db));
   }
 
   function emailExisteEmOutraEmpresa(email, empresaIgnorada = "") {
