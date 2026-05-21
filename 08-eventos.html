@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StockSync – Eventos</title>
-  <link rel="stylesheet" href="styles.css?v=20260521-mobile-event-date">
+  <link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
   <style>
     .breadcrumb {
       display: flex;
@@ -431,7 +431,7 @@
   </aside>
   <main class="main">
     <div class="breadcrumb"> <a href="08-eventos.html">Eventos</a> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-    stroke="currentColor" stroke-width="2" width="12" height="12">
+        stroke="currentColor" stroke-width="2" width="12" height="12">
         <polyline points="9 18 15 12 9 6" />
       </svg> <span>EVT123</span> </div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
@@ -707,7 +707,7 @@
       </div>
     </div>
   </div>
-<script src="app.js?v=20260521-mobile-event-date"></script>
+<script src="app.js?v=20260521-mobile-header-controls"></script>
 <script>
 function abrirModalEvento() {
   modoEvento = "novo";
@@ -1518,6 +1518,7 @@ salvar.addEventListener("click", () => {
 });
 
 renderEventos();
+window.addEventListener("stocksync:sync", () => { renderEventos(); renderEvento(); });
 renderEvento();
 </script>
 </body>
