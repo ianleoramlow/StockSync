@@ -1,0 +1,1472 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockSync – Eventos</title>
+  <link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+  <style>
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--text3);
+      margin-bottom: 20px;
+    }
+
+    .breadcrumb a {
+      color: var(--accent2);
+      cursor: pointer;
+    }
+
+    .breadcrumb span {
+      color: var(--text3);
+    }
+
+    .event-header {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .event-icon {
+      width: 42px;
+      height: 42px;
+      background: rgba(124, 58, 237, 0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 14px;
+    }
+
+    /* NOVO - MODAL */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .modal-content {
+      background: var(--surface);
+      padding: 24px;
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 860px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .event-equipment-table input {
+      width: 78px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      outline: none;
+    }
+
+    .event-equipment-table input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+
+    .external-rental-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr 110px;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .external-rental-note {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+      margin-top: 12px;
+    }
+
+    .external-rental-message {
+      display: none;
+      color: var(--red);
+      font-size: 12.5px;
+      margin-top: 10px;
+    }
+
+    .external-row-detail {
+      color: var(--text3);
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .remove-external-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text2);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .remove-external-btn:hover {
+      border-color: rgba(239, 68, 68, 0.45);
+      color: var(--red);
+    }
+
+    @media (max-width: 920px) {
+      .external-rental-grid,
+      .external-rental-note {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .empty-selection {
+      color: var(--text3);
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 12px 0;
+    }
+
+    .event-row {
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .event-row:hover {
+      background: rgba(124, 58, 237, 0.08);
+    }
+
+    .event-row.active {
+      background: rgba(124, 58, 237, 0.15);
+    }
+
+    .event-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .bulk-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12px;
+      padding: 8px 10px;
+      outline: none;
+      min-width: 150px;
+    }
+
+    .status-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+
+    .status-pill-control {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 132px;
+      padding: 3px 26px 3px 10px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .status-pill-control::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .status-pill-control::after {
+      content: "⌄";
+      position: absolute;
+      right: 9px;
+      top: 50%;
+      transform: translateY(-53%);
+      color: currentColor;
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .status-pill-select {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 100%;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: currentColor;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .status-pill-select option {
+      color: var(--text);
+      background: var(--surface2);
+    }
+
+    .event-equipment-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .maintenance-action,
+    .remove-event-equipment {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .maintenance-action {
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--red);
+    }
+
+    .remove-event-equipment {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text3);
+    }
+
+    .maintenance-action:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.7);
+      transform: translateY(-1px);
+    }
+
+    .remove-event-equipment:hover {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.45);
+      color: var(--red);
+      transform: translateY(-1px);
+    }
+
+    .maintenance-action svg,
+    .remove-event-equipment svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .maintenance-action:disabled,
+    .remove-event-equipment:disabled,
+    .status-select:disabled,
+    .status-pill-control.is-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status-pill-control.is-disabled .status-pill-select {
+      cursor: not-allowed;
+    }
+
+    .event-finalized-note {
+      color: var(--green);
+      font-size: 12.5px;
+      margin-top: 4px;
+    }
+
+    .maintenance-selection-panel {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+
+    .maintenance-selection-head {
+      display: grid;
+      grid-template-columns: 1fr 150px;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+
+    .maintenance-selection-title {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .maintenance-selection-help {
+      color: var(--text3);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .maintenance-code-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .maintenance-code-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .maintenance-code-option input {
+      accent-color: var(--red);
+    }
+
+    .maintenance-code-option:has(input:checked) {
+      border-color: rgba(239, 68, 68, 0.65);
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--red);
+    }
+
+    .maintenance-selection-summary {
+      color: var(--text3);
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 680px) {
+      .maintenance-selection-head {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <a class="sidebar-logo" href="03-dashboard.html"><div class="brand-logo-frame"><img src="assets/logo-stocksync-icon.png" alt="StockSync"></div><div class="brand-name">Stock<span>Sync</span></div></a> <a class="nav-item" href="03-dashboard.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none"
+        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+      </svg>Dashboard</a> <a class="nav-item" href="04-equipamentos.html"><svg xmlns="http://www.w3.org/2000/svg"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+      </svg>Equipamentos</a> <a class="nav-item active" href="08-eventos.html"><svg xmlns="http://www.w3.org/2000/svg"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+      </svg>Eventos</a> <a class="nav-item" href="09-locacoes.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none"
+        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" />
+        <circle cx="12" cy="10" r="3" />
+      </svg>Locações</a> <a class="nav-item" href="10-manutencao-registrar.html"><svg xmlns="http://www.w3.org/2000/svg"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path
+          d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+      </svg>Manutenção</a> <a class="nav-item" href="02-cadastro-funcionario.html"><svg
+        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+      </svg>Funcionários</a> <a class="nav-item" href="12-logs.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none"
+        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+      </svg>Logs</a>
+    <div class="sidebar-footer"><button class="btn-logout"><svg xmlns="http://www.w3.org/2000/svg" fill="none"
+          viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+        </svg>Sair</button></div>
+  </aside>
+  <main class="main">
+    <div class="breadcrumb"> <a href="08-eventos.html">Eventos</a> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor" stroke-width="2" width="12" height="12">
+        <polyline points="9 18 15 12 9 6" />
+      </svg> <span>EVT123</span> </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <button class="btn btn-primary" onclick="abrirModalEvento()">+ Adicionar Novo Evento</button>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Eventos Cadastrados</div>
+          <div class="section-subtitle">Clique em um evento para ver os equipamentos separados</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Evento</th>
+              <th>Data</th>
+              <th>Local</th>
+              <th>Qtd. Equip.</th>
+            </tr>
+          </thead>
+          <tbody id="eventosTabela"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="event-header">
+      <div style="display:flex;align-items:center">
+        <div class="event-icon"> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="2" width="20" height="20" style="color:var(--accent2)">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg> </div>
+        <div>
+          <div style="font-size:16px;font-weight:700">Show de Verão 2024</div>
+          <div style="font-size:12.5px;color:var(--text3);margin-top:3px">20/01/2024 – Arena Anhembi</div>
+        </div>
+      </div>
+      <div class="event-actions">
+        <button class="btn btn-secondary" onclick="abrirEditarEvento()">Editar Evento</button>
+        <div class="bulk-status">
+          <select class="status-select" id="statusEventoGeral" title="Alterar situação de todos os equipamentos">
+            <option value="">Situação da lista</option>
+          </select>
+          <button class="btn btn-secondary" id="aplicarStatusEventoGeral" onclick="aplicarStatusEventoInteiro()">Aplicar</button>
+        </div>
+        <button class="btn btn-primary" id="finalizarEventoBotao" onclick="abrirFinalizarEvento()">Finalizar Evento</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Equipamentos do Evento</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Códigos</th>
+              <th>Equipamento</th>
+              <th>Categoria</th>
+              <th>Quantidade</th>
+              <th>Situação</th>
+              <th>Responsável</th>
+              <th>Data Saída</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="eventoDetalheTabela"></tbody>
+        </table>
+      </div>
+    </div>
+  </main> <!-- NOVO MODAL -->
+  <div id="modalEvento" class="modal-overlay">
+    <div class="modal-content"> <!-- HEADER -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <div>
+          <div class="page-title" id="modalEventoTitulo">Adicionar Evento</div>
+          <div class="page-subtitle" id="modalEventoSubtitulo">Cadastre ou importe um novo evento</div>
+        </div> <button onclick="fecharModalEvento()" class="btn btn-secondary">Fechar</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px;"> <!-- FORM -->
+        <div class="card">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="form-group"> <label class="form-label">ID do Evento</label> <input class="input" id="eventoId"
+                placeholder="Ex: EVT123"> </div>
+            <div class="form-group"> <label class="form-label">Nome do Evento</label> <input class="input" id="eventoNome"
+                placeholder="Ex: Show de Verão 2024"> </div>
+            <div class="form-group"> <label class="form-label">Data</label> <input type="date" class="input" id="eventoData"> </div>
+            <div class="form-group"> <label class="form-label">Local</label> <input class="input" id="eventoLocal"
+                placeholder="Ex: Arena Anhembi"> </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-header" style="margin-bottom:12px">
+            <div>
+              <div class="section-title">Selecionar Equipamentos</div>
+              <div class="section-subtitle" id="equipamentosEventoSubtitulo">Escolha a quantidade de cada item disponível para este evento</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="event-equipment-table">
+              <thead>
+                <tr>
+                  <th>Equipamento</th>
+                  <th>Categoria</th>
+                  <th>Total Selecionável</th>
+                  <th>Quantidade</th>
+                </tr>
+              </thead>
+              <tbody id="equipamentosEventoTabela"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-header" style="margin-bottom:12px">
+            <div>
+              <div class="section-title">Locados de Terceiros</div>
+              <div class="section-subtitle">Registre equipamentos alugados de outra empresa para este evento</div>
+            </div>
+          </div>
+          <div class="external-rental-grid">
+            <div class="form-group">
+              <label class="form-label">Equipamento</label>
+              <input class="input" id="externoNome" placeholder="Ex: Gerador 180 KVA">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Categoria</label>
+              <input class="input" id="externoCategoria" placeholder="Ex: Energia">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Empresa Locadora</label>
+              <input class="input" id="externoEmpresa" placeholder="Ex: Locadora XYZ">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quantidade</label>
+              <input class="input" id="externoQuantidade" type="number" min="1" value="1">
+            </div>
+          </div>
+          <div class="external-rental-note">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Observação</label>
+              <input class="input" id="externoObservacao" placeholder="Contrato, contato, nota fiscal ou cuidado especial">
+            </div>
+            <button class="btn btn-secondary" id="adicionarExternoEvento" type="button">Adicionar Locado</button>
+          </div>
+          <div class="external-rental-message" id="externoEventoMensagem"></div>
+          <div class="table-wrap" style="margin-top:14px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Equipamento</th>
+                  <th>Categoria</th>
+                  <th>Empresa</th>
+                  <th>Quantidade</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="equipamentosExternosTabela"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- JSON -->
+        <div class="card" id="eventoJsonCard">
+          <div style="font-weight:600;margin-bottom:12px;"> Importar via JSON </div>
+          <div class="upload-area"> Arraste um JSON ou clique para selecionar <button
+              class="btn btn-secondary">Selecionar Arquivo</button> </div>
+          <div style="margin-top:16px;">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:6px;"> Ou cole o JSON: </div> <textarea
+              class="input"
+              placeholder='{ "evento_id": "EVT123", "nome": "Show de Verão 2024", "data": "2024-01-28", "equipamentos": ["EQP001", "EQP002"] }'
+              style="height:120px;font-family:var(--mono);font-size:12px;"></textarea>
+          </div>
+        </div> <!-- BOTÕES -->
+        <div style="display:flex;justify-content:flex-end;gap:10px;"> <button class="btn btn-secondary"
+            onclick="fecharModalEvento()">Cancelar</button> <button class="btn btn-primary" id="salvarEventoBotao">Salvar Evento</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div> <!-- NOVO JS -->
+  <div id="modalManutencaoEvento" class="modal-overlay">
+    <div class="modal-content" style="max-width:620px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <div>
+          <div class="page-title">Registrar Manutenção</div>
+          <div class="page-subtitle">Informe o problema identificado no evento</div>
+        </div>
+        <button onclick="fecharModalManutencaoEvento()" class="btn btn-secondary">Fechar</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label class="form-label">Equipamento</label>
+          <input class="input" id="manutencaoEquipamentoEvento" readonly>
+        </div>
+        <div class="maintenance-selection-panel">
+          <div class="maintenance-selection-head">
+            <div>
+              <div class="maintenance-selection-title">Unidades que irão para manutenção</div>
+              <div class="maintenance-selection-help">Escolha a quantidade ou marque os códigos específicos do equipamento.</div>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" for="manutencaoQuantidadeEvento">Quantidade</label>
+              <input class="input" id="manutencaoQuantidadeEvento" type="number" min="0" value="1">
+            </div>
+          </div>
+          <div class="maintenance-code-grid" id="manutencaoCodigosEvento"></div>
+          <div class="maintenance-selection-summary" id="manutencaoSelecaoResumo"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Prioridade</label>
+            <select class="form-select" id="manutencaoPrioridadeEvento">
+              <option>Baixa</option>
+              <option selected>Média</option>
+              <option>Alta</option>
+              <option>Urgente</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Responsável Técnico</label>
+            <input class="input" id="manutencaoTecnicoEvento" placeholder="Ex: Pedro Oliveira">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Problema Identificado</label>
+          <textarea class="input" id="manutencaoProblemaEvento" placeholder="Descreva o defeito, sintoma ou ocorrência" style="height:100px;font-family:var(--font);"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <textarea class="input" id="manutencaoObservacoesEvento" placeholder="Ex: voltou do evento molhado, precisa limpar antes do teste" style="height:80px;font-family:var(--font);"></textarea>
+        </div>
+        <div id="manutencaoEventoMensagem" style="display:none;color:var(--green);font-size:13px;margin-top:8px;"></div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn btn-secondary" onclick="fecharModalManutencaoEvento()">Cancelar</button>
+        <button class="btn btn-primary" id="salvarManutencaoEvento">Registrar Manutenção</button>
+      </div>
+    </div>
+  </div>
+  <div id="modalFinalizarEvento" class="modal-overlay">
+    <div class="modal-content" style="max-width:560px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <div>
+          <div class="page-title">Finalizar Evento</div>
+          <div class="page-subtitle" id="finalizarEventoResumo">Libere os equipamentos do evento para o estoque</div>
+        </div>
+        <button onclick="fecharModalFinalizarEvento()" class="btn btn-secondary">Fechar</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="color:var(--text2);line-height:1.5;font-size:13px;margin-bottom:14px;">
+          Ao finalizar, os equipamentos vinculados ao evento voltarão para <strong style="color:var(--text)">Disponível</strong>.
+          Itens que já estiverem em manutenção continuam em manutenção.
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observação Final</label>
+          <textarea class="input" id="observacaoFinalEvento" style="height:100px;font-family:var(--font);">Evento finalizado e materiais retornados ao estoque.</textarea>
+        </div>
+        <div id="finalizarEventoMensagem" style="display:none;font-size:13px;margin-top:8px;"></div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn btn-secondary" onclick="fecharModalFinalizarEvento()">Cancelar</button>
+        <button class="btn btn-primary" id="confirmarFinalizarEvento">Finalizar Evento</button>
+      </div>
+    </div>
+  </div>
+<script src="app.js?v=20260521-backend-db"></script>
+<script>
+function abrirModalEvento() {
+  modoEvento = "novo";
+  eventoEditandoId = "";
+  limparFormularioEvento();
+  modalTitulo.textContent = "Adicionar Evento";
+  modalSubtitulo.textContent = "Cadastre ou importe um novo evento";
+  equipamentosSubtitulo.textContent = "Escolha a quantidade de cada item disponível para este evento";
+  eventoJsonCard.style.display = "block";
+  renderEquipamentosParaEvento();
+  document.getElementById("modalEvento").style.display = "flex";
+}
+function fecharModalEvento() { document.getElementById("modalEvento").style.display = "none"; }
+
+const params = new URLSearchParams(window.location.search);
+const eventTitle = document.querySelector(".event-header [style*='font-size:16px']");
+const eventInfo = document.querySelector(".event-header [style*='font-size:12.5px']");
+const breadcrumbId = document.querySelector(".breadcrumb span");
+const eventosTabela = document.getElementById("eventosTabela");
+const detalheTabela = document.getElementById("eventoDetalheTabela");
+const finalizarEventoBotao = document.getElementById("finalizarEventoBotao");
+const statusEventoGeral = document.getElementById("statusEventoGeral");
+const aplicarStatusEventoGeral = document.getElementById("aplicarStatusEventoGeral");
+let eventoSelecionadoId = params.get("evento") || (GE.dados().eventos[0] ? GE.dados().eventos[0].id : "");
+
+function nomeBaseEquipamento(nome) {
+  return nome.replace(/\s+\d+$/, "").trim();
+}
+
+function quantidadeTotalEvento(evento) {
+  const internos = (evento.equipamentos || []).length;
+  const externos = (evento.equipamentosExternos || []).reduce((total, item) => {
+    return total + Math.max(Number(item.quantidade) || 0, 0);
+  }, 0);
+
+  return internos + externos;
+}
+
+function limparDetalheEventos() {
+  eventTitle.textContent = "Nenhum evento cadastrado";
+  eventInfo.textContent = "Crie um novo evento para separar equipamentos";
+  breadcrumbId.textContent = "-";
+  detalheTabela.innerHTML = `<tr><td colspan="8" style="color:var(--text3);font-family:var(--font)">Nenhum evento selecionado.</td></tr>`;
+}
+
+function selecionarEvento(id) {
+  eventoSelecionadoId = id;
+  renderEventos(id);
+  renderEvento();
+}
+
+function configurarCliquesEventos() {
+  eventosTabela.querySelectorAll("[data-evento-id]").forEach((linha) => {
+    linha.addEventListener("click", () => selecionarEvento(linha.dataset.eventoId));
+  });
+}
+
+function renderEventos(idParaSelecionar = eventoSelecionadoId) {
+  const eventos = GE.dados().eventos || [];
+
+  if (!eventos.length) {
+    eventoSelecionadoId = "";
+    eventosTabela.innerHTML = `<tr><td colspan="5" style="color:var(--text3);font-family:var(--font)">Nenhum evento cadastrado.</td></tr>`;
+    limparDetalheEventos();
+    return;
+  }
+
+  if (!eventos.some((evento) => evento.id === idParaSelecionar)) {
+    idParaSelecionar = eventos[0].id;
+  }
+  eventoSelecionadoId = idParaSelecionar;
+
+  eventosTabela.innerHTML = eventos.map((evento) => `
+    <tr class="event-row ${evento.id === eventoSelecionadoId ? "active" : ""}" data-evento-id="${evento.id}">
+      <td style="font-family:var(--mono);font-weight:700">${evento.id}</td>
+      <td style="color:var(--text);font-weight:600">${evento.nome}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(evento.data)}</td>
+      <td style="color:var(--text2)">${evento.local || "Local não informado"}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${quantidadeTotalEvento(evento)}${evento.status === "Finalizado" ? " | Finalizado" : ""}</td>
+    </tr>
+  `).join("");
+
+  configurarCliquesEventos();
+}
+
+function resumoCodigos(codigos) {
+  const ordenados = [...codigos].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  return ordenados.length === 1 ? ordenados[0] : `${ordenados[0]} - ${ordenados[ordenados.length - 1]}`;
+}
+
+const modal = document.getElementById("modalEvento");
+const salvar = document.getElementById("salvarEventoBotao");
+const escolher = modal.querySelector(".upload-area .btn-secondary");
+const equipamentosEventoTabela = document.getElementById("equipamentosEventoTabela");
+const modalTitulo = document.getElementById("modalEventoTitulo");
+const modalSubtitulo = document.getElementById("modalEventoSubtitulo");
+const equipamentosSubtitulo = document.getElementById("equipamentosEventoSubtitulo");
+const eventoJsonCard = document.getElementById("eventoJsonCard");
+const campoEventoId = document.getElementById("eventoId");
+const campoEventoNome = document.getElementById("eventoNome");
+const campoEventoData = document.getElementById("eventoData");
+const campoEventoLocal = document.getElementById("eventoLocal");
+const externoNome = document.getElementById("externoNome");
+const externoCategoria = document.getElementById("externoCategoria");
+const externoEmpresa = document.getElementById("externoEmpresa");
+const externoQuantidade = document.getElementById("externoQuantidade");
+const externoObservacao = document.getElementById("externoObservacao");
+const adicionarExternoEvento = document.getElementById("adicionarExternoEvento");
+const equipamentosExternosTabela = document.getElementById("equipamentosExternosTabela");
+const externoEventoMensagem = document.getElementById("externoEventoMensagem");
+const modalManutencaoEvento = document.getElementById("modalManutencaoEvento");
+const manutencaoEquipamentoEvento = document.getElementById("manutencaoEquipamentoEvento");
+const manutencaoQuantidadeEvento = document.getElementById("manutencaoQuantidadeEvento");
+const manutencaoCodigosEvento = document.getElementById("manutencaoCodigosEvento");
+const manutencaoSelecaoResumo = document.getElementById("manutencaoSelecaoResumo");
+const manutencaoPrioridadeEvento = document.getElementById("manutencaoPrioridadeEvento");
+const manutencaoTecnicoEvento = document.getElementById("manutencaoTecnicoEvento");
+const manutencaoProblemaEvento = document.getElementById("manutencaoProblemaEvento");
+const manutencaoObservacoesEvento = document.getElementById("manutencaoObservacoesEvento");
+const manutencaoEventoMensagem = document.getElementById("manutencaoEventoMensagem");
+const salvarManutencaoEvento = document.getElementById("salvarManutencaoEvento");
+const modalFinalizarEvento = document.getElementById("modalFinalizarEvento");
+const finalizarEventoResumo = document.getElementById("finalizarEventoResumo");
+const observacaoFinalEvento = document.getElementById("observacaoFinalEvento");
+const finalizarEventoMensagem = document.getElementById("finalizarEventoMensagem");
+const confirmarFinalizarEvento = document.getElementById("confirmarFinalizarEvento");
+let gruposEquipamentosEvento = [];
+let modoEvento = "novo";
+let eventoEditandoId = "";
+let manutencaoEventoAtual = { codigos: [], nome: "" };
+let equipamentosExternosEvento = [];
+
+const statusFluxoEvento = [
+  { valor: "reservado", texto: "Pendente" },
+  { valor: "separacao", texto: "Em separação" },
+  { valor: "caminhao", texto: "No caminhão" },
+  { valor: "evento", texto: "Em evento" },
+  { valor: "retornando", texto: "Retornando" },
+  { valor: "retornado", texto: "Retornado / conferir" },
+  { valor: "disponivel", texto: "Conferido / disponível" }
+];
+
+statusEventoGeral.innerHTML += statusFluxoEvento.map((status) => `
+  <option value="${status.valor}">${status.texto}</option>
+`).join("");
+
+function limparFormularioEvento() {
+  campoEventoId.value = "";
+  campoEventoNome.value = "";
+  campoEventoData.value = "";
+  campoEventoLocal.value = "";
+  modal.querySelector("textarea").value = "";
+  externoNome.value = "";
+  externoCategoria.value = "";
+  externoEmpresa.value = "";
+  externoQuantidade.value = "1";
+  externoObservacao.value = "";
+  externoEventoMensagem.style.display = "none";
+  externoEventoMensagem.textContent = "";
+  equipamentosExternosEvento = [];
+  renderEquipamentosExternosEvento();
+}
+
+function textoSeguro(valor) {
+  return String(valor || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function normalizarEquipamentoExterno(item) {
+  return {
+    nome: (item.nome || "").trim(),
+    categoria: (item.categoria || "Terceiros").trim(),
+    empresa: (item.empresa || item.locadora || "").trim(),
+    quantidade: Math.max(Number(item.quantidade) || 1, 1),
+    observacao: (item.observacao || item.observacoes || "").trim(),
+    status: "locado_externo"
+  };
+}
+
+function renderEquipamentosExternosEvento() {
+  equipamentosExternosTabela.innerHTML = equipamentosExternosEvento.map((item, index) => `
+    <tr>
+      <td style="color:var(--text);font-weight:500">
+        ${textoSeguro(item.nome)}
+        ${item.observacao ? `<div class="external-row-detail">${textoSeguro(item.observacao)}</div>` : ""}
+      </td>
+      <td style="color:var(--text2)">${textoSeguro(item.categoria || "Terceiros")}</td>
+      <td style="color:var(--text2)">${textoSeguro(item.empresa)}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${item.quantidade}</td>
+      <td><button class="remove-external-btn" type="button" title="Remover locado" onclick="removerEquipamentoExternoEvento(${index})">×</button></td>
+    </tr>
+  `).join("") || `<tr><td colspan="5"><div class="empty-selection">Nenhum equipamento locado de terceiros adicionado.</div></td></tr>`;
+}
+
+function adicionarEquipamentoExternoEvento() {
+  const item = normalizarEquipamentoExterno({
+    nome: externoNome.value,
+    categoria: externoCategoria.value,
+    empresa: externoEmpresa.value,
+    quantidade: externoQuantidade.value,
+    observacao: externoObservacao.value
+  });
+
+  if (!item.nome || !item.empresa) {
+    externoEventoMensagem.style.display = "block";
+    externoEventoMensagem.textContent = "Informe pelo menos o equipamento e a empresa locadora.";
+    return;
+  }
+
+  equipamentosExternosEvento.push(item);
+  externoNome.value = "";
+  externoCategoria.value = "";
+  externoEmpresa.value = "";
+  externoQuantidade.value = "1";
+  externoObservacao.value = "";
+  externoEventoMensagem.style.display = "none";
+  externoEventoMensagem.textContent = "";
+  renderEquipamentosExternosEvento();
+  externoNome.focus();
+}
+
+function removerEquipamentoExternoEvento(index) {
+  equipamentosExternosEvento.splice(index, 1);
+  renderEquipamentosExternosEvento();
+}
+
+function abrirEditarEvento() {
+  const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
+
+  if (!evento) {
+    GE.mensagem("Selecione um evento para editar.", "warning");
+    return;
+  }
+
+  if (evento.status === "Finalizado") {
+    GE.mensagem("Este evento já foi finalizado.", "warning");
+    return;
+  }
+
+  modoEvento = "editar";
+  eventoEditandoId = evento.id;
+  campoEventoId.value = evento.id;
+  campoEventoNome.value = evento.nome;
+  campoEventoData.value = evento.data;
+  campoEventoLocal.value = evento.local || "";
+  modal.querySelector("textarea").value = "";
+  modalTitulo.textContent = "Editar Evento";
+  modalSubtitulo.textContent = "Altere os dados e a quantidade de equipamentos";
+  equipamentosSubtitulo.textContent = "Ajuste a quantidade atual do evento ou adicione itens disponíveis";
+  eventoJsonCard.style.display = "none";
+  equipamentosExternosEvento = (evento.equipamentosExternos || []).map(normalizarEquipamentoExterno);
+  renderEquipamentosExternosEvento();
+  renderEquipamentosParaEvento(evento);
+  modal.style.display = "flex";
+}
+
+function agruparEquipamentosDoEvento(codigos) {
+  const mapa = new Map();
+
+  codigos.forEach((codigo) => {
+    const eq = GE.getEquipamento(codigo) || {
+      codigo,
+      nome: "Equipamento não encontrado",
+      categoria: "-",
+      status: "reservado"
+    };
+    const nome = nomeBaseEquipamento(eq.nome);
+    const categoria = eq.categoria || "-";
+    const chave = `${GE.normalizar(nome)}|${GE.normalizar(categoria)}|${eq.status || "reservado"}`;
+
+    if (!mapa.has(chave)) {
+      mapa.set(chave, {
+        nome,
+        categoria,
+        status: eq.status || "reservado",
+        codigos: [],
+        quantidade: 0
+      });
+    }
+
+    const grupo = mapa.get(chave);
+    grupo.codigos.push(codigo);
+    grupo.quantidade += 1;
+  });
+
+  return [...mapa.values()];
+}
+
+function opcoesStatusEvento(statusAtual) {
+  return statusFluxoEvento.map((status) => `
+    <option value="${status.valor}" ${status.valor === statusAtual ? "selected" : ""}>${status.texto}</option>
+  `).join("");
+}
+
+function classeStatusEvento(status) {
+  return GE.statusInfo[status]?.classe || "badge-purple";
+}
+
+function mudarStatusGrupo(select) {
+  const codigos = select.dataset.codigos.split(",").filter(Boolean);
+  const ok = GE.atualizarStatusEvento(eventoSelecionadoId, codigos, select.value);
+  if (!ok) {
+    GE.mensagem("Não foi possível atualizar a situação dos equipamentos.", "error");
+    return;
+  }
+  renderEventos(eventoSelecionadoId);
+  renderEvento();
+}
+
+function removerEquipamentosDoEvento(codigosTexto, nomeEquipamento) {
+  const codigos = codigosTexto.split(",").filter(Boolean);
+  const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
+
+  if (!evento) {
+    GE.mensagem("Selecione um evento antes de remover equipamentos.", "warning");
+    return;
+  }
+
+  if (evento.status === "Finalizado") {
+    GE.mensagem("Este evento já foi finalizado.", "warning");
+    return;
+  }
+
+  const textoQuantidade = codigos.length === 1 ? "1 item" : `${codigos.length} itens`;
+  GE.confirmar(`Remover ${textoQuantidade} de ${nomeEquipamento} deste evento?`, () => {
+    const remover = new Set(codigos);
+    const atualizado = {
+      ...evento,
+      equipamentos: (evento.equipamentos || []).filter((codigo) => !remover.has(codigo)),
+      equipamentosExternos: evento.equipamentosExternos || []
+    };
+
+    const salvo = GE.editarEvento(evento.id, atualizado);
+    if (!salvo) {
+      GE.mensagem("Não foi possível remover o equipamento do evento.", "error");
+      return;
+    }
+
+    renderEventos(salvo.id);
+    renderEvento();
+    GE.mensagem(`${nomeEquipamento} removido do evento.`, "success");
+  }, { titulo: "Remover equipamento", confirmar: "Remover", perigo: true });
+}
+
+function aplicarStatusEventoInteiro() {
+  const status = statusEventoGeral.value;
+  const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
+
+  if (!evento) {
+    GE.mensagem("Selecione um evento antes de aplicar a situação.", "warning");
+    return;
+  }
+
+  if (evento.status === "Finalizado") {
+    GE.mensagem("Este evento já foi finalizado.", "warning");
+    return;
+  }
+
+  if (!status) {
+    GE.mensagem("Selecione uma situação para aplicar na lista.", "warning");
+    return;
+  }
+
+  const codigos = evento.equipamentos || [];
+  if (!codigos.length) {
+    GE.mensagem("Este evento não possui equipamentos para atualizar.", "warning");
+    return;
+  }
+
+  const ok = GE.atualizarStatusEvento(eventoSelecionadoId, codigos, status);
+  if (!ok) {
+    GE.mensagem("Não foi possível atualizar a lista do evento.", "error");
+    return;
+  }
+
+  statusEventoGeral.value = "";
+  renderEventos(eventoSelecionadoId);
+  renderEvento();
+}
+
+function codigosSelecionadosManutencaoEvento() {
+  return [...manutencaoCodigosEvento.querySelectorAll("input:checked")].map((input) => input.value);
+}
+
+function atualizarResumoManutencaoEvento() {
+  const selecionados = codigosSelecionadosManutencaoEvento();
+  manutencaoQuantidadeEvento.value = String(selecionados.length);
+  manutencaoSelecaoResumo.textContent = selecionados.length
+    ? `${selecionados.length} de ${manutencaoEventoAtual.codigos.length} unidade(s) selecionada(s): ${selecionados.join(", ")}`
+    : "Nenhuma unidade selecionada.";
+}
+
+function marcarQuantidadeManutencaoEvento(quantidade) {
+  const total = manutencaoEventoAtual.codigos.length;
+  const limite = Math.max(0, Math.min(Number(quantidade) || 0, total));
+  manutencaoQuantidadeEvento.value = String(limite);
+
+  [...manutencaoCodigosEvento.querySelectorAll("input")].forEach((input, index) => {
+    input.checked = index < limite;
+  });
+
+  atualizarResumoManutencaoEvento();
+}
+
+function renderSelecaoManutencaoEvento(codigos) {
+  manutencaoQuantidadeEvento.min = "0";
+  manutencaoQuantidadeEvento.max = String(codigos.length);
+  manutencaoQuantidadeEvento.value = "1";
+  manutencaoCodigosEvento.innerHTML = codigos.map((codigo, index) => `
+    <label class="maintenance-code-option">
+      <input type="checkbox" value="${textoSeguro(codigo)}" ${index === 0 ? "checked" : ""}>
+      <span>${textoSeguro(codigo)}</span>
+    </label>
+  `).join("");
+  atualizarResumoManutencaoEvento();
+}
+
+function abrirManutencaoEvento(codigosTexto, nomeEquipamento) {
+  const codigos = codigosTexto.split(",").filter(Boolean).sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  manutencaoEventoAtual = { codigos, nome: nomeEquipamento };
+  manutencaoEquipamentoEvento.value = `${nomeEquipamento} (${codigos.length} un.) - ${resumoCodigos(codigos)}`;
+  renderSelecaoManutencaoEvento(codigos);
+  manutencaoPrioridadeEvento.value = "Média";
+  manutencaoTecnicoEvento.value = "";
+  manutencaoProblemaEvento.value = "";
+  manutencaoObservacoesEvento.value = "";
+  manutencaoEventoMensagem.style.display = "none";
+  manutencaoEventoMensagem.textContent = "";
+  modalManutencaoEvento.style.display = "flex";
+  manutencaoProblemaEvento.focus();
+}
+
+function fecharModalManutencaoEvento() {
+  modalManutencaoEvento.style.display = "none";
+}
+
+function registrarManutencaoDoEvento() {
+  const problema = manutencaoProblemaEvento.value.trim();
+  const prioridade = manutencaoPrioridadeEvento.value;
+  const tecnico = manutencaoTecnicoEvento.value.trim();
+  const observacoes = manutencaoObservacoesEvento.value.trim();
+  const eventoAtual = (GE.dados().eventos || []).find((evento) => evento.id === eventoSelecionadoId);
+  const origemEvento = `Evento: ${eventoAtual?.nome || eventoSelecionadoId}`;
+  const codigosSelecionados = codigosSelecionadosManutencaoEvento();
+
+  if (!problema) {
+    manutencaoEventoMensagem.style.display = "block";
+    manutencaoEventoMensagem.style.color = "var(--red)";
+    manutencaoEventoMensagem.textContent = "Descreva o problema antes de registrar a manutenção.";
+    return;
+  }
+
+  if (!codigosSelecionados.length) {
+    manutencaoEventoMensagem.style.display = "block";
+    manutencaoEventoMensagem.style.color = "var(--red)";
+    manutencaoEventoMensagem.textContent = "Selecione pelo menos um código para enviar à manutenção.";
+    return;
+  }
+
+  const detalhes = [
+    problema,
+    `Código(s): ${codigosSelecionados.join(", ")}`,
+    `Prioridade: ${prioridade}`,
+    tecnico ? `Técnico: ${tecnico}` : "",
+    observacoes ? `Observações: ${observacoes}` : "",
+    `Origem: ${origemEvento}`
+  ].filter(Boolean).join(" | ");
+
+  codigosSelecionados.forEach((codigo) => {
+    GE.enviarManutencao(codigo, detalhes, {
+      prioridade,
+      tecnico,
+      observacoes,
+      origem: origemEvento,
+      eventoId: eventoSelecionadoId
+    });
+  });
+
+  renderEventos(eventoSelecionadoId);
+  renderEvento();
+  manutencaoEventoMensagem.style.display = "block";
+  manutencaoEventoMensagem.style.color = "var(--green)";
+  manutencaoEventoMensagem.textContent = "Manutenção registrada com sucesso.";
+  setTimeout(fecharModalManutencaoEvento, 650);
+}
+
+function abrirFinalizarEvento() {
+  const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
+  if (!evento) {
+    finalizarEventoMensagem.style.display = "block";
+    finalizarEventoMensagem.style.color = "var(--red)";
+    finalizarEventoMensagem.textContent = "Selecione um evento para finalizar.";
+    return;
+  }
+  if (evento.status === "Finalizado") {
+    finalizarEventoMensagem.style.display = "block";
+    finalizarEventoMensagem.style.color = "var(--green)";
+    finalizarEventoMensagem.textContent = "Este evento já está finalizado.";
+    return;
+  }
+  finalizarEventoResumo.textContent = `${evento.id} - ${evento.nome}`;
+  observacaoFinalEvento.value = "Evento finalizado e materiais retornados ao estoque.";
+  finalizarEventoMensagem.style.display = "none";
+  modalFinalizarEvento.style.display = "flex";
+}
+
+function fecharModalFinalizarEvento() {
+  modalFinalizarEvento.style.display = "none";
+}
+
+function confirmarFinalizacaoEvento() {
+  const ok = GE.finalizarEvento(eventoSelecionadoId, observacaoFinalEvento.value.trim());
+  if (!ok) {
+    finalizarEventoMensagem.style.display = "block";
+    finalizarEventoMensagem.style.color = "var(--red)";
+    finalizarEventoMensagem.textContent = "Não foi possível finalizar este evento.";
+    return;
+  }
+
+  finalizarEventoMensagem.style.display = "block";
+  finalizarEventoMensagem.style.color = "var(--green)";
+  finalizarEventoMensagem.textContent = "Evento finalizado com sucesso.";
+  renderEventos(eventoSelecionadoId);
+  renderEvento();
+  setTimeout(fecharModalFinalizarEvento, 650);
+}
+
+function renderEvento() {
+  const atualizado = (GE.dados().eventos || []).find((evento) => evento.id === eventoSelecionadoId);
+
+  if (!atualizado) {
+    limparDetalheEventos();
+    return;
+  }
+
+  eventTitle.textContent = atualizado.nome;
+  eventInfo.textContent = `${GE.dataBR(atualizado.data)} - ${atualizado.local || "Local não informado"}`;
+  breadcrumbId.textContent = atualizado.id;
+  const eventoFinalizado = atualizado.status === "Finalizado";
+  finalizarEventoBotao.disabled = eventoFinalizado;
+  statusEventoGeral.disabled = eventoFinalizado;
+  aplicarStatusEventoGeral.disabled = eventoFinalizado;
+
+  const grupos = agruparEquipamentosDoEvento(atualizado.equipamentos || []);
+  const externos = (atualizado.equipamentosExternos || []).map(normalizarEquipamentoExterno);
+  const linhasInternas = grupos.map((grupo) => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:12px" title="${grupo.codigos.join(", ")}">${resumoCodigos(grupo.codigos)}</td>
+      <td style="color:var(--text);font-weight:500">${grupo.nome}</td>
+      <td style="color:var(--text2)">${grupo.categoria}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.quantidade}</td>
+      <td>
+        <div class="status-pill-control ${classeStatusEvento(grupo.status)} ${eventoFinalizado ? "is-disabled" : ""}">
+          <select class="status-pill-select" data-codigos="${grupo.codigos.join(",")}" onchange="mudarStatusGrupo(this)" title="Alterar situação de ${textoSeguro(grupo.nome)}" ${eventoFinalizado ? "disabled" : ""}>
+            ${opcoesStatusEvento(grupo.status)}
+          </select>
+        </div>
+      </td>
+      <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(atualizado.data)}</td>
+      <td>
+        <div class="event-equipment-actions">
+        <button class="maintenance-action" title="Enviar para manutenção" aria-label="Enviar ${grupo.nome} para manutenção" onclick="abrirManutencaoEvento('${grupo.codigos.join(",")}', '${grupo.nome.replace(/'/g, "\\'")}')" ${eventoFinalizado ? "disabled" : ""}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9l-3.8 3.8z" />
+          </svg>
+        </button>
+        <button class="remove-event-equipment" title="Remover do evento" aria-label="Remover ${grupo.nome} do evento" onclick="removerEquipamentosDoEvento('${grupo.codigos.join(",")}', '${grupo.nome.replace(/'/g, "\\'")}')" ${eventoFinalizado ? "disabled" : ""}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18" />
+            <path d="M8 6V4h8v2" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v5M14 11v5" />
+          </svg>
+        </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  const linhasExternas = externos.map((item) => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:12px">TERCEIROS</td>
+      <td style="color:var(--text);font-weight:500">
+        ${textoSeguro(item.nome)}
+        <div class="external-row-detail">Locadora: ${textoSeguro(item.empresa)}${item.observacao ? ` | ${textoSeguro(item.observacao)}` : ""}</div>
+      </td>
+      <td style="color:var(--text2)">${textoSeguro(item.categoria || "Terceiros")}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${item.quantidade}</td>
+      <td>${GE.badge("locado_externo")}</td>
+      <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(atualizado.data)}</td>
+      <td style="color:var(--text3)">-</td>
+    </tr>
+  `).join("");
+
+  detalheTabela.innerHTML = linhasInternas + linhasExternas || `<tr><td colspan="8" style="color:var(--text3);font-family:var(--font)">Nenhum equipamento separado.</td></tr>`;
+
+  if (eventoFinalizado) {
+    detalheTabela.insertAdjacentHTML("beforeend", `<tr><td colspan="8"><div class="event-finalized-note">Evento finalizado em ${GE.dataBR(atualizado.finalizadoEm)}. Equipamentos retornaram para disponível, exceto itens em manutenção.</div></td></tr>`);
+  }
+}
+
+function agruparDisponiveisParaEvento(evento = null) {
+  const mapa = new Map();
+  const codigosSelecionados = new Set((evento && evento.equipamentos) || []);
+
+  GE.dados().equipamentos
+    .filter((eq) => eq.status === "disponivel" || codigosSelecionados.has(eq.codigo))
+    .forEach((eq) => {
+      const chave = `${GE.normalizar(nomeBaseEquipamento(eq.nome))}|${GE.normalizar(eq.categoria)}`;
+      if (!mapa.has(chave)) {
+        mapa.set(chave, {
+          nome: nomeBaseEquipamento(eq.nome),
+          categoria: eq.categoria,
+          codigosSelecionados: [],
+          codigosDisponiveis: []
+        });
+      }
+      const grupo = mapa.get(chave);
+      if (codigosSelecionados.has(eq.codigo)) {
+        grupo.codigosSelecionados.push(eq.codigo);
+      } else {
+        grupo.codigosDisponiveis.push(eq.codigo);
+      }
+    });
+
+  return [...mapa.values()].map((grupo) => ({
+    ...grupo,
+    codigos: [...grupo.codigosSelecionados, ...grupo.codigosDisponiveis],
+    quantidadeSelecionada: grupo.codigosSelecionados.length
+  }));
+}
+
+function renderEquipamentosParaEvento(evento = null) {
+  gruposEquipamentosEvento = agruparDisponiveisParaEvento(evento);
+
+  equipamentosEventoTabela.innerHTML = gruposEquipamentosEvento.map((grupo, index) => `
+    <tr>
+      <td style="color:var(--text);font-weight:500">${grupo.nome}</td>
+      <td style="color:var(--text2)">${grupo.categoria}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.codigos.length}</td>
+      <td>
+        <input class="equipamento-evento-qtd" type="number" min="0" max="${grupo.codigos.length}" value="${grupo.quantidadeSelecionada || 0}" data-index="${index}">
+      </td>
+    </tr>
+  `).join("") || `<tr><td colspan="4"><div class="empty-selection">Nenhum equipamento disponível para seleção. Cadastre novos equipamentos ou retorne itens que estejam em evento, locação ou manutenção.</div></td></tr>`;
+}
+
+function equipamentosSelecionadosNoModal() {
+  return [...modal.querySelectorAll(".equipamento-evento-qtd")].flatMap((input) => {
+    const grupo = gruposEquipamentosEvento[Number(input.dataset.index)];
+    const quantidade = Math.min(Number(input.value) || 0, grupo.codigos.length);
+    return grupo.codigos.slice(0, quantidade);
+  });
+}
+
+escolher.addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json,application/json";
+  input.addEventListener("change", () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => modal.querySelector("textarea").value = reader.result;
+    reader.readAsText(file);
+  });
+  input.click();
+});
+
+adicionarExternoEvento.addEventListener("click", adicionarEquipamentoExternoEvento);
+
+salvarManutencaoEvento.addEventListener("click", registrarManutencaoDoEvento);
+
+manutencaoQuantidadeEvento.addEventListener("input", () => {
+  marcarQuantidadeManutencaoEvento(manutencaoQuantidadeEvento.value);
+});
+
+manutencaoCodigosEvento.addEventListener("change", (event) => {
+  if (event.target.matches("input[type='checkbox']")) atualizarResumoManutencaoEvento();
+});
+
+modalManutencaoEvento.addEventListener("click", (event) => {
+  if (event.target === modalManutencaoEvento) fecharModalManutencaoEvento();
+});
+
+confirmarFinalizarEvento.addEventListener("click", confirmarFinalizacaoEvento);
+
+modalFinalizarEvento.addEventListener("click", (event) => {
+  if (event.target === modalFinalizarEvento) fecharModalFinalizarEvento();
+});
+
+salvar.addEventListener("click", () => {
+  const textoJson = modal.querySelector("textarea").value.trim();
+  let evento = null;
+
+  if (campoEventoId.value && campoEventoNome.value && campoEventoData.value && campoEventoLocal.value) {
+    evento = {
+      id: campoEventoId.value,
+      nome: campoEventoNome.value,
+      data: campoEventoData.value,
+      local: campoEventoLocal.value,
+      equipamentos: equipamentosSelecionadosNoModal(),
+      equipamentosExternos: equipamentosExternosEvento
+    };
+  } else if (modoEvento === "novo" && textoJson) {
+    try {
+      const parsed = JSON.parse(textoJson);
+      evento = {
+        id: parsed.evento_id || parsed.id,
+        nome: parsed.nome,
+        data: parsed.data,
+        local: parsed.local || "Local não informado",
+        equipamentos: parsed.equipamentos || [],
+        equipamentosExternos: (parsed.equipamentos_externos || parsed.equipamentosExternos || []).map(normalizarEquipamentoExterno)
+      };
+    } catch (error) {
+      GE.mensagem("JSON inválido.", "error");
+      return;
+    }
+  }
+
+  if (!evento || !evento.id || !evento.nome || !evento.data) {
+    GE.mensagem("Preencha os dados do evento ou cole um JSON válido.", "warning");
+    return;
+  }
+
+  if (modoEvento === "novo" && !evento.equipamentos.length && !evento.equipamentosExternos.length) {
+    GE.mensagem("Selecione pelo menos um equipamento do estoque ou adicione um locado de terceiros.", "warning");
+    return;
+  }
+
+  const eventoSalvo = modoEvento === "editar"
+    ? GE.editarEvento(eventoEditandoId, evento)
+    : GE.salvarEvento(evento);
+
+  if (!eventoSalvo) {
+    GE.mensagem("Não foi possível encontrar o evento para edição.", "error");
+    return;
+  }
+
+  fecharModalEvento();
+  renderEventos(eventoSalvo.id);
+  renderEvento();
+  GE.mensagem(modoEvento === "editar" ? "Evento atualizado com sucesso." : "Evento salvo. Materiais ficaram pendentes para separação.", "success");
+});
+
+renderEventos();
+renderEvento();
+</script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

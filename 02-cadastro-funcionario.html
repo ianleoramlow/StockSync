@@ -1,0 +1,768 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockSync – Cadastro de Funcionário</title>
+<link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+<style>
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+  z-index: 200;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  width: 460px;
+  box-shadow: var(--shadow-lg);
+}
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.modal-sub { font-size: 12.5px; color: var(--text3); margin-bottom: 24px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+.public-main {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.public-card {
+  width: min(500px, calc(100vw - 32px));
+  margin: 0;
+  padding: 24px 26px;
+}
+.public-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.public-link {
+  color: var(--accent2);
+  cursor: pointer;
+  font-size: 13px;
+}
+.employee-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.employee-actions .btn {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.employee-name-button {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.employee-name-button:hover {
+  color: var(--accent2);
+}
+.employee-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.employee-profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+.employee-profile-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+.employee-profile-email {
+  color: var(--text3);
+  font-size: 12.5px;
+  margin-top: 2px;
+}
+.employee-role-select {
+  min-width: 132px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12.5px;
+  padding: 7px 9px;
+  outline: none;
+}
+.employee-role-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+}
+.public-card .page-title {
+  font-size: 20px;
+}
+.public-card .page-subtitle {
+  margin-bottom: 16px !important;
+}
+.public-card .form-group {
+  margin-bottom: 12px;
+}
+.public-card .form-row {
+  gap: 12px;
+}
+.public-card .form-label {
+  margin-bottom: 5px;
+}
+.public-card .form-input,
+.public-card .form-select {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.public-card .public-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.public-card .public-brand-logo {
+  width: 188px;
+}
+.public-note {
+  font-size: 11.5px;
+  color: var(--text3);
+  margin-top: 5px;
+  line-height: 1.35;
+}
+.public-link-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+@media (max-width: 560px) {
+  .public-main {
+    align-items: flex-start;
+    padding: 14px;
+  }
+  .public-card {
+    width: 100%;
+    padding: 20px;
+  }
+  .public-card .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <a class="sidebar-logo" href="03-dashboard.html"><div class="brand-logo-frame"><img src="assets/logo-stocksync-icon.png" alt="StockSync"></div><div class="brand-name">Stock<span>Sync</span></div></a>
+  <a class="nav-item" href="03-dashboard.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    Dashboard
+  </a>
+  <a class="nav-item" href="04-equipamentos.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    Equipamentos
+  </a>
+  <a class="nav-item" href="08-eventos.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Eventos
+  </a>
+  <a class="nav-item" href="09-locacoes.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Locações
+  </a>
+  <a class="nav-item" href="10-manutencao-registrar.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+    Manutenção
+  </a>
+  <a class="nav-item active" href="02-cadastro-funcionario.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    Funcionários
+  </a>
+  <a class="nav-item" href="12-logs.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+    Logs
+  </a>
+  <div class="sidebar-footer">
+    <button class="btn-logout">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      Sair
+    </button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Funcionários</div>
+      <div class="page-subtitle">Gerencie os usuários cadastrados no sistema</div>
+    </div>
+    <button class="btn btn-primary" id="novoFuncionario">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Novo Funcionário
+    </button>
+  </div>
+
+  <div class="card" id="solicitacoesCard" style="margin-bottom:22px">
+    <div class="section-header">
+      <div>
+        <div class="section-title">Solicitações Pendentes</div>
+        <div class="section-subtitle">Funcionários aguardando autorização do administrador</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Telefone</th>
+            <th>Cargo</th>
+            <th>Solicitado em</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="solicitacoesTabela"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <div>
+        <div class="section-title">Funcionários Ativos</div>
+        <div class="section-subtitle">Usuários já autorizados a acessar o sistema</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Cargo</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="funcionariosTabela"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modalFuncionario">
+  <div class="modal">
+    <div class="modal-title">Cadastro de Funcionário</div>
+    <div class="modal-sub">Preencha os dados para criar um novo usuário</div>
+
+    <div class="form-group">
+      <label class="form-label">Nome Completo</label>
+      <input class="form-input" type="text" placeholder="Digite o nome completo">
+    </div>
+    <div class="form-group">
+      <label class="form-label">E-mail</label>
+      <input class="form-input" type="email" placeholder="Digite o e-mail">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Telefone</label>
+      <input class="form-input" type="tel" placeholder="(00) 00000-0000">
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Senha</label>
+        <input class="form-input" type="password" placeholder="Digite a senha">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Confirmar Senha</label>
+        <input class="form-input" type="password" placeholder="Confirme a senha">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:18px">
+      <label class="form-label">Cargo</label>
+      <select class="form-select">
+        <option value="" disabled selected>Selecione o cargo</option>
+        <option>Administrador</option>
+        <option>Freelancer</option>
+        <option>Técnico</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelarCadastro">Cancelar</button>
+      <button class="btn btn-primary" id="cadastrarUsuario">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalDetalheFuncionario">
+  <div class="modal">
+    <div class="modal-title">Perfil do Funcionário</div>
+    <div class="modal-sub">Informações cadastradas no ambiente da empresa</div>
+    <div class="employee-profile-head">
+      <div class="employee-profile-avatar" id="detalheFuncionarioFoto">FS</div>
+      <div>
+        <div class="employee-profile-name" id="detalheFuncionarioNome">-</div>
+        <div class="employee-profile-email" id="detalheFuncionarioEmail">-</div>
+      </div>
+    </div>
+    <div class="detail-row"><span class="detail-key">Telefone</span><span class="detail-val" id="detalheFuncionarioTelefone">-</span></div>
+    <div class="detail-row"><span class="detail-key">Cargo</span><span class="detail-val" id="detalheFuncionarioCargo">-</span></div>
+    <div class="detail-row"><span class="detail-key">Empresa</span><span class="detail-val" id="detalheFuncionarioEmpresa">-</span></div>
+    <div class="detail-row"><span class="detail-key">Código da Empresa</span><span class="detail-val" id="detalheFuncionarioEmpresaId">-</span></div>
+    <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val" id="detalheFuncionarioStatus">Ativo</span></div>
+    <div class="detail-row"><span class="detail-key">Aprovado em</span><span class="detail-val" id="detalheFuncionarioAprovado">-</span></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="fecharDetalheFuncionario" type="button">Fechar</button>
+    </div>
+  </div>
+</div>
+<script src="app.js?v=20260521-backend-db"></script>
+<script>
+const modalFuncionario = document.getElementById("modalFuncionario");
+const tabelaFuncionarios = document.getElementById("funcionariosTabela");
+const solicitacoesTabela = document.getElementById("solicitacoesTabela");
+const solicitacoesCard = document.getElementById("solicitacoesCard");
+const inputsFuncionario = document.querySelectorAll(".modal .form-input");
+const cargoFuncionario = document.querySelector(".modal .form-select");
+const modalDetalheFuncionario = document.getElementById("modalDetalheFuncionario");
+
+function textoSeguro(texto) {
+  return String(texto || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function cargoVisivel(cargo) {
+  return cargo === "Operador" ? "Freelancer" : (cargo || "Freelancer");
+}
+
+function iniciaisFuncionario(funcionario) {
+  return String(funcionario.nome || "FS").split(" ").map((parte) => parte[0]).join("").substring(0, 2).toUpperCase();
+}
+
+function opcoesCargoFuncionario(cargoAtual) {
+  const cargo = cargoVisivel(cargoAtual);
+  return ["Administrador", "Freelancer", "Técnico"].map((cargoOpcao) => `
+    <option value="${cargoOpcao}" ${cargoOpcao === cargo ? "selected" : ""}>${cargoOpcao}</option>
+  `).join("");
+}
+
+function prepararTelaPublica() {
+  document.querySelector(".sidebar").style.display = "none";
+  document.querySelector(".main").classList.add("public-main");
+  document.querySelector(".main").style.marginLeft = "0";
+  document.querySelector(".main").style.padding = "";
+  localStorage.removeItem("usuarioLogado");
+  localStorage.removeItem("empresaAtualId");
+}
+
+function renderCadastroFuncionarioPublico() {
+  prepararTelaPublica();
+  document.querySelector(".main").innerHTML = `
+    <div class="card public-card">
+      <div class="public-logo-wrap">
+        <div class="brand-logo-frame public-brand-logo">
+          <img src="assets/logo-stocksync-login.png" alt="StockSync">
+        </div>
+      </div>
+      <div class="page-title">Criar Conta de Funcionário</div>
+      <div class="page-subtitle">Use o código da empresa para entrar no ambiente correto</div>
+
+      <div class="form-group">
+        <label class="form-label">Código da Empresa</label>
+        <input class="form-input" id="funcEmpresaCodigo" type="text" placeholder="Ex: tcnk">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome Completo</label>
+        <input class="form-input" id="funcNome" type="text" placeholder="Digite seu nome completo">
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">E-mail</label>
+          <input class="form-input" id="funcEmail" type="email" placeholder="seu@email.com">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Telefone</label>
+          <input class="form-input" id="funcTelefone" type="tel" placeholder="(00) 00000-0000">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:12px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Senha</label>
+          <input class="form-input" id="funcSenha" type="password" placeholder="Crie uma senha">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Confirmar Senha</label>
+          <input class="form-input" id="funcConfirmar" type="password" placeholder="Repita a senha">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label class="form-label">Cargo</label>
+        <select class="form-select" id="funcCargo">
+          <option value="Freelancer" selected>Freelancer</option>
+          <option>Administrador</option>
+          <option>Técnico</option>
+        </select>
+      </div>
+
+      <div class="public-actions">
+        <button class="btn btn-secondary" id="voltarLoginFuncionario">Voltar ao Login</button>
+        <button class="btn btn-primary" id="criarFuncionario">Criar Conta</button>
+      </div>
+      <div class="public-link-wrap">
+        <span class="public-link" id="abrirCadastroEmpresa">Acesso empresarial</span>
+      </div>
+    </div>
+  `;
+  GE.atualizarLogosTema();
+
+  document.getElementById("voltarLoginFuncionario").addEventListener("click", () => {
+    window.location.href = "01-login.html";
+  });
+
+  document.getElementById("abrirCadastroEmpresa").addEventListener("click", () => {
+    renderCadastroEmpresa();
+  });
+
+  document.getElementById("criarFuncionario").addEventListener("click", () => {
+    const codigoEmpresa = document.getElementById("funcEmpresaCodigo").value.trim();
+    const nome = document.getElementById("funcNome").value.trim();
+    const email = document.getElementById("funcEmail").value.trim();
+    const telefone = document.getElementById("funcTelefone").value.trim();
+    const senha = document.getElementById("funcSenha").value;
+    const confirmar = document.getElementById("funcConfirmar").value;
+    const cargo = document.getElementById("funcCargo").value;
+
+    if (!codigoEmpresa || !nome || !email || !telefone || !senha || !confirmar || !cargo) {
+      GE.mensagem("Preencha todos os dados para criar sua conta.", "warning");
+      return;
+    }
+
+    if (senha !== confirmar) {
+      GE.mensagem("As senhas não coincidem.", "warning");
+      return;
+    }
+
+    const solicitacao = GE.cadastrarFuncionarioPorCodigo(codigoEmpresa, { nome, email, telefone, senha, cargo });
+    if (solicitacao?.erro) {
+      GE.mensagem(solicitacao.erro, "error");
+      return;
+    }
+
+    GE.mensagem(`Solicitação enviada para ${solicitacao.empresaNome}. Aguarde um administrador aprovar seu acesso.`, "success", { tempo: 1600 });
+    setTimeout(() => window.location.href = "01-login.html", 900);
+  });
+}
+
+function renderCadastroEmpresa() {
+  prepararTelaPublica();
+  document.querySelector(".main").innerHTML = `
+    <div class="card public-card">
+      <div class="public-logo-wrap">
+        <div class="brand-logo-frame public-brand-logo">
+          <img src="assets/logo-stocksync-login.png" alt="StockSync">
+        </div>
+      </div>
+      <div class="page-title">Criar Ambiente da Empresa</div>
+      <div class="page-subtitle">Área restrita para criação de um novo ambiente empresarial</div>
+
+      <div class="form-group">
+        <label class="form-label">Código de Autorização</label>
+        <input class="form-input" id="codigoAutorizacaoEmpresa" type="password" placeholder="Código fornecido pela StockSync">
+        <div class="public-note">Para apresentação do trabalho, use <strong style="color:var(--text2)">STOCKSYNC-EMPRESA</strong>.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nome da Empresa</label>
+        <input class="form-input" id="empresaNome" type="text" placeholder="Ex: Alpha Eventos">
+        <div class="public-note">Exemplo: uma empresa chamada TCNK usará o código <strong style="color:var(--text2)">tcnk</strong> no login.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome do Administrador</label>
+        <input class="form-input" id="adminNome" type="text" placeholder="Seu nome completo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail do Administrador</label>
+        <input class="form-input" id="adminEmail" type="email" placeholder="admin@empresa.com">
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Senha</label>
+          <input class="form-input" id="adminSenha" type="password" placeholder="Crie uma senha">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Confirmar Senha</label>
+          <input class="form-input" id="adminConfirmar" type="password" placeholder="Repita a senha">
+        </div>
+      </div>
+      <div class="public-actions">
+        <button class="btn btn-secondary" id="voltarFuncionario">Voltar</button>
+        <button class="btn btn-primary" id="criarEmpresa">Criar Ambiente</button>
+      </div>
+    </div>
+  `;
+  GE.atualizarLogosTema();
+
+  document.getElementById("voltarFuncionario").addEventListener("click", () => {
+    renderCadastroFuncionarioPublico();
+  });
+
+  document.getElementById("criarEmpresa").addEventListener("click", () => {
+    const autorizacao = document.getElementById("codigoAutorizacaoEmpresa").value.trim();
+    const empresa = document.getElementById("empresaNome").value.trim();
+    const nome = document.getElementById("adminNome").value.trim();
+    const email = document.getElementById("adminEmail").value.trim();
+    const senha = document.getElementById("adminSenha").value;
+    const confirmar = document.getElementById("adminConfirmar").value;
+
+    if (autorizacao !== "STOCKSYNC-EMPRESA") {
+      GE.mensagem("Código de autorização inválido.", "error");
+      return;
+    }
+
+    if (!empresa || !nome || !email || !senha || !confirmar) {
+      GE.mensagem("Preencha todos os campos para criar o ambiente.", "warning");
+      return;
+    }
+
+    if (senha !== confirmar) {
+      GE.mensagem("As senhas não coincidem.", "warning");
+      return;
+    }
+
+    const usuario = GE.cadastrarEmpresa({ empresa, nome, email, senha });
+    if (usuario?.erro) {
+      GE.mensagem(usuario.erro, "error");
+      return;
+    }
+
+    GE.mensagem(`Ambiente da empresa criado com sucesso. Código da empresa: ${usuario.empresaCodigo || usuario.empresaId}`, "success", { tempo: 1600 });
+    setTimeout(() => window.location.href = "03-dashboard.html", 900);
+  });
+}
+
+function renderFuncionarios() {
+  const db = GE.dados();
+  const usuarioAtual = GE.usuarioAtual();
+  const admin = usuarioAtual.cargo === "Administrador";
+  const funcionarios = db.funcionarios || [];
+  const solicitacoes = GE.solicitacoesFuncionarioEmpresa ? GE.solicitacoesFuncionarioEmpresa() : (db.solicitacoesFuncionarios || []);
+  if (novoFuncionarioBtn) novoFuncionarioBtn.style.display = admin ? "inline-flex" : "none";
+
+  solicitacoesCard.style.display = admin ? "block" : "none";
+  solicitacoesTabela.innerHTML = solicitacoes.map((solicitacao) => `
+    <tr>
+      <td style="color:var(--text);font-weight:500">${textoSeguro(solicitacao.nome)}</td>
+      <td style="color:var(--text2)">${textoSeguro(solicitacao.email)}</td>
+      <td style="color:var(--text2)">${textoSeguro(solicitacao.telefone || "-")}</td>
+      <td><span class="badge badge-purple">${textoSeguro(cargoVisivel(solicitacao.cargo))}</span></td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(solicitacao.solicitadoEm)}</td>
+      <td>
+        ${admin ? `
+          <div class="employee-actions">
+            <button class="btn btn-primary" onclick="aprovarFuncionario('${solicitacao.id}')">Aprovar</button>
+            <button class="btn btn-danger" onclick="recusarFuncionario('${solicitacao.id}')">Recusar</button>
+          </div>
+        ` : `<span class="badge badge-yellow">Aguardando admin</span>`}
+      </td>
+    </tr>
+  `).join("") || `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhuma solicitação pendente.</td></tr>`;
+
+  tabelaFuncionarios.innerHTML = funcionarios.map((funcionario) => `
+    <tr>
+      <td>
+        <button class="employee-name-button" type="button" onclick="abrirDetalheFuncionario('${encodeURIComponent(funcionario.email || "")}')">
+          ${textoSeguro(funcionario.nome)}
+        </button>
+      </td>
+      <td style="color:var(--text2)">${textoSeguro(funcionario.email)}</td>
+      <td>
+        ${admin ? `
+          <select class="employee-role-select" onchange="alterarCargoFuncionario('${encodeURIComponent(funcionario.email || "")}', this.value)">
+            ${opcoesCargoFuncionario(funcionario.cargo)}
+          </select>
+        ` : `<span class="badge badge-purple">${textoSeguro(cargoVisivel(funcionario.cargo))}</span>`}
+      </td>
+      <td><span class="badge badge-green">Ativo</span></td>
+    </tr>
+  `).join("") || `<tr><td colspan="4" style="color:var(--text3);font-family:var(--font)">Nenhum funcionário cadastrado.</td></tr>`;
+}
+
+function alterarCargoFuncionario(emailCodificado, cargo) {
+  const email = decodeURIComponent(emailCodificado || "");
+  const atualizado = GE.atualizarCargoFuncionario(email, cargo);
+  if (atualizado?.erro) {
+    GE.mensagem(atualizado.erro, "error");
+    renderFuncionarios();
+    return;
+  }
+
+  renderFuncionarios();
+  GE.mensagem(`${atualizado.nome} agora está como ${cargoVisivel(atualizado.cargo)}.`, "success");
+}
+
+function abrirDetalheFuncionario(emailCodificado) {
+  const email = decodeURIComponent(emailCodificado || "");
+  const db = GE.dados();
+  const funcionario = (db.funcionarios || []).find((item) => GE.normalizar(item.email) === GE.normalizar(email));
+  const empresa = GE.empresaAtual();
+
+  if (!funcionario) {
+    GE.mensagem("Não foi possível encontrar os dados desse funcionário.", "error");
+    return;
+  }
+
+  const avatar = document.getElementById("detalheFuncionarioFoto");
+  avatar.style.backgroundImage = "";
+  avatar.textContent = iniciaisFuncionario(funcionario);
+  if (funcionario.foto) {
+    avatar.style.backgroundImage = `url(${funcionario.foto})`;
+    avatar.textContent = "";
+  }
+
+  document.getElementById("detalheFuncionarioNome").textContent = funcionario.nome || "-";
+  document.getElementById("detalheFuncionarioEmail").textContent = funcionario.email || "-";
+  document.getElementById("detalheFuncionarioTelefone").textContent = funcionario.telefone || "Não cadastrado";
+  document.getElementById("detalheFuncionarioCargo").innerHTML = `<span class="badge badge-purple">${textoSeguro(cargoVisivel(funcionario.cargo))}</span>`;
+  document.getElementById("detalheFuncionarioEmpresa").textContent = funcionario.empresaNome || empresa?.nome || "-";
+  document.getElementById("detalheFuncionarioEmpresaId").textContent = funcionario.empresaCodigo || GE.codigoEmpresa(empresa) || funcionario.empresaId || "-";
+  document.getElementById("detalheFuncionarioStatus").innerHTML = `<span class="badge badge-green">Ativo</span>`;
+  document.getElementById("detalheFuncionarioAprovado").textContent = funcionario.aprovadoEm ? GE.dataBR(funcionario.aprovadoEm) : "-";
+  modalDetalheFuncionario.classList.add("open");
+}
+
+function aprovarFuncionario(id) {
+  const funcionario = GE.aprovarSolicitacaoFuncionario(id);
+  if (!funcionario) {
+    GE.mensagem("Não foi possível aprovar essa solicitação.", "error");
+    return;
+  }
+  renderFuncionarios();
+  GE.mensagem(`${funcionario.nome} foi aprovado e já pode acessar o sistema.`, "success");
+}
+
+function recusarFuncionario(id) {
+  GE.confirmar("Recusar essa solicitação de acesso?", () => {
+    const ok = GE.recusarSolicitacaoFuncionario(id);
+    if (!ok) {
+      GE.mensagem("Não foi possível recusar essa solicitação.", "error");
+      return;
+    }
+    renderFuncionarios();
+    GE.mensagem("Solicitação recusada.", "success");
+  }, { titulo: "Recusar solicitação", confirmar: "Recusar", perigo: true });
+}
+
+function abrirModalFuncionario() {
+  inputsFuncionario.forEach((input) => input.value = "");
+  cargoFuncionario.value = "";
+  modalFuncionario.classList.add("open");
+  inputsFuncionario[0].focus();
+}
+
+const novoFuncionarioBtn = document.getElementById("novoFuncionario");
+if (novoFuncionarioBtn) novoFuncionarioBtn.addEventListener("click", abrirModalFuncionario);
+
+document.getElementById("cancelarCadastro").addEventListener("click", function () {
+  modalFuncionario.classList.remove("open");
+});
+
+modalFuncionario.addEventListener("click", function (event) {
+  if (event.target === modalFuncionario) modalFuncionario.classList.remove("open");
+});
+
+document.getElementById("fecharDetalheFuncionario").addEventListener("click", function () {
+  modalDetalheFuncionario.classList.remove("open");
+});
+
+modalDetalheFuncionario.addEventListener("click", function (event) {
+  if (event.target === modalDetalheFuncionario) modalDetalheFuncionario.classList.remove("open");
+});
+
+document.getElementById("cadastrarUsuario").addEventListener("click", function () {
+  const nome = inputsFuncionario[0].value.trim();
+  const email = inputsFuncionario[1].value.trim();
+  const telefone = inputsFuncionario[2].value.trim();
+  const senha = inputsFuncionario[3].value;
+  const confirmar = inputsFuncionario[4].value;
+  const cargo = cargoFuncionario.value;
+
+  if (!nome || !email || !senha || !confirmar || !cargo) {
+    GE.mensagem("Preencha todos os campos.", "warning");
+    return;
+  }
+
+  if (senha !== confirmar) {
+    GE.mensagem("As senhas não coincidem.", "warning");
+    return;
+  }
+
+  const usuario = { nome, email, telefone, senha, cargo };
+  const salvo = GE.salvarFuncionario(usuario);
+  if (salvo?.erro) {
+    GE.mensagem(salvo.erro, "error");
+    return;
+  }
+  renderFuncionarios();
+  modalFuncionario.classList.remove("open");
+  GE.mensagem("Funcionário cadastrado com sucesso.", "success");
+});
+
+const params = new URLSearchParams(window.location.search);
+const criandoNovaEmpresa = params.get("novo") === "empresa";
+const criandoFuncionario = params.get("novo") === "funcionario";
+
+if (criandoNovaEmpresa) {
+  renderCadastroEmpresa();
+} else if (criandoFuncionario) {
+  renderCadastroFuncionarioPublico();
+} else if (GE.sessaoAtiva()) {
+  const empresa = GE.empresaAtual();
+  if (empresa) {
+    document.querySelector(".page-subtitle").textContent = `Gerencie os usuários cadastrados em ${empresa.nome} | Código de acesso: ${GE.codigoEmpresa(empresa)}`;
+  }
+  renderFuncionarios();
+} else {
+  renderCadastroFuncionarioPublico();
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

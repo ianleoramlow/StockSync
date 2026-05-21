@@ -1,0 +1,558 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockSync – Equipamentos</title>
+<link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+<style>
+.maintenance-action {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.maintenance-action:hover { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.7); transform: translateY(-1px); }
+.maintenance-action svg { width: 16px; height: 16px; }
+.maintenance-action:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.62); display: none; align-items: center; justify-content: center; z-index: 999; }
+.modal-content { width: min(560px, 92vw); max-height: 90vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-lg); }
+.modal-message { display: none; font-size: 12.5px; margin-top: 10px; }
+.event-column-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.event-column-toggle select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text2);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 5px 24px 5px 10px;
+  cursor: pointer;
+  outline: none;
+}
+.event-column-toggle-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.event-column-toggle-wrap::after {
+  content: "⌄";
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-55%);
+  color: var(--text3);
+  pointer-events: none;
+  font-size: 12px;
+}
+.event-name-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(6,182,212,0.12);
+  color: var(--cyan);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.event-name-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.maintenance-origin {
+  display: block;
+  margin-top: 6px;
+  color: var(--text3);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <a class="sidebar-logo" href="03-dashboard.html"><div class="brand-logo-frame"><img src="assets/logo-stocksync-icon.png" alt="StockSync"></div><div class="brand-name">Stock<span>Sync</span></div></a>
+  <a class="nav-item" href="03-dashboard.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+  </a>
+  <a class="nav-item active" href="04-equipamentos.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Equipamentos
+  </a>
+  <a class="nav-item" href="08-eventos.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Eventos
+  </a>
+  <a class="nav-item" href="09-locacoes.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Locações
+  </a>
+  <a class="nav-item" href="10-manutencao-registrar.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Manutenção
+  </a>
+  <a class="nav-item" href="02-cadastro-funcionario.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Funcionários
+  </a>
+  <a class="nav-item" href="12-logs.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>Logs
+  </a>
+  <div class="sidebar-footer">
+    <button class="btn-logout">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair
+    </button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Equipamentos</div>
+      <div class="page-subtitle">Gerencie seu estoque de equipamentos</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <div class="search-wrap" style="width:300px">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input class="search-input" type="text" placeholder="Buscar equipamento...">
+      </div>
+      <button class="btn btn-primary"
+onclick="window.location.href='05-cadastro-equipamento.html'">
+  + Novo Equipamento
+</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Códigos</th>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Quantidade</th>
+            <th id="statusHeader">Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-status="disponivel">
+            <td>EQP001</td>
+            <td><a href="06-detalhe-equipamento.html" style="color:var(--text);text-decoration:none;font-weight:500">Caixa Ativa JBL PRX 715</a></td>
+            <td style="color:var(--text2)">Som</td>
+            <td><span class="badge badge-green">Disponível</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              </div>
+            </td>
+          </tr>
+          <tr data-status="evento">
+            <td>EQP002</td>
+            <td style="color:var(--text);font-weight:500">Mesa de Som Behringer X32</td>
+            <td style="color:var(--text2)">Som</td>
+            <td><span class="badge badge-cyan">Em Evento</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              </div>
+            </td>
+          </tr>
+          <tr data-status="locado">
+            <td>EQP003</td>
+            <td style="color:var(--text);font-weight:500">Refletor LED 200W RGB</td>
+            <td style="color:var(--text2)">Iluminação</td>
+            <td><span class="badge badge-yellow">Locado</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              </div>
+            </td>
+          </tr>
+          <tr data-status="manutencao">
+            <td>EQP004</td>
+            <td style="color:var(--text);font-weight:500">Microfone Shure SM58</td>
+            <td style="color:var(--text2)">Som</td>
+            <td><span class="badge badge-red">Em Manutenção</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              </div>
+            </td>
+          </tr>
+          <tr data-status="disponivel">
+            <td>EQP005</td>
+            <td style="color:var(--text);font-weight:500">Moving Head Beam 230</td>
+            <td style="color:var(--text2)">Iluminação</td>
+            <td><span class="badge badge-green">Disponível</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button class="page-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn">2</button>
+      <button class="page-btn">3</button>
+      <button class="page-btn">4</button>
+      <button class="page-btn">5</button>
+      <button class="page-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+</main>
+<div id="modalManutencaoLista" class="modal-overlay">
+  <div class="modal-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+      <div>
+        <div class="page-title" style="font-size:20px">Enviar para Manutenção</div>
+        <div class="page-subtitle">Registre o problema do equipamento selecionado</div>
+      </div>
+      <button class="btn btn-secondary" onclick="fecharModalManutencaoLista()">Fechar</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Equipamento</label>
+      <input class="form-input" id="manutencaoListaEquipamento" readonly>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Prioridade</label>
+        <select class="form-select" id="manutencaoListaPrioridade">
+          <option>Baixa</option>
+          <option selected>Média</option>
+          <option>Alta</option>
+          <option>Urgente</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Técnico</label>
+        <input class="form-input" id="manutencaoListaTecnico" placeholder="Responsável, se houver">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Problema</label>
+      <textarea class="form-textarea" id="manutencaoListaProblema" placeholder="Descreva o problema encontrado"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações</label>
+      <textarea class="form-textarea" id="manutencaoListaObservacoes" placeholder="Detalhes extras, testes feitos ou peças necessárias"></textarea>
+    </div>
+    <div class="modal-message" id="manutencaoListaMensagem"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+      <button class="btn btn-secondary" onclick="fecharModalManutencaoLista()">Cancelar</button>
+      <button class="btn btn-danger" id="salvarManutencaoLista">Enviar para Manutenção</button>
+    </div>
+  </div>
+</div>
+<script src="app.js?v=20260521-backend-db"></script>
+<script>
+const filtros = {
+  todos: { titulo: "Equipamentos", subtitulo: "Todos os equipamentos cadastrados no sistema" },
+  disponivel: { titulo: "Equipamentos disponíveis", subtitulo: "Equipamentos prontos para uso" },
+  evento: { titulo: "Equipamentos em evento", subtitulo: "Equipamentos vinculados a eventos em andamento" },
+  manutencao: { titulo: "Equipamentos em manutenção", subtitulo: "Equipamentos que precisam de reparo ou revisão" }
+};
+
+const params = new URLSearchParams(window.location.search);
+const filtroAtual = params.get("status") || "todos";
+const busca = document.querySelector(".search-input");
+const tbody = document.querySelector("tbody");
+const pageTitle = document.querySelector(".page-title");
+const pageSubtitle = document.querySelector(".page-subtitle");
+const statusHeader = document.getElementById("statusHeader");
+const filtroConfig = filtros[filtroAtual] || filtros.todos;
+const statusFluxoEvento = ["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"];
+let visualizacaoEvento = localStorage.getItem("equipamentosEventoVisualizacao") || "status";
+const modalManutencaoLista = document.getElementById("modalManutencaoLista");
+const manutencaoListaEquipamento = document.getElementById("manutencaoListaEquipamento");
+const manutencaoListaPrioridade = document.getElementById("manutencaoListaPrioridade");
+const manutencaoListaTecnico = document.getElementById("manutencaoListaTecnico");
+const manutencaoListaProblema = document.getElementById("manutencaoListaProblema");
+const manutencaoListaObservacoes = document.getElementById("manutencaoListaObservacoes");
+const manutencaoListaMensagem = document.getElementById("manutencaoListaMensagem");
+let manutencaoListaCodigo = "";
+
+pageTitle.textContent = filtroConfig.titulo;
+pageSubtitle.textContent = filtroConfig.subtitulo;
+
+function configurarCabecalhoStatus() {
+  if (filtroAtual !== "evento") {
+    statusHeader.textContent = "Status";
+    return;
+  }
+
+  statusHeader.innerHTML = `
+    <span class="event-column-toggle">
+      <span>Mostrar</span>
+      <span class="event-column-toggle-wrap">
+        <select id="visualizacaoEvento">
+          <option value="status" ${visualizacaoEvento === "status" ? "selected" : ""}>Status</option>
+          <option value="evento" ${visualizacaoEvento === "evento" ? "selected" : ""}>Evento</option>
+        </select>
+      </span>
+    </span>
+  `;
+
+  document.getElementById("visualizacaoEvento").addEventListener("change", (event) => {
+    visualizacaoEvento = event.target.value;
+    localStorage.setItem("equipamentosEventoVisualizacao", visualizacaoEvento);
+    renderEquipamentos();
+  });
+}
+
+function eventosDoEquipamento(codigo) {
+  return (GE.dados().eventos || [])
+    .filter((evento) => evento.status !== "Finalizado" && (evento.equipamentos || []).includes(codigo))
+    .map((evento) => evento.nome || evento.id);
+}
+
+function rotuloEventoDoEquipamento(codigo) {
+  const eventos = eventosDoEquipamento(codigo);
+  return eventos.length ? eventos.join(", ") : "Evento não identificado";
+}
+
+function textoSeguro(valor) {
+  return String(valor || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function conteudoStatusGrupo(grupo) {
+  if (filtroAtual === "evento" && visualizacaoEvento === "evento") {
+    return `<span class="event-name-badge" title="${textoSeguro(grupo.eventoNome)}">${textoSeguro(grupo.eventoNome)}</span>`;
+  }
+
+  const origemManutencao = filtroAtual === "manutencao" ? origemManutencaoGrupo(grupo.codigos) : "";
+  const complementoOrigem = origemManutencao
+    ? `<span class="maintenance-origin">${textoSeguro(origemManutencao)}</span>`
+    : "";
+
+  return `${GE.badge(grupo.status)}${complementoOrigem}`;
+}
+
+function manutencaoAtiva(codigo) {
+  return (GE.dados().manutencoes || []).find((manutencao) => manutencao.codigo === codigo && manutencao.status !== "Finalizada");
+}
+
+function origemManutencaoGrupo(codigos) {
+  const origens = codigos
+    .map((codigo) => manutencaoAtiva(codigo)?.origem)
+    .filter(Boolean);
+  const unicas = [...new Set(origens)];
+  const textoOrigem = unicas.join(", ");
+  return unicas.length
+    ? `${textoOrigem.startsWith("Evento:") ? "Enviado pelo" : "Origem:"} ${textoOrigem}`
+    : "";
+}
+
+function renderEquipamentos() {
+  const termo = GE.normalizar(busca.value.trim());
+  const manutencoesAtivas = new Set((GE.dados().manutencoes || [])
+    .filter((manutencao) => manutencao.status !== "Finalizada")
+    .map((manutencao) => manutencao.codigo));
+  const equipamentos = GE.dados().equipamentos.filter((eq) => {
+    const combinaStatus = filtroAtual === "todos"
+      || eq.status === filtroAtual
+      || (filtroAtual === "manutencao" && manutencoesAtivas.has(eq.codigo))
+      || (filtroAtual === "evento" && statusFluxoEvento.includes(eq.status));
+    const combinaBusca = GE.normalizar(`${eq.codigo} ${eq.nome} ${eq.categoria}`).includes(termo);
+    return combinaStatus && combinaBusca;
+  });
+  const grupos = agruparEquipamentos(equipamentos);
+
+  tbody.innerHTML = grupos.map((grupo) => `
+    <tr data-status="${grupo.status}">
+      <td title="${grupo.codigos.join(", ")}">${resumoCodigos(grupo.codigos)}</td>
+      <td><a href="06-detalhe-equipamento.html?codigo=${grupo.principal.codigo}" style="color:var(--text);text-decoration:none;font-weight:500">${grupo.nome}</a></td>
+      <td style="color:var(--text2)">${grupo.categoria}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.quantidade}</td>
+      <td>${conteudoStatusGrupo(grupo)}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="icon-btn" title="Editar primeiro item" onclick="editarEquipamento('${grupo.principal.codigo}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="maintenance-action" title="Enviar primeira unidade para manutenção" aria-label="Enviar ${grupo.nome} para manutenção" onclick="abrirModalManutencaoLista('${grupo.principal.codigo}')">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9l-3.8 3.8z" />
+            </svg>
+          </button>
+          <button class="icon-btn" title="Excluir grupo" onclick='excluirGrupo(${JSON.stringify(grupo.codigos)})'><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+        </div>
+      </td>
+    </tr>
+  `).join("") || `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhum equipamento encontrado.</td></tr>`;
+}
+
+function nomeBase(nome) {
+  return nome.replace(/\s+\d+$/, "").trim();
+}
+
+function agruparEquipamentos(equipamentos) {
+  const mapa = new Map();
+
+  equipamentos.forEach((eq) => {
+    const eventoNome = rotuloEventoDoEquipamento(eq.codigo);
+    const statusGrupo = filtroAtual === "manutencao" && manutencaoAtiva(eq.codigo) ? "manutencao" : eq.status;
+    const chaveEvento = filtroAtual === "evento" && visualizacaoEvento === "evento"
+      ? `|${GE.normalizar(eventoNome)}`
+      : "";
+    const chave = `${GE.normalizar(nomeBase(eq.nome))}|${GE.normalizar(eq.categoria)}|${statusGrupo}${chaveEvento}`;
+    if (!mapa.has(chave)) {
+      mapa.set(chave, {
+        nome: nomeBase(eq.nome),
+        categoria: eq.categoria,
+        status: statusGrupo,
+        eventoNome,
+        quantidade: 0,
+        codigos: [],
+        principal: eq
+      });
+    }
+
+    const grupo = mapa.get(chave);
+    grupo.quantidade += 1;
+    grupo.codigos.push(eq.codigo);
+  });
+
+  return [...mapa.values()];
+}
+
+function resumoCodigos(codigos) {
+  if (codigos.length === 1) return codigos[0];
+  return `${codigos[0]} - ${codigos[codigos.length - 1]}`;
+}
+
+function editarEquipamento(codigo) {
+  window.location.href = `05-cadastro-equipamento.html?codigo=${codigo}`;
+}
+
+function excluirEquipamento(codigo) {
+  GE.confirmar(`Excluir o equipamento ${codigo}?`, () => {
+    GE.removerEquipamento(codigo);
+    renderEquipamentos();
+    GE.mensagem("Equipamento excluído.", "success");
+  }, { titulo: "Excluir equipamento", confirmar: "Excluir", perigo: true });
+}
+
+function excluirGrupo(codigos) {
+  GE.confirmar(`Excluir ${codigos.length} equipamento(s) deste grupo?`, () => {
+    codigos.forEach((codigo) => GE.removerEquipamento(codigo));
+    renderEquipamentos();
+    GE.mensagem("Grupo de equipamentos excluído.", "success");
+  }, { titulo: "Excluir grupo", confirmar: "Excluir", perigo: true });
+}
+
+function abrirModalManutencaoLista(codigo) {
+  const eq = GE.getEquipamento(codigo);
+  if (!eq) return;
+
+  manutencaoListaCodigo = codigo;
+  manutencaoListaEquipamento.value = `${eq.codigo} - ${eq.nome}`;
+  manutencaoListaPrioridade.value = "Média";
+  manutencaoListaTecnico.value = "";
+  manutencaoListaProblema.value = "";
+  manutencaoListaObservacoes.value = "";
+  manutencaoListaMensagem.style.display = "none";
+  manutencaoListaMensagem.textContent = "";
+  modalManutencaoLista.style.display = "flex";
+  manutencaoListaProblema.focus();
+}
+
+function fecharModalManutencaoLista() {
+  modalManutencaoLista.style.display = "none";
+}
+
+function salvarManutencaoLista() {
+  const eq = GE.getEquipamento(manutencaoListaCodigo);
+  const problema = manutencaoListaProblema.value.trim();
+  const prioridade = manutencaoListaPrioridade.value;
+  const tecnico = manutencaoListaTecnico.value.trim();
+  const observacoes = manutencaoListaObservacoes.value.trim();
+
+  if (!eq || !problema) {
+    manutencaoListaMensagem.style.display = "block";
+    manutencaoListaMensagem.style.color = "var(--red)";
+    manutencaoListaMensagem.textContent = "Descreva o problema antes de enviar para manutenção.";
+    return;
+  }
+
+  const detalhes = [
+    problema,
+    `Prioridade: ${prioridade}`,
+    tecnico ? `Técnico: ${tecnico}` : "",
+    observacoes ? `Observações: ${observacoes}` : "",
+    "Origem: Lista de equipamentos"
+  ].filter(Boolean).join(" | ");
+
+  GE.enviarManutencao(eq.codigo, detalhes, {
+    prioridade,
+    tecnico,
+    observacoes,
+    origem: "Lista de equipamentos"
+  });
+
+  manutencaoListaMensagem.style.display = "block";
+  manutencaoListaMensagem.style.color = "var(--green)";
+  manutencaoListaMensagem.textContent = "Equipamento enviado para manutenção.";
+  renderEquipamentos();
+  setTimeout(fecharModalManutencaoLista, 650);
+}
+
+busca.addEventListener("input", renderEquipamentos);
+document.getElementById("salvarManutencaoLista").addEventListener("click", salvarManutencaoLista);
+modalManutencaoLista.addEventListener("click", (event) => {
+  if (event.target === modalManutencaoLista) fecharModalManutencaoLista();
+});
+document.querySelectorAll(".page-btn").forEach((botao) => {
+  botao.addEventListener("click", () => GE.mensagem("A paginação está pronta; com os dados atuais só existe a página 1.", "info"));
+});
+configurarCabecalhoStatus();
+renderEquipamentos();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

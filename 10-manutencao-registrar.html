@@ -1,0 +1,544 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockSync – Registrar Manutenção</title>
+<link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+<style>
+.search-with-btn { display:flex;gap:8px; }
+.search-with-btn .search-wrap { flex:1; }
+.maintenance-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1180px;
+}
+.selected-equipment {
+  display: none;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-size: 12.5px;
+  background: var(--surface2);
+}
+.equipment-results {
+  display: none;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface2);
+}
+.equipment-result {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.equipment-result:last-child {
+  border-bottom: 0;
+}
+.equipment-result:hover,
+.equipment-result.active {
+  background: rgba(124,58,237,0.12);
+}
+.equipment-result-code {
+  font-family: var(--mono);
+  color: var(--text2);
+  font-size: 12px;
+}
+.equipment-result-name {
+  min-width: 0;
+}
+.equipment-result-name strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.equipment-result-name span {
+  display: block;
+  color: var(--text3);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.form-feedback {
+  display: none;
+  font-size: 13px;
+  margin-top: 12px;
+}
+.maintenance-details {
+  color: var(--text3);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.maintenance-form {
+  max-width: 760px;
+}
+.maintenance-form .form-row {
+  grid-template-columns: minmax(160px, 220px) 1fr;
+}
+.maintenance-table table {
+  table-layout: fixed;
+}
+.maintenance-table th:nth-child(1),
+.maintenance-table td:nth-child(1) {
+  width: 92px;
+}
+.maintenance-table th:nth-child(3),
+.maintenance-table td:nth-child(3) {
+  width: 34%;
+}
+.maintenance-table th:nth-child(4),
+.maintenance-table td:nth-child(4),
+.maintenance-table th:nth-child(6),
+.maintenance-table td:nth-child(6),
+.maintenance-table th:nth-child(7),
+.maintenance-table td:nth-child(7) {
+  width: 120px;
+}
+.maintenance-table th:nth-child(5),
+.maintenance-table td:nth-child(5) {
+  width: 150px;
+}
+.maintenance-table td {
+  vertical-align: top;
+}
+.problem-text {
+  color: var(--text2);
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.finish-maintenance {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.finish-maintenance:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.7);
+}
+.finish-maintenance svg {
+  width: 16px;
+  height: 16px;
+}
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+.modal-box {
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+}
+@media (max-width: 900px) {
+  .maintenance-form .form-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <a class="sidebar-logo" href="03-dashboard.html"><div class="brand-logo-frame"><img src="assets/logo-stocksync-icon.png" alt="StockSync"></div><div class="brand-name">Stock<span>Sync</span></div></a>
+  <a class="nav-item" href="03-dashboard.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+  <a class="nav-item" href="04-equipamentos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Equipamentos</a>
+  <a class="nav-item" href="08-eventos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Eventos</a>
+  <a class="nav-item" href="09-locacoes.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Locações</a>
+  <a class="nav-item active" href="10-manutencao-registrar.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Manutenção</a>
+  <a class="nav-item" href="02-cadastro-funcionario.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Funcionários</a>
+  <a class="nav-item" href="12-logs.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>Logs</a>
+  <div class="sidebar-footer"><button class="btn-logout"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair</button></div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Registrar Manutenção</div>
+      <div class="page-subtitle">Informe o problema do equipamento</div>
+    </div>
+  </div>
+
+  <div class="maintenance-layout">
+    <div class="card maintenance-form">
+      <div class="form-group">
+        <label class="form-label">Buscar Equipamento</label>
+        <div class="search-with-btn">
+          <div class="search-wrap" style="flex:1">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input class="search-input" type="text" placeholder="Digite o código ou nome...">
+          </div>
+          <button class="btn btn-secondary" id="buscarEquipamento" style="padding:10px 14px">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </button>
+        </div>
+        <div class="selected-equipment" id="equipamentoSelecionado"></div>
+        <div class="equipment-results" id="resultadosEquipamentos"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Descrição do Problema</label>
+        <textarea class="form-textarea" placeholder="Descreva o defeito ou problema..." style="min-height:120px"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Prioridade</label>
+          <select class="form-select" id="prioridadeManutencao">
+            <option>Baixa</option>
+            <option selected>Média</option>
+            <option>Alta</option>
+            <option>Urgente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsável Técnico</label>
+          <input class="form-input" id="tecnicoManutencao" type="text" placeholder="Ex: Pedro Oliveira">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Observações</label>
+        <textarea class="form-textarea" id="observacoesManutencao" placeholder="Ex: testar antes de liberar para estoque" style="min-height:80px"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-ghost" id="cancelarManutencao">Cancelar</button>
+        <button class="btn btn-danger" id="registrarManutencao">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+          Enviar para Manutenção
+        </button>
+      </div>
+      <div class="form-feedback" id="feedbackManutencao"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Equipamentos em Manutenção</div>
+          <div class="section-subtitle">Acompanhe todos os itens enviados para reparo, limpeza ou conferência técnica</div>
+        </div>
+      </div>
+      <div class="table-wrap maintenance-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Equipamento</th>
+              <th>Problema</th>
+              <th>Prioridade</th>
+              <th>Status</th>
+              <th>Data</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="manutencoesTabela"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+<div class="modal-overlay" id="modalFinalizarManutencao">
+  <div class="modal-box">
+    <div class="page-title" style="font-size:18px">Finalizar Manutenção</div>
+    <div class="page-subtitle" id="finalizarManutencaoResumo" style="margin-bottom:18px">Libere o equipamento para o estoque</div>
+    <div class="form-group">
+      <label class="form-label">Observação Final</label>
+      <textarea class="form-textarea" id="observacaoFinalManutencao" style="min-height:100px">Equipamento consertado, testado e liberado para uso.</textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+      <button class="btn btn-secondary" id="cancelarFinalizacaoManutencao">Cancelar</button>
+      <button class="btn btn-primary" id="confirmarFinalizacaoManutencao">Finalizar e Liberar</button>
+    </div>
+  </div>
+</div>
+<script src="app.js?v=20260521-backend-db"></script>
+<script>
+const busca = document.querySelector(".search-input");
+const problema = document.querySelector(".form-textarea");
+const prioridade = document.getElementById("prioridadeManutencao");
+const tecnico = document.getElementById("tecnicoManutencao");
+const observacoes = document.getElementById("observacoesManutencao");
+const feedback = document.getElementById("feedbackManutencao");
+const equipamentoSelecionado = document.getElementById("equipamentoSelecionado");
+const resultadosEquipamentos = document.getElementById("resultadosEquipamentos");
+const manutencoesTabela = document.getElementById("manutencoesTabela");
+const modalFinalizarManutencao = document.getElementById("modalFinalizarManutencao");
+const finalizarManutencaoResumo = document.getElementById("finalizarManutencaoResumo");
+const observacaoFinalManutencao = document.getElementById("observacaoFinalManutencao");
+const params = new URLSearchParams(window.location.search);
+const codigoInicial = params.get("codigo");
+if (codigoInicial) busca.value = codigoInicial;
+let codigoSelecionado = "";
+let codigoFinalizacao = "";
+
+function buscarEquipamentos() {
+  const termo = GE.normalizar(busca.value.trim());
+  if (!termo) return [];
+  return GE.dados().equipamentos
+    .filter((eq) => GE.normalizar(`${eq.codigo} ${eq.nome} ${eq.categoria}`).includes(termo))
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true }));
+}
+
+function equipamentoSelecionadoAtual() {
+  if (!codigoSelecionado) return null;
+  return GE.dados().equipamentos.find((eq) => eq.codigo === codigoSelecionado) || null;
+}
+
+function mostrarFeedback(texto, tipo = "erro") {
+  feedback.style.display = "block";
+  feedback.style.color = tipo === "sucesso" ? "var(--green)" : "var(--red)";
+  feedback.textContent = texto;
+}
+
+function atualizarEquipamentoSelecionado() {
+  const eq = equipamentoSelecionadoAtual();
+  if (!eq) {
+    equipamentoSelecionado.style.display = "none";
+    equipamentoSelecionado.textContent = "";
+    return null;
+  }
+  equipamentoSelecionado.style.display = "block";
+  equipamentoSelecionado.textContent = `${eq.codigo} - ${eq.nome} | ${eq.categoria} | ${GE.statusInfo[eq.status]?.texto || eq.status}`;
+  return eq;
+}
+
+function selecionarEquipamentoManutencao(codigo) {
+  codigoSelecionado = codigo;
+  const eq = atualizarEquipamentoSelecionado();
+  if (eq) {
+    busca.value = `${eq.codigo} - ${eq.nome}`;
+    mostrarFeedback("Equipamento selecionado pelo código correto.", "sucesso");
+  }
+  renderResultadosEquipamentos();
+}
+
+function renderResultadosEquipamentos() {
+  const resultados = buscarEquipamentos();
+
+  if (!busca.value.trim()) {
+    resultadosEquipamentos.style.display = "none";
+    resultadosEquipamentos.innerHTML = "";
+    return;
+  }
+
+  if (!resultados.length) {
+    resultadosEquipamentos.style.display = "block";
+    resultadosEquipamentos.innerHTML = `<div style="padding:12px;color:var(--text3);font-size:13px">Nenhum equipamento encontrado.</div>`;
+    return;
+  }
+
+  resultadosEquipamentos.style.display = "block";
+  resultadosEquipamentos.innerHTML = resultados.slice(0, 12).map((eq) => `
+    <button class="equipment-result ${eq.codigo === codigoSelecionado ? "active" : ""}" type="button" onclick="selecionarEquipamentoManutencao('${eq.codigo}')">
+      <span class="equipment-result-code">${eq.codigo}</span>
+      <span class="equipment-result-name">
+        <strong>${eq.nome}</strong>
+        <span>${eq.categoria}</span>
+      </span>
+      ${GE.badge(eq.status)}
+    </button>
+  `).join("");
+}
+
+function badgePrioridade(valor) {
+  const classes = {
+    Baixa: "badge-green",
+    "Média": "badge-yellow",
+    Alta: "badge-purple",
+    Urgente: "badge-red"
+  };
+  return `<span class="badge ${classes[valor] || "badge-yellow"}">${valor || "Média"}</span>`;
+}
+
+function renderManutencoes() {
+  const db = GE.dados();
+  const manutencoes = (db.manutencoes || []).filter((manutencao) => manutencao.status !== "Finalizada");
+
+  manutencoesTabela.innerHTML = manutencoes.map((manutencao) => {
+    const eq = db.equipamentos.find((item) => item.codigo === manutencao.codigo) || { nome: "Equipamento removido", categoria: "-" };
+    const prioridadeTexto = manutencao.prioridade || "Média";
+    const tecnicoTexto = manutencao.tecnico || "Não definido";
+    const origem = manutencao.origem || "Registro manual";
+    const detalhes = [
+      tecnicoTexto !== "Não definido" ? `Técnico: ${tecnicoTexto}` : "",
+      origem !== "Registro manual" ? origem : "",
+      manutencao.observacoes ? `Obs: ${manutencao.observacoes}` : ""
+    ].filter(Boolean).join(" | ");
+    const classeStatus = manutencao.status === "Finalizada" ? "badge-green" : manutencao.status === "Aguardando Peças" ? "badge-yellow" : "badge-red";
+
+    return `
+      <tr>
+        <td style="font-family:var(--mono);font-size:12px">${manutencao.codigo}</td>
+        <td>
+          <div style="color:var(--text);font-weight:500">${eq.nome}</div>
+          <div class="maintenance-details">${eq.categoria || "-"}</div>
+        </td>
+        <td>
+          <div class="problem-text">${manutencao.problema || "-"}</div>
+          ${detalhes ? `<div class="maintenance-details">${detalhes}</div>` : ""}
+        </td>
+        <td>${badgePrioridade(prioridadeTexto)}</td>
+        <td><span class="badge ${classeStatus}">${manutencao.status || "Em Manutenção"}</span></td>
+        <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(manutencao.data)}</td>
+        <td>
+          <button class="finish-maintenance" title="Finalizar manutenção e liberar equipamento" onclick="finalizarManutencao('${manutencao.codigo}')">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </button>
+        </td>
+      </tr>`;
+  }).join("") || `<tr><td colspan="7" style="color:var(--text3);font-family:var(--font)">Nenhum equipamento em manutenção.</td></tr>`;
+}
+
+function finalizarManutencao(codigo) {
+  const db = GE.dados();
+  const eq = db.equipamentos.find((item) => item.codigo === codigo);
+  codigoFinalizacao = codigo;
+  finalizarManutencaoResumo.textContent = eq ? `${codigo} - ${eq.nome}` : codigo;
+  observacaoFinalManutencao.value = "Equipamento consertado, testado e liberado para uso.";
+  modalFinalizarManutencao.style.display = "flex";
+  observacaoFinalManutencao.focus();
+}
+
+function fecharModalFinalizacao() {
+  modalFinalizarManutencao.style.display = "none";
+  codigoFinalizacao = "";
+}
+
+document.getElementById("cancelarFinalizacaoManutencao").addEventListener("click", fecharModalFinalizacao);
+
+modalFinalizarManutencao.addEventListener("click", (event) => {
+  if (event.target === modalFinalizarManutencao) fecharModalFinalizacao();
+});
+
+document.getElementById("confirmarFinalizacaoManutencao").addEventListener("click", () => {
+  const ok = GE.finalizarManutencao(codigoFinalizacao, observacaoFinalManutencao.value.trim());
+  if (!ok) {
+    mostrarFeedback("Não foi possível finalizar essa manutenção.");
+    return;
+  }
+
+  fecharModalFinalizacao();
+  mostrarFeedback("Manutenção finalizada. Equipamento voltou para disponível.", "sucesso");
+  renderManutencoes();
+});
+
+document.getElementById("buscarEquipamento").addEventListener("click", () => {
+  renderResultadosEquipamentos();
+  const resultados = buscarEquipamentos();
+
+  if (resultados.length === 1) {
+    selecionarEquipamentoManutencao(resultados[0].codigo);
+    return;
+  }
+
+  mostrarFeedback(
+    resultados.length ? "Selecione o equipamento correto na lista pelo código." : "Equipamento não encontrado.",
+    resultados.length ? "sucesso" : "erro"
+  );
+});
+
+document.getElementById("cancelarManutencao").addEventListener("click", () => {
+  busca.value = "";
+  codigoSelecionado = "";
+  problema.value = "";
+  prioridade.value = "Média";
+  tecnico.value = "";
+  observacoes.value = "";
+  equipamentoSelecionado.style.display = "none";
+  resultadosEquipamentos.style.display = "none";
+  resultadosEquipamentos.innerHTML = "";
+  feedback.style.display = "none";
+});
+
+document.getElementById("registrarManutencao").addEventListener("click", () => {
+  const eq = equipamentoSelecionadoAtual();
+  if (!eq) {
+    mostrarFeedback("Selecione o equipamento exato na lista antes de enviar para manutenção.");
+    return;
+  }
+  if (!problema.value.trim()) {
+    mostrarFeedback("Descreva o problema antes de enviar para manutenção.");
+    return;
+  }
+
+  GE.enviarManutencao(eq.codigo, problema.value.trim(), {
+    prioridade: prioridade.value,
+    tecnico: tecnico.value.trim(),
+    observacoes: observacoes.value.trim(),
+    origem: "Registro manual"
+  });
+
+  mostrarFeedback("Equipamento enviado para manutenção com sucesso.", "sucesso");
+  busca.value = "";
+  codigoSelecionado = "";
+  problema.value = "";
+  prioridade.value = "Média";
+  tecnico.value = "";
+  observacoes.value = "";
+  equipamentoSelecionado.style.display = "none";
+  resultadosEquipamentos.style.display = "none";
+  resultadosEquipamentos.innerHTML = "";
+  renderManutencoes();
+});
+
+busca.addEventListener("input", () => {
+  feedback.style.display = "none";
+  codigoSelecionado = "";
+  atualizarEquipamentoSelecionado();
+  renderResultadosEquipamentos();
+});
+
+if (codigoInicial) {
+  const eqInicial = GE.dados().equipamentos.find((eq) => eq.codigo === codigoInicial);
+  if (eqInicial) selecionarEquipamentoManutencao(eqInicial.codigo);
+}
+renderManutencoes();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,235 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockSync – Novo Equipamento</title>
+<link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+<style>
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200; }
+.modal { background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:520px;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg); }
+.modal-title { font-size:18px;font-weight:700;margin-bottom:4px; }
+.modal-sub { font-size:12.5px;color:var(--text3);margin-bottom:24px; }
+.modal-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:24px; }
+.quantity-hint { font-size:12px;color:var(--text3);margin-top:6px;line-height:1.4; }
+.photo-picker { display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center; }
+.photo-preview { width:132px;height:92px;border-radius:10px;border:1px solid var(--border);background:var(--surface3);overflow:hidden;display:flex;align-items:center;justify-content:center; }
+.photo-preview img { width:100%;height:100%;object-fit:cover;display:block; }
+.photo-actions { display:flex;flex-direction:column;gap:8px;align-items:flex-start; }
+.photo-actions input { display:none; }
+.photo-hint { font-size:12px;color:var(--text3);line-height:1.4; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <a class="sidebar-logo" href="03-dashboard.html"><div class="brand-logo-frame"><img src="assets/logo-stocksync-icon.png" alt="StockSync"></div><div class="brand-name">Stock<span>Sync</span></div></a>
+  <a class="nav-item" href="03-dashboard.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+  <a class="nav-item active" href="04-equipamentos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Equipamentos</a>
+  <a class="nav-item" href="08-eventos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Eventos</a>
+  <a class="nav-item" href="09-locacoes.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Locações</a>
+  <a class="nav-item" href="10-manutencao-registrar.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Manutenção</a>
+  <a class="nav-item" href="02-cadastro-funcionario.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Funcionários</a>
+  <a class="nav-item" href="12-logs.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>Logs</a>
+  <div class="sidebar-footer"><button class="btn-logout"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair</button></div>
+</aside>
+
+<div class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Novo Equipamento</div>
+    <div class="modal-sub">Preencha os dados do equipamento</div>
+
+    <div class="form-group">
+      <label class="form-label">Código</label>
+      <input class="form-input" id="codigoEquipamento" type="text" placeholder="Ex: EQP001">
+    </div>
+    <div class="form-group" id="grupoQuantidade">
+      <label class="form-label">Quantidade</label>
+      <input class="form-input" id="quantidadeEquipamento" type="number" min="1" value="1">
+      <div class="quantity-hint">Para cadastrar vários itens iguais, informe a quantidade. Ex: CAB001 com quantidade 5 cria CAB001 até CAB005.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input class="form-input" id="nomeEquipamento" type="text" placeholder="Digite o nome do equipamento">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoria</label>
+      <select class="form-select">
+        <option value="" disabled selected>Selecione</option>
+        <option>Som</option>
+        <option>Iluminação</option>
+        <option>Estrutura</option>
+        <option>Painel de Led</option>
+        <option>Cabeamento</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <textarea class="form-textarea" placeholder="Descrição de equipamento..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Foto do Equipamento</label>
+      <div class="photo-picker">
+        <div class="photo-preview"><img id="previewImagemEquipamento" src="assets/equipamentos/equipamento.svg?v=20260520" alt="Foto do equipamento"></div>
+        <div class="photo-actions">
+          <label class="btn btn-secondary" for="imagemEquipamento">Escolher Foto</label>
+          <input id="imagemEquipamento" type="file" accept="image/*">
+          <button class="btn btn-ghost" id="removerImagemEquipamento" type="button">Usar imagem automática</button>
+          <div class="photo-hint">A foto será reduzida automaticamente para ficar leve no sistema.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <a class="btn btn-ghost" href="04-equipamentos.html">Cancelar</a>
+      <button class="btn btn-primary" id="salvarEquipamento">Salvar Equipamento</button>
+    </div>
+  </div>
+</div>
+<script src="app.js?v=20260521-backend-db"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const codigoEdicao = params.get("codigo");
+const codigoInput = document.getElementById("codigoEquipamento");
+const nomeInput = document.getElementById("nomeEquipamento");
+const categoria = document.querySelector(".form-select");
+const descricao = document.querySelector(".form-textarea");
+const titulo = document.querySelector(".modal-title");
+const grupoQuantidade = document.getElementById("grupoQuantidade");
+const quantidade = document.getElementById("quantidadeEquipamento");
+const inputImagem = document.getElementById("imagemEquipamento");
+const previewImagem = document.getElementById("previewImagemEquipamento");
+const removerImagem = document.getElementById("removerImagemEquipamento");
+let imagemAtual = "";
+
+function normalizarCadastro(texto) {
+  return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function imagemAutomaticaCadastro(equipamento = {}) {
+  const nome = normalizarCadastro(equipamento.nome || nomeInput.value);
+  const cat = normalizarCadastro(equipamento.categoria || categoria.value);
+  const base = "assets/equipamentos";
+
+  if (nome.includes("microfone")) return `${base}/microfone.svg?v=20260520`;
+  if (nome.includes("mesa") && nome.includes("som")) return `${base}/mesa-som.svg?v=20260520`;
+  if (nome.includes("caixa") || nome.includes("subwoofer") || nome.includes("retorno")) return `${base}/caixa-som.svg?v=20260520`;
+  if (nome.includes("fumaca")) return `${base}/fumaca.svg?v=20260520`;
+  if (cat.includes("painel") || nome.includes("painel") || nome.includes("novastar") || nome.includes("sender")) return `${base}/painel-led.svg?v=20260520`;
+  if (cat.includes("cabo") || cat.includes("cabeamento") || nome.includes("cabo")) return `${base}/cabos.svg?v=20260520`;
+  if (cat.includes("energia") || nome.includes("power") || nome.includes("nobreak") || nome.includes("extensao")) return `${base}/energia.svg?v=20260520`;
+  if (cat.includes("estrutura") || nome.includes("truss") || nome.includes("totem")) return `${base}/estrutura.svg?v=20260520`;
+  if (cat.includes("iluminacao") || nome.includes("moving") || nome.includes("par led") || nome.includes("strobo") || nome.includes("refletor") || nome.includes("dmx")) return `${base}/iluminacao.svg?v=20260520`;
+
+  return `${base}/equipamento.svg?v=20260520`;
+}
+
+function atualizarPreviewAutomatico() {
+  if (!imagemAtual) previewImagem.src = imagemAutomaticaCadastro();
+}
+
+function lerImagemReduzida(arquivo) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Arquivo de imagem inválido."));
+      img.onload = () => {
+        const limite = 900;
+        const escala = Math.min(1, limite / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * escala));
+        canvas.height = Math.max(1, Math.round(img.height * escala));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(arquivo);
+  });
+}
+
+if (codigoEdicao) {
+  const eq = GE.getEquipamento(codigoEdicao);
+  if (eq) {
+    titulo.textContent = "Editar Equipamento";
+    grupoQuantidade.style.display = "none";
+    codigoInput.value = eq.codigo;
+    codigoInput.disabled = true;
+    nomeInput.value = eq.nome;
+    categoria.value = eq.categoria;
+    descricao.value = eq.descricao || "";
+    imagemAtual = eq.imagem || "";
+    previewImagem.src = imagemAtual || imagemAutomaticaCadastro(eq);
+  }
+}
+
+inputImagem.addEventListener("change", async () => {
+  const arquivo = inputImagem.files[0];
+  if (!arquivo) return;
+
+  try {
+    imagemAtual = await lerImagemReduzida(arquivo);
+    previewImagem.src = imagemAtual;
+  } catch (error) {
+    GE.mensagem(error.message, "error");
+    inputImagem.value = "";
+  }
+});
+
+removerImagem.addEventListener("click", () => {
+  imagemAtual = imagemAutomaticaCadastro();
+  inputImagem.value = "";
+  previewImagem.src = imagemAtual;
+});
+
+nomeInput.addEventListener("input", atualizarPreviewAutomatico);
+categoria.addEventListener("change", atualizarPreviewAutomatico);
+
+document.getElementById("salvarEquipamento").addEventListener("click", function () {
+  const equipamento = {
+    codigo: codigoInput.value,
+    nome: nomeInput.value,
+    categoria: categoria.value,
+    descricao: descricao.value,
+    imagem: imagemAtual,
+    status: codigoEdicao ? GE.getEquipamento(codigoEdicao)?.status : "disponivel"
+  };
+
+  if (!equipamento.codigo || !equipamento.nome || !equipamento.categoria) {
+    GE.mensagem("Preencha código, nome e categoria.", "warning");
+    return;
+  }
+
+  if (codigoEdicao) {
+    GE.salvarEquipamento(equipamento);
+    GE.mensagem("Equipamento atualizado.", "success", { tempo: 1200 });
+  } else {
+    const criados = GE.salvarEquipamentosEmLote(equipamento, quantidade.value);
+    if (!criados.length) {
+      GE.mensagem("Nenhum equipamento foi cadastrado. Verifique se os códigos gerados já existem.", "warning");
+      return;
+    }
+    GE.mensagem(criados.length === 1 ? "Equipamento cadastrado." : `${criados.length} equipamentos cadastrados.`, "success", { tempo: 1200 });
+  }
+
+  setTimeout(() => window.location.href = "04-equipamentos.html", 650);
+});
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,15 @@
+{
+  "name": "stocksync",
+  "version": "1.0.0",
+  "description": "Sistema StockSync para gerenciamento de estoque de eventos",
+  "main": "servidor-local.js",
+  "scripts": {
+    "start": "node servidor-local.js",
+    "dev": "node servidor-local.js",
+    "check": "node --check app.js && node --check servidor-local.js && node --check api/health.js && node --check api/export.js && node --check api/import.js && node --check api/storage/[key].js",
+    "migrate:supabase": "node scripts/migrar-json-para-supabase.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,439 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockSync – Dashboard</title>
+<link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+<style>
+.donut-wrap { display: flex; align-items: center; gap: 24px; }
+.donut { width: 120px; height: 120px; flex-shrink: 0; }
+.legend { display: flex; flex-direction: column; gap: 8px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.move-item { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.move-item:last-child { border-bottom: none; }
+.move-time { font-family: var(--mono); color: var(--text3); font-size: 11px; }
+.move-desc { color: var(--text2); margin-top: 3px; line-height: 1.4; }
+.see-all { font-size: 12px; color: var(--accent2); cursor: pointer; }
+.stat-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.18s, border-color 0.18s, background 0.18s;
+}
+.stat-link:hover,
+.stat-link:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent2);
+  background: var(--surface2);
+  outline: none;
+}
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  box-shadow: var(--shadow-lg);
+}
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.modal-sub { font-size: 12.5px; color: var(--text3); margin-bottom: 24px; }
+.profile-photo-wrap { display:flex; align-items:center; gap:16px; margin-bottom:22px; }
+.profile-photo {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 24px;
+  font-weight: 700;
+  background-size: cover;
+  background-position: center;
+}
+.profile-form {
+  display: grid;
+  gap: 14px;
+}
+.profile-readonly {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:24px; }
+.hidden-file { display:none; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <a class="sidebar-logo" href="03-dashboard.html"><div class="brand-logo-frame"><img src="assets/logo-stocksync-icon.png" alt="StockSync"></div><div class="brand-name">Stock<span>Sync</span></div></a>
+  <a class="nav-item active" href="03-dashboard.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+  </a>
+  <a class="nav-item" href="04-equipamentos.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Equipamentos
+  </a>
+  <a class="nav-item" href="08-eventos.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Eventos
+  </a>
+  <a class="nav-item" href="09-locacoes.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Locações
+  </a>
+  <a class="nav-item" href="10-manutencao-registrar.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Manutenção
+  </a>
+  <a class="nav-item" href="02-cadastro-funcionario.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Funcionários
+  </a>
+  <a class="nav-item" href="12-logs.html">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>Logs
+  </a>
+  <div class="sidebar-footer">
+    <button class="btn-logout">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair
+    </button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-subtitle">Visão geral do estoque</div>
+    </div>
+    <div class="user-info">
+      <div class="bell">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </div>
+      <div class="user-profile-trigger" id="abrirPerfil" title="Abrir perfil">
+        <div class="user-avatar">JS</div>
+        <div>
+          <div class="user-name">João Silva</div>
+          <div class="user-role">Freelancer</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="grid-4" style="margin-bottom:24px">
+    <a class="stat-card stat-link" href="04-equipamentos.html?status=todos" aria-label="Ver todos os equipamentos">
+      <div class="stat-label">Total de Equipamentos</div>
+      <div class="stat-value">328</div>
+    </a>
+    <a class="stat-card stat-link" href="04-equipamentos.html?status=disponivel" aria-label="Ver equipamentos dispon?veis">
+      <div class="stat-label">Disponíveis</div>
+      <div class="stat-value green">227</div>
+    </a>
+    <a class="stat-card stat-link" href="04-equipamentos.html?status=evento" aria-label="Ver equipamentos em evento">
+      <div class="stat-label">Em Eventos</div>
+      <div class="stat-value cyan">76</div>
+    </a>
+    <a class="stat-card stat-link" href="04-equipamentos.html?status=manutencao" aria-label="Ver equipamentos em manuten??o">
+      <div class="stat-label">Em Manutenção</div>
+      <div class="stat-value red">12</div>
+    </a>
+  </div>
+
+  <div class="grid-2">
+    <!-- DONUT -->
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Status do Estoque</div>
+      </div>
+      <div class="donut-wrap">
+        <svg class="donut" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#1a1a24" stroke-width="3.8"/>
+          <circle class="donut-segment" data-status="disponivel" cx="18" cy="18" r="15.9" fill="none" stroke="#22c55e" stroke-width="3.8"
+            stroke-dasharray="0 100" stroke-dashoffset="25" stroke-linecap="round"/>
+          <circle class="donut-segment" data-status="evento" cx="18" cy="18" r="15.9" fill="none" stroke="#06b6d4" stroke-width="3.8"
+            stroke-dasharray="0 100" stroke-dashoffset="25" stroke-linecap="round"/>
+          <circle class="donut-segment" data-status="locado" cx="18" cy="18" r="15.9" fill="none" stroke="#f59e0b" stroke-width="3.8"
+            stroke-dasharray="0 100" stroke-dashoffset="25" stroke-linecap="round"/>
+          <circle class="donut-segment" data-status="manutencao" cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" stroke-width="3.8"
+            stroke-dasharray="0 100" stroke-dashoffset="25" stroke-linecap="round"/>
+        </svg>
+        <div class="legend">
+          <div class="legend-item" data-status="disponivel"><div class="legend-dot" style="background:var(--green)"></div> <span>0% Disponível</span></div>
+          <div class="legend-item" data-status="evento"><div class="legend-dot" style="background:var(--cyan)"></div> <span>0% Em Eventos</span></div>
+          <div class="legend-item" data-status="locado"><div class="legend-dot" style="background:var(--yellow)"></div> <span>0% Locado</span></div>
+          <div class="legend-item" data-status="manutencao"><div class="legend-dot" style="background:var(--red)"></div> <span>0% Manutenção</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT MOVES -->
+    <div class="card">
+      <div class="section-header">
+        <div class="section-title">Últimas Movimentações</div>
+        <a class="see-all" href="12-logs.html">Ver todas</a>
+      </div>
+      <div class="move-item">
+        <div class="move-time">10/01 14:32</div>
+        <div class="move-desc">Microfone SMS8 enviado para Casamento João – Por: Maria Santos</div>
+      </div>
+      <div class="move-item">
+        <div class="move-time">10/01 09:15</div>
+        <div class="move-desc">Mesa de Som X32 retornada do evento Festival Rock – Por: João Silva</div>
+      </div>
+      <div class="move-item">
+        <div class="move-time">09/01 16:45</div>
+        <div class="move-desc">Refletor LED 200W enviado para Locação – TechSom</div>
+      </div>
+      <div class="move-item">
+        <div class="move-time">09/01 10:20</div>
+        <div class="move-desc">Caixa Ativa JBL enviada para Show Corporativo – Por: Pedro Oliveira</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modalPerfil">
+  <div class="modal">
+    <div class="modal-title">Meu Perfil</div>
+    <div class="modal-sub">Edite seus dados pessoais e foto de acesso</div>
+
+    <div class="profile-photo-wrap">
+      <div class="profile-photo" id="perfilFoto">JS</div>
+      <div>
+        <button class="btn btn-secondary" id="escolherFoto" type="button">Escolher Foto</button>
+        <input class="hidden-file" id="inputFotoPerfil" type="file" accept="image/*">
+      </div>
+    </div>
+
+    <div class="profile-form">
+      <div class="form-group">
+        <label class="form-label" for="perfilNome">Nome</label>
+        <input class="form-input" id="perfilNome" type="text" placeholder="Seu nome completo">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="perfilEmail">E-mail</label>
+        <input class="form-input" id="perfilEmail" type="email" placeholder="seu@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="perfilTelefone">Telefone</label>
+        <input class="form-input" id="perfilTelefone" type="tel" placeholder="(00) 00000-0000">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="perfilSenha">Nova senha</label>
+        <input class="form-input" id="perfilSenha" type="password" placeholder="Deixe em branco para manter a atual">
+      </div>
+    </div>
+
+    <div class="profile-readonly">
+      <div class="detail-row"><span class="detail-key">Cargo</span><span class="detail-val" id="perfilCargo">-</span></div>
+      <div class="detail-row"><span class="detail-key">Empresa</span><span class="detail-val" id="perfilEmpresa">-</span></div>
+      <div class="detail-row"><span class="detail-key">Código</span><span class="detail-val" id="perfilEmpresaCodigo">-</span></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="fecharPerfil" type="button">Fechar</button>
+      <button class="btn btn-primary" id="salvarPerfil" type="button">Salvar Perfil</button>
+    </div>
+  </div>
+</div>
+<script src="app.js?v=20260521-backend-db"></script>
+<script>
+let usuarioLogado = GE.sessaoAtiva();
+
+if (!usuarioLogado) {
+  window.location.href = "01-login.html";
+} else {
+  const empresa = GE.empresaAtual();
+  if (empresa) document.querySelector(".page-subtitle").textContent = `Visão geral do estoque - ${empresa.nome} | Código: ${GE.codigoEmpresa(empresa)}`;
+}
+
+const modalPerfil = document.getElementById("modalPerfil");
+const perfilFoto = document.getElementById("perfilFoto");
+const inputFotoPerfil = document.getElementById("inputFotoPerfil");
+let fotoPerfilSelecionada = usuarioLogado?.foto || "";
+
+function iniciaisUsuario(usuario) {
+  return usuario.nome.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+}
+
+function atualizarResumoUsuario() {
+  const avatar = document.querySelector(".user-avatar");
+  document.querySelector(".user-name").textContent = usuarioLogado.nome;
+  document.querySelector(".user-role").textContent = usuarioLogado.cargo === "Operador" ? "Freelancer" : (usuarioLogado.cargo || "Freelancer");
+  avatar.style.backgroundImage = "";
+  avatar.textContent = iniciaisUsuario(usuarioLogado);
+
+  if (usuarioLogado.foto) {
+    avatar.style.backgroundImage = `url(${usuarioLogado.foto})`;
+    avatar.textContent = "";
+  }
+}
+
+function atualizarFotoPerfil(foto) {
+  const avatar = document.querySelector(".user-avatar");
+  const iniciais = iniciaisUsuario(usuarioLogado);
+  if (foto) {
+    perfilFoto.style.backgroundImage = `url(${foto})`;
+    perfilFoto.textContent = "";
+    avatar.style.backgroundImage = `url(${foto})`;
+    avatar.textContent = "";
+  } else {
+    perfilFoto.style.backgroundImage = "";
+    perfilFoto.textContent = iniciais;
+    avatar.style.backgroundImage = "";
+    avatar.textContent = iniciais;
+  }
+}
+
+if (usuarioLogado) atualizarResumoUsuario();
+
+document.getElementById("abrirPerfil").addEventListener("click", () => {
+  document.getElementById("perfilNome").value = usuarioLogado.nome || "";
+  document.getElementById("perfilEmail").value = usuarioLogado.email || "";
+  document.getElementById("perfilTelefone").value = usuarioLogado.telefone || "";
+  document.getElementById("perfilSenha").value = "";
+  document.getElementById("perfilCargo").textContent = usuarioLogado.cargo || "Cargo não cadastrado";
+  const empresa = GE.empresaAtual();
+  document.getElementById("perfilEmpresa").textContent = empresa?.nome || "Empresa não identificada";
+  document.getElementById("perfilEmpresaCodigo").textContent = empresa?.id || "-";
+  atualizarFotoPerfil(fotoPerfilSelecionada);
+  modalPerfil.classList.add("open");
+});
+
+document.getElementById("fecharPerfil").addEventListener("click", () => {
+  modalPerfil.classList.remove("open");
+});
+
+modalPerfil.addEventListener("click", (event) => {
+  if (event.target === modalPerfil) modalPerfil.classList.remove("open");
+});
+
+document.getElementById("escolherFoto").addEventListener("click", () => {
+  inputFotoPerfil.click();
+});
+
+inputFotoPerfil.addEventListener("change", () => {
+  const arquivo = inputFotoPerfil.files[0];
+  if (!arquivo) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    fotoPerfilSelecionada = reader.result;
+    atualizarFotoPerfil(fotoPerfilSelecionada);
+  };
+  reader.readAsDataURL(arquivo);
+});
+
+document.getElementById("salvarPerfil").addEventListener("click", () => {
+  const nome = document.getElementById("perfilNome").value.trim();
+  const email = document.getElementById("perfilEmail").value.trim();
+  const telefone = document.getElementById("perfilTelefone").value.trim();
+  const senha = document.getElementById("perfilSenha").value;
+
+  if (!nome || !email) {
+    GE.mensagem("Preencha nome e e-mail para salvar o perfil.", "warning");
+    return;
+  }
+
+  const dadosPerfil = { nome, email, telefone, foto: fotoPerfilSelecionada };
+  if (senha) dadosPerfil.senha = senha;
+
+  const usuarioAtualizado = GE.atualizarUsuarioAtual(dadosPerfil);
+  if (usuarioAtualizado?.erro) {
+    GE.mensagem(usuarioAtualizado.erro, "error");
+    return;
+  }
+
+  usuarioLogado = usuarioAtualizado;
+  atualizarResumoUsuario();
+  GE.mensagem("Perfil atualizado com sucesso.", "success");
+  modalPerfil.classList.remove("open");
+});
+
+const db = GE.dados();
+const valores = document.querySelectorAll(".stat-value");
+const totalEquipamentos = db.equipamentos.length;
+const statusFluxoEvento = ["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"];
+const manutencoesAtivas = new Set((db.manutencoes || [])
+  .filter((manutencao) => manutencao.status !== "Finalizada")
+  .map((manutencao) => manutencao.codigo));
+const totaisStatus = {
+  disponivel: db.equipamentos.filter((eq) => eq.status === "disponivel").length,
+  evento: db.equipamentos.filter((eq) => statusFluxoEvento.includes(eq.status)).length,
+  locado: db.equipamentos.filter((eq) => eq.status === "locado").length,
+  manutencao: db.equipamentos.filter((eq) => eq.status === "manutencao" || manutencoesAtivas.has(eq.codigo)).length
+};
+
+valores[0].textContent = totalEquipamentos;
+valores[1].textContent = totaisStatus.disponivel;
+valores[2].textContent = totaisStatus.evento;
+valores[3].textContent = totaisStatus.manutencao;
+
+function porcentagemStatus(status) {
+  if (!totalEquipamentos) return 0;
+  return Math.round((totaisStatus[status] / totalEquipamentos) * 100);
+}
+
+function atualizarGraficoEstoque() {
+  const labels = {
+    disponivel: "Disponível",
+    evento: "Em Eventos",
+    locado: "Locado",
+    manutencao: "Manutenção"
+  };
+  let acumulado = 0;
+
+  document.querySelectorAll(".donut-segment").forEach((segmento) => {
+    const status = segmento.dataset.status;
+    const porcentagem = porcentagemStatus(status);
+    segmento.setAttribute("stroke-dasharray", `${porcentagem} ${100 - porcentagem}`);
+    segmento.setAttribute("stroke-dashoffset", String(25 - acumulado));
+    acumulado += porcentagem;
+  });
+
+  document.querySelectorAll(".legend-item[data-status]").forEach((item) => {
+    const status = item.dataset.status;
+    const porcentagem = porcentagemStatus(status);
+    const quantidade = totaisStatus[status] || 0;
+    item.querySelector("span").textContent = `${porcentagem}% ${labels[status]} (${quantidade})`;
+  });
+}
+
+atualizarGraficoEstoque();
+
+const moves = document.querySelector(".card:last-child");
+const antigos = moves.querySelectorAll(".move-item");
+antigos.forEach((item) => item.remove());
+document.querySelector(".bell").addEventListener("click", () => GE.mensagem("Nenhuma notificação nova.", "info"));
+db.logs.slice(0, 4).forEach((log) => {
+  const item = document.createElement("div");
+  item.className = "move-item";
+  item.innerHTML = `<div class="move-time">${log.data}</div><div class="move-desc">${log.acao} - ${log.detalhes}</div>`;
+  moves.appendChild(item);
+});
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
