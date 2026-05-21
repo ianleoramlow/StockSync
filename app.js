@@ -209,31 +209,16 @@ const GE = (() => {
   }
 
 
-  function podeAtualizarTelaAposSync() {
-    if (/01-login\.html$/i.test(location.pathname)) return false;
-    if (/03-dashboard\.html$/i.test(location.pathname)) return false;
-
-    const ativo = document.activeElement;
-    const digitando = ativo && ["INPUT", "TEXTAREA", "SELECT"].includes(ativo.tagName);
-    const modalAberto = document.querySelector(".modal-overlay.open, .modal.open, [role='dialog'].open");
-    return !digitando && !modalAberto;
-  }
-
   function configurarAtualizacaoVisualSync() {
     if (atualizacaoVisualSyncConfigurada) return;
     atualizacaoVisualSyncConfigurada = true;
-    window.addEventListener("stocksync:sync", () => {
-      if (podeAtualizarTelaAposSync()) {
-        setTimeout(() => location.reload(), 250);
-      }
-    });
-
     window.addEventListener("storage", (event) => {
       if (event.key && chaveCompartilhada(event.key)) {
         window.dispatchEvent(new CustomEvent("stocksync:sync", { detail: { chaves: [event.key] } }));
       }
     });
   }
+
   function flushBackendWrites() {
     if (!backendWriteQueue.size) return;
 
@@ -561,6 +546,41 @@ const GE = (() => {
     return JSON.parse(texto);
   }
 
+
+  function reconciliarStatusEquipamentos(db) {
+    if (!db || !Array.isArray(db.equipamentos)) return false;
+
+    const statusEvento = new Set(["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"]);
+    const manutencoesAtivas = new Set((db.manutencoes || [])
+      .filter((manutencao) => manutencao.status !== "Finalizada")
+      .map((manutencao) => manutencao.codigo));
+    const locacoesAtivas = new Set();
+    (db.locacoes || []).filter((locacao) => locacao.status !== "Finalizada").forEach((locacao) => {
+      (locacao.equipamentos || []).forEach((codigo) => locacoesAtivas.add(codigo));
+    });
+    const eventosAtivos = new Set();
+    (db.eventos || []).filter((evento) => evento.status !== "Finalizado").forEach((evento) => {
+      (evento.equipamentos || []).forEach((codigo) => eventosAtivos.add(codigo));
+    });
+
+    let alterou = false;
+    db.equipamentos.forEach((eq) => {
+      const anterior = eq.status || "disponivel";
+      let proximo = anterior;
+
+      if (manutencoesAtivas.has(eq.codigo)) proximo = "manutencao";
+      else if (locacoesAtivas.has(eq.codigo)) proximo = "locado";
+      else if (eventosAtivos.has(eq.codigo)) proximo = statusEvento.has(anterior) ? anterior : "reservado";
+      else if (anterior === "manutencao" || anterior === "locado" || statusEvento.has(anterior)) proximo = "disponivel";
+
+      if (proximo !== anterior) {
+        eq.status = proximo;
+        alterou = true;
+      }
+    });
+
+    return alterou;
+  }
   function garantirEstrutura(db) {
     const base = dadosVazios();
     const corrigido = corrigirAcentosDados(db || {});
@@ -725,6 +745,7 @@ const GE = (() => {
     const id = empresaAtualId();
     if (!id) return;
     const db = garantirEstrutura(dadosAtualizados);
+    reconciliarStatusEquipamentos(db);
     aplicarImagensEquipamentos(db);
     salvarJSON(chaveEmpresa(id), db);
   }
@@ -971,12 +992,15 @@ const GE = (() => {
     const eq = db.equipamentos.find((item) => item.codigo === codigo);
     const manutencao = db.manutencoes.find((item) => item.codigo === codigo && item.status !== "Finalizada");
 
-    if (!eq || !manutencao) return false;
+    if (!eq) return false;
+    if (!manutencao && eq.status !== "manutencao") return false;
 
     eq.status = "disponivel";
-    manutencao.status = "Finalizada";
-    manutencao.finalizadaEm = new Date().toISOString().slice(0, 10);
-    manutencao.observacaoFinal = observacao;
+    if (manutencao) {
+      manutencao.status = "Finalizada";
+      manutencao.finalizadaEm = new Date().toISOString().slice(0, 10);
+      manutencao.observacaoFinal = observacao;
+    }
 
     db.logs.unshift({
       data: hojeCurto(),
