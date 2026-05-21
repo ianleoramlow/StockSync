@@ -95,11 +95,18 @@ function supabaseEndpoint(pathname) {
 }
 
 async function supabaseFetch(pathname, options = {}) {
+  const usaChaveNova = supabaseServiceRoleKey.startsWith("sb_");
+  const authHeaders = usaChaveNova
+    ? { apikey: supabaseServiceRoleKey }
+    : {
+        apikey: supabaseServiceRoleKey,
+        Authorization: `Bearer ${supabaseServiceRoleKey}`
+      };
+
   const response = await fetch(supabaseEndpoint(pathname), {
     ...options,
     headers: {
-      apikey: supabaseServiceRoleKey,
-      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      ...authHeaders,
       "Content-Type": "application/json",
       Prefer: "return=representation",
       ...(options.headers || {})
