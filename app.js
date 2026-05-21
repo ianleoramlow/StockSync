@@ -147,9 +147,7 @@ const GE = (() => {
   }
 
   function deveRecarregarAposSync(chavesAlteradas) {
-    if (!chavesAlteradas.length) return false;
-    if (/01-login\.html$/i.test(location.pathname)) return false;
-    return chavesAlteradas.some((chave) => chaveCompartilhada(chave));
+    return false;
   }
 
   async function sincronizarBackend(remotoObrigatorio = false) {
@@ -183,9 +181,8 @@ const GE = (() => {
         }
       });
 
-      if (deveRecarregarAposSync(chavesAlteradas)) {
-        sessionStorage.setItem("stocksyncSyncReload", String(Date.now()));
-        location.reload();
+      if (chavesAlteradas.length) {
+        window.dispatchEvent(new CustomEvent("stocksync:sync", { detail: { chaves: chavesAlteradas } }));
       }
     } catch (error) {
       backendDisponivel = false;
