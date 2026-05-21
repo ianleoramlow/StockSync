@@ -11,6 +11,9 @@ const GE = (() => {
   const backendWriteTimers = new Map();
   const backendWriteQueue = new Map();
   let backendDisponivel = null;
+  let ultimaGravacaoLocal = 0;
+  let sincronizacaoEmAndamento = false;
+  let ultimaAssinaturaRemota = "";
 
   function chaveCompartilhada(chave) {
     return chave === EMPRESAS_KEY
@@ -88,6 +91,72 @@ const GE = (() => {
       backendWriteTimers.delete(chave);
       requisicaoBackendAsync("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value });
     }, 250));
+  }
+
+  function assinaturaStorage(storage) {
+    try {
+      return JSON.stringify(storage || {});
+    } catch (error) {
+      return String(Date.now());
+    }
+  }
+
+  function deveRecarregarAposSync(chavesAlteradas) {
+    if (!chavesAlteradas.length) return false;
+    if (/01-login\.html$/i.test(location.pathname)) return false;
+    return chavesAlteradas.some((chave) => chaveCompartilhada(chave));
+  }
+
+  async function sincronizarBackend(remotoObrigatorio = false) {
+    if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
+    if (sincronizacaoEmAndamento) return;
+    if (backendWriteQueue.size) return;
+    if (!remotoObrigatorio && Date.now() - ultimaGravacaoLocal < 3000) return;
+    if (document.visibilityState && document.visibilityState !== "visible") return;
+
+    sincronizacaoEmAndamento = true;
+    try {
+      const response = await fetch("/api/export", { headers: { "Accept": "application/json" }, cache: "no-store" });
+      backendDisponivel = response.ok;
+      if (!response.ok) return;
+
+      const payload = await response.json();
+      const storage = payload?.storage || {};
+      const assinatura = assinaturaStorage(storage);
+      if (assinatura && assinatura === ultimaAssinaturaRemota) return;
+      ultimaAssinaturaRemota = assinatura;
+
+      const chavesAlteradas = [];
+      Object.entries(storage).forEach(([chave, valor]) => {
+        if (!chaveCompartilhada(chave) || backendWriteQueue.has(chave)) return;
+        const remoto = JSON.stringify(valor ?? null);
+        const local = localStorage.getItem(chave);
+        if (local !== remoto) {
+          localStorage.setItem(chave, remoto);
+          backendCache.set(chave, valor);
+          chavesAlteradas.push(chave);
+        }
+      });
+
+      if (deveRecarregarAposSync(chavesAlteradas)) {
+        sessionStorage.setItem("stocksyncSyncReload", String(Date.now()));
+        location.reload();
+      }
+    } catch (error) {
+      backendDisponivel = false;
+    } finally {
+      sincronizacaoEmAndamento = false;
+    }
+  }
+
+  function iniciarSincronizacaoBackend() {
+    if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
+    setTimeout(() => sincronizarBackend(true), 900);
+    setInterval(() => sincronizarBackend(false), 12000);
+    window.addEventListener("focus", () => sincronizarBackend(true));
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") sincronizarBackend(true);
+    });
   }
 
   function flushBackendWrites() {
@@ -318,6 +387,7 @@ const GE = (() => {
   }
 
   function salvarJSON(chave, valor) {
+    ultimaGravacaoLocal = Date.now();
     localStorage.setItem(chave, JSON.stringify(valor));
     salvarBackend(chave, valor);
   }
@@ -1292,6 +1362,7 @@ const GE = (() => {
     configurarTema();
     configurarNotificacoesAdmin();
     configurarLogout();
+    iniciarSincronizacaoBackend();
   });
 
   return {
