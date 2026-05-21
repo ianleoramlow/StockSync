@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node servidor-local.js",
     "dev": "node servidor-local.js",
-    "check": "node --check app.js && node --check servidor-local.js && node --check api/health.js && node --check api/export.js && node --check api/import.js && node --check api/storage/[key].js",
+    "check": "node --check app.js && node --check servidor-local.js && node --check api/_supabase.js && node --check api/_normalized.js && node --check api/data.js && node --check api/health.js && node --check api/export.js && node --check api/import.js && node --check api/storage/[key].js",
     "migrate:supabase": "node scripts/migrar-json-para-supabase.js"
   },
   "engines": {
