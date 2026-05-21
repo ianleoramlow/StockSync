@@ -8,6 +8,8 @@ const GE = (() => {
   const SOLICITACOES_KEY = "ge_solicitacoes_funcionarios";
   const BACKEND_MISSING = Symbol("backend_missing");
   const backendCache = new Map();
+  const backendWriteTimers = new Map();
+  const backendWriteQueue = new Map();
   let backendDisponivel = null;
 
   function chaveCompartilhada(chave) {
@@ -35,9 +37,9 @@ const GE = (() => {
   }
 
   function requisicaoBackendAsync(metodo, caminho, corpo = null) {
-    if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
+    if (!location.protocol.startsWith("http") || typeof fetch !== "function") return Promise.resolve(null);
 
-    fetch(caminho, {
+    return fetch(caminho, {
       method: metodo,
       headers: {
         "Accept": "application/json",
@@ -45,8 +47,12 @@ const GE = (() => {
       },
       body: corpo !== null ? JSON.stringify(corpo) : undefined,
       keepalive: false
+    }).then((response) => {
+      backendDisponivel = response.ok;
+      return response.ok ? response : null;
     }).catch(() => {
       backendDisponivel = false;
+      return null;
     });
   }
 
@@ -58,10 +64,11 @@ const GE = (() => {
   }
 
   function lerBackend(chave) {
-    if (!chaveCompartilhada(chave) || !backendAtivo()) return BACKEND_MISSING;
+    if (!chaveCompartilhada(chave) || backendDisponivel === false) return BACKEND_MISSING;
     if (backendCache.has(chave)) return backendCache.get(chave);
 
     const resposta = requisicaoBackend("GET", `/api/storage/${encodeURIComponent(chave)}`);
+    backendDisponivel = Boolean(resposta?.ok);
     if (!resposta?.exists) return BACKEND_MISSING;
 
     backendCache.set(chave, resposta.value);
@@ -69,9 +76,46 @@ const GE = (() => {
   }
 
   function salvarBackend(chave, valor) {
-    if (!chaveCompartilhada(chave) || !backendAtivo()) return;
+    if (!chaveCompartilhada(chave)) return;
+
     backendCache.set(chave, valor);
-    requisicaoBackendAsync("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value: valor });
+    backendWriteQueue.set(chave, valor);
+
+    clearTimeout(backendWriteTimers.get(chave));
+    backendWriteTimers.set(chave, setTimeout(() => {
+      const value = backendWriteQueue.get(chave);
+      backendWriteQueue.delete(chave);
+      backendWriteTimers.delete(chave);
+      requisicaoBackendAsync("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value });
+    }, 250));
+  }
+
+  function flushBackendWrites() {
+    if (!backendWriteQueue.size) return;
+
+    backendWriteQueue.forEach((value, chave) => {
+      clearTimeout(backendWriteTimers.get(chave));
+      backendWriteTimers.delete(chave);
+
+      const caminho = `/api/storage/${encodeURIComponent(chave)}`;
+      const payload = JSON.stringify({ value });
+      const enviadoPorBeacon = typeof navigator !== "undefined"
+        && typeof navigator.sendBeacon === "function"
+        && navigator.sendBeacon(caminho, new Blob([payload], { type: "application/json" }));
+
+      if (!enviadoPorBeacon) {
+        requisicaoBackendAsync("POST", caminho, { value });
+      }
+    });
+
+    backendWriteQueue.clear();
+  }
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", flushBackendWrites);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushBackendWrites();
+    });
   }
 
   function temaSalvo() {
