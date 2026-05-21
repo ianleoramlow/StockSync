@@ -9,7 +9,7 @@ if (new URLSearchParams(window.location.search).has("novo")) {
   document.documentElement.classList.add("public-boot");
 }
 </script>
-<link rel="stylesheet" href="styles.css?v=20260521-mobile-event-date">
+<link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
 <style>
 .public-boot body {
   background: var(--bg);
@@ -137,6 +137,13 @@ if (new URLSearchParams(window.location.search).has("novo")) {
 .employee-role-select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+}
+.employee-delete-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  justify-content: center;
+  border-radius: 10px;
 }
 .public-card .page-title {
   font-size: 20px;
@@ -283,6 +290,7 @@ if (new URLSearchParams(window.location.search).has("novo")) {
             <th>E-mail</th>
             <th>Cargo</th>
             <th>Status</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="funcionariosTabela"></tbody>
@@ -357,7 +365,7 @@ if (new URLSearchParams(window.location.search).has("novo")) {
     </div>
   </div>
 </div>
-<script src="app.js?v=20260521-mobile-event-date"></script>
+<script src="app.js?v=20260521-mobile-header-controls"></script>
 <script>
 const modalFuncionario = document.getElementById("modalFuncionario");
 const tabelaFuncionarios = document.getElementById("funcionariosTabela");
@@ -621,17 +629,44 @@ function renderFuncionarios() {
       </td>
       <td style="color:var(--text2)">${textoSeguro(funcionario.email)}</td>
       <td>
-        ${admin ? `
+        ${admin && GE.normalizar(funcionario.email) !== GE.normalizar(usuarioAtual.email) ? `
           <select class="employee-role-select" onchange="alterarCargoFuncionario('${encodeURIComponent(funcionario.email || "")}', this.value)">
             ${opcoesCargoFuncionario(funcionario.cargo)}
           </select>
         ` : `<span class="badge badge-purple">${textoSeguro(cargoVisivel(funcionario.cargo))}</span>`}
       </td>
       <td><span class="badge badge-green">Ativo</span></td>
+      <td>
+        ${admin && GE.normalizar(funcionario.email) !== GE.normalizar(usuarioAtual.email) ? `
+          <button class="btn btn-danger employee-delete-btn" type="button" title="Excluir funcionário" onclick="confirmarExcluirFuncionario('${encodeURIComponent(funcionario.email || "")}')">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        ` : `<span style="color:var(--text3)">-</span>`}
+      </td>
     </tr>
-  `).join("") || `<tr><td colspan="4" style="color:var(--text3);font-family:var(--font)">Nenhum funcionário cadastrado.</td></tr>`;
+  `).join("") || `<tr><td colspan="5" style="color:var(--text3);font-family:var(--font)">Nenhum funcionário cadastrado.</td></tr>`;
 }
 
+function confirmarExcluirFuncionario(emailCodificado) {
+  const email = decodeURIComponent(emailCodificado || "");
+  const funcionario = (GE.dados().funcionarios || []).find((item) => GE.normalizar(item.email) === GE.normalizar(email));
+  if (!funcionario) {
+    GE.mensagem("Não foi possível encontrar esse funcionário.", "error");
+    return;
+  }
+
+  GE.confirmar(`Excluir ${funcionario.nome} do sistema? Essa pessoa não conseguirá mais acessar o ambiente da empresa.`, () => {
+    const removido = GE.excluirFuncionario(email);
+    if (removido?.erro) {
+      GE.mensagem(removido.erro, "error");
+      renderFuncionarios();
+      return;
+    }
+
+    renderFuncionarios();
+    GE.mensagem(`${removido.nome} foi excluído do sistema.`, "success");
+  }, { titulo: "Excluir funcionário", confirmar: "Excluir", perigo: true });
+}
 function alterarCargoFuncionario(emailCodificado, cargo) {
   const email = decodeURIComponent(emailCodificado || "");
   const atualizado = GE.atualizarCargoFuncionario(email, cargo);
