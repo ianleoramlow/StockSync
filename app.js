@@ -10,12 +10,10 @@ const GE = (() => {
   const backendCache = new Map();
   const backendWriteTimers = new Map();
   const backendWriteQueue = new Map();
-  const snapshotsEmpresa = new Map();
   let backendDisponivel = null;
   let ultimaGravacaoLocal = 0;
   let sincronizacaoEmAndamento = false;
   let ultimaAssinaturaRemota = "";
-  let atualizacaoVisualSyncConfigurada = false;
 
   function chaveCompartilhada(chave) {
     return chave === EMPRESAS_KEY
@@ -23,90 +21,6 @@ const GE = (() => {
       || chave.startsWith("ge_dados_");
   }
 
-
-  function ehChaveDadosEmpresa(chave) {
-    return /^ge_dados_/i.test(chave || "");
-  }
-
-  function empresaIdDaChave(chave) {
-    return String(chave || "").replace(/^ge_dados_/i, "");
-  }
-
-
-  function chavePendenciaBackend(chave) {
-    return `stocksync_dirty_${chave}`;
-  }
-
-  function marcarPendenciaBackend(chave, valor) {
-    if (!chaveCompartilhada(chave)) return;
-    try {
-      localStorage.setItem(chavePendenciaBackend(chave), JSON.stringify({ valor, data: Date.now() }));
-    } catch (error) {}
-  }
-
-  function limparPendenciaBackend(chave) {
-    try {
-      localStorage.removeItem(chavePendenciaBackend(chave));
-    } catch (error) {}
-  }
-
-  function pendenciaBackend(chave) {
-    try {
-      return JSON.parse(localStorage.getItem(chavePendenciaBackend(chave)) || "null");
-    } catch (error) {
-      return null;
-    }
-  }
-
-  function restaurarPendenciasBackend() {
-    if (typeof localStorage === "undefined") return;
-    Object.keys(localStorage).forEach((key) => {
-      if (!key.startsWith("stocksync_dirty_")) return;
-      const chave = key.replace("stocksync_dirty_", "");
-      const pendencia = pendenciaBackend(chave);
-      if (pendencia && chaveCompartilhada(chave)) backendWriteQueue.set(chave, pendencia.valor);
-    });
-  }
-  function atualizarSnapshotEmpresa(chave, valor) {
-    if (!ehChaveDadosEmpresa(chave)) return;
-    snapshotsEmpresa.set(empresaIdDaChave(chave), clone(valor));
-  }
-
-  function payloadChaveBackend(chave, valor) {
-    if (chave === EMPRESAS_KEY) {
-      return { caminho: "/api/data", corpo: { action: "syncEmpresas", empresas: valor || [] } };
-    }
-
-    if (ehChaveDadosEmpresa(chave)) {
-      const empresaId = empresaIdDaChave(chave);
-      const empresa = empresasSemMigracao().find((item) => item.id === empresaId) || null;
-      return {
-        caminho: "/api/data",
-        corpo: {
-          action: "syncEmpresa",
-          empresaId,
-          empresa,
-          previousDb: snapshotsEmpresa.get(empresaId) || {},
-          db: valor || dadosVazios()
-        }
-      };
-    }
-
-    if (chave === SOLICITACOES_KEY) return null;
-
-    return { caminho: `/api/storage/${encodeURIComponent(chave)}`, corpo: { value: valor } };
-  }
-
-  function enviarChaveBackend(chave, valor) {
-    const payload = payloadChaveBackend(chave, valor);
-    if (!payload) return Promise.resolve(null);
-    return requisicaoBackendAsync("POST", payload.caminho, payload.corpo).then((resposta) => {
-      if (resposta) {
-        if (ehChaveDadosEmpresa(chave)) atualizarSnapshotEmpresa(chave, valor);
-      }
-      return resposta;
-    });
-  }
   function requisicaoBackend(metodo, caminho, corpo = null) {
     if (!location.protocol.startsWith("http")) return null;
 
@@ -156,12 +70,11 @@ const GE = (() => {
     if (!chaveCompartilhada(chave) || backendDisponivel === false) return BACKEND_MISSING;
     if (backendCache.has(chave)) return backendCache.get(chave);
 
-    const resposta = requisicaoBackend("GET", `/api/data?key=${encodeURIComponent(chave)}`) || requisicaoBackend("GET", `/api/storage/${encodeURIComponent(chave)}`);
+    const resposta = requisicaoBackend("GET", `/api/storage/${encodeURIComponent(chave)}`);
     backendDisponivel = Boolean(resposta?.ok);
     if (!resposta?.exists) return BACKEND_MISSING;
 
     backendCache.set(chave, resposta.value);
-    atualizarSnapshotEmpresa(chave, resposta.value);
     return resposta.value;
   }
 
@@ -170,21 +83,13 @@ const GE = (() => {
 
     backendCache.set(chave, valor);
     backendWriteQueue.set(chave, valor);
-    marcarPendenciaBackend(chave, valor);
 
     clearTimeout(backendWriteTimers.get(chave));
     backendWriteTimers.set(chave, setTimeout(() => {
       const value = backendWriteQueue.get(chave);
-      enviarChaveBackend(chave, value).then((resposta) => {
-        if (resposta && JSON.stringify(backendWriteQueue.get(chave) ?? null) === JSON.stringify(value ?? null)) {
-          backendWriteQueue.delete(chave);
-          backendWriteTimers.delete(chave);
-          limparPendenciaBackend(chave);
-        } else if (!resposta) {
-          clearTimeout(backendWriteTimers.get(chave));
-          backendWriteTimers.set(chave, setTimeout(() => salvarBackend(chave, value), 2000));
-        }
-      });
+      backendWriteQueue.delete(chave);
+      backendWriteTimers.delete(chave);
+      requisicaoBackendAsync("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value });
     }, 250));
   }
 
@@ -197,19 +102,21 @@ const GE = (() => {
   }
 
   function deveRecarregarAposSync(chavesAlteradas) {
-    return false;
+    if (!chavesAlteradas.length) return false;
+    if (/01-login\.html$/i.test(location.pathname)) return false;
+    return chavesAlteradas.some((chave) => chaveCompartilhada(chave));
   }
 
   async function sincronizarBackend(remotoObrigatorio = false) {
     if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
     if (sincronizacaoEmAndamento) return;
     if (backendWriteQueue.size) return;
-    if (Date.now() - ultimaGravacaoLocal < 30000) return;
+    if (!remotoObrigatorio && Date.now() - ultimaGravacaoLocal < 3000) return;
     if (document.visibilityState && document.visibilityState !== "visible") return;
 
     sincronizacaoEmAndamento = true;
     try {
-      const response = await fetch("/api/data", { headers: { "Accept": "application/json" }, cache: "no-store" });
+      const response = await fetch("/api/export", { headers: { "Accept": "application/json" }, cache: "no-store" });
       backendDisponivel = response.ok;
       if (!response.ok) return;
 
@@ -222,24 +129,18 @@ const GE = (() => {
       const chavesAlteradas = [];
       Object.entries(storage).forEach(([chave, valor]) => {
         if (!chaveCompartilhada(chave) || backendWriteQueue.has(chave)) return;
-        const pendencia = pendenciaBackend(chave);
-        if (pendencia) {
-          backendWriteQueue.set(chave, pendencia.valor);
-          salvarBackend(chave, pendencia.valor);
-          return;
-        }
         const remoto = JSON.stringify(valor ?? null);
         const local = localStorage.getItem(chave);
         if (local !== remoto) {
           localStorage.setItem(chave, remoto);
           backendCache.set(chave, valor);
-          atualizarSnapshotEmpresa(chave, valor);
           chavesAlteradas.push(chave);
         }
       });
 
-      if (chavesAlteradas.length) {
-        window.dispatchEvent(new CustomEvent("stocksync:sync", { detail: { chaves: chavesAlteradas } }));
+      if (deveRecarregarAposSync(chavesAlteradas)) {
+        sessionStorage.setItem("stocksyncSyncReload", String(Date.now()));
+        location.reload();
       }
     } catch (error) {
       backendDisponivel = false;
@@ -250,25 +151,11 @@ const GE = (() => {
 
   function iniciarSincronizacaoBackend() {
     if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
-    restaurarPendenciasBackend();
-    backendWriteQueue.forEach((valor, chave) => salvarBackend(chave, valor));
     setTimeout(() => sincronizarBackend(true), 900);
-    setInterval(() => sincronizarBackend(false), 4000);
+    setInterval(() => sincronizarBackend(false), 12000);
     window.addEventListener("focus", () => sincronizarBackend(true));
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") sincronizarBackend(true);
-    });
-    configurarAtualizacaoVisualSync();
-  }
-
-
-  function configurarAtualizacaoVisualSync() {
-    if (atualizacaoVisualSyncConfigurada) return;
-    atualizacaoVisualSyncConfigurada = true;
-    window.addEventListener("storage", (event) => {
-      if (event.key && chaveCompartilhada(event.key)) {
-        window.dispatchEvent(new CustomEvent("stocksync:sync", { detail: { chaves: [event.key] } }));
-      }
     });
   }
 
@@ -278,18 +165,19 @@ const GE = (() => {
     backendWriteQueue.forEach((value, chave) => {
       clearTimeout(backendWriteTimers.get(chave));
       backendWriteTimers.delete(chave);
-      marcarPendenciaBackend(chave, value);
 
-      const destino = payloadChaveBackend(chave, value);
-      if (!destino) return;
-
-      const payload = JSON.stringify(destino.corpo);
+      const caminho = `/api/storage/${encodeURIComponent(chave)}`;
+      const payload = JSON.stringify({ value });
       const enviadoPorBeacon = typeof navigator !== "undefined"
         && typeof navigator.sendBeacon === "function"
-        && navigator.sendBeacon(destino.caminho, new Blob([payload], { type: "application/json" }));
+        && navigator.sendBeacon(caminho, new Blob([payload], { type: "application/json" }));
 
-      if (!enviadoPorBeacon) enviarChaveBackend(chave, value);
+      if (!enviadoPorBeacon) {
+        requisicaoBackendAsync("POST", caminho, { value });
+      }
     });
+
+    backendWriteQueue.clear();
   }
 
   if (typeof window !== "undefined") {
@@ -298,7 +186,6 @@ const GE = (() => {
       if (document.visibilityState === "hidden") flushBackendWrites();
     });
   }
-
   function temaSalvo() {
     return localStorage.getItem(TEMA_KEY) || "escuro";
   }
@@ -598,41 +485,6 @@ const GE = (() => {
     return JSON.parse(texto);
   }
 
-
-  function reconciliarStatusEquipamentos(db) {
-    if (!db || !Array.isArray(db.equipamentos)) return false;
-
-    const statusEvento = new Set(["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"]);
-    const manutencoesAtivas = new Set((db.manutencoes || [])
-      .filter((manutencao) => manutencao.status !== "Finalizada")
-      .map((manutencao) => manutencao.codigo));
-    const locacoesAtivas = new Set();
-    (db.locacoes || []).filter((locacao) => locacao.status !== "Finalizada").forEach((locacao) => {
-      (locacao.equipamentos || []).forEach((codigo) => locacoesAtivas.add(codigo));
-    });
-    const eventosAtivos = new Set();
-    (db.eventos || []).filter((evento) => evento.status !== "Finalizado").forEach((evento) => {
-      (evento.equipamentos || []).forEach((codigo) => eventosAtivos.add(codigo));
-    });
-
-    let alterou = false;
-    db.equipamentos.forEach((eq) => {
-      const anterior = eq.status || "disponivel";
-      let proximo = anterior;
-
-      if (manutencoesAtivas.has(eq.codigo)) proximo = "manutencao";
-      else if (locacoesAtivas.has(eq.codigo)) proximo = "locado";
-      else if (eventosAtivos.has(eq.codigo)) proximo = statusEvento.has(anterior) ? anterior : "reservado";
-      else if (anterior === "manutencao" || anterior === "locado" || statusEvento.has(anterior)) proximo = "disponivel";
-
-      if (proximo !== anterior) {
-        eq.status = proximo;
-        alterou = true;
-      }
-    });
-
-    return alterou;
-  }
   function garantirEstrutura(db) {
     const base = dadosVazios();
     const corrigido = corrigirAcentosDados(db || {});
@@ -797,7 +649,6 @@ const GE = (() => {
     const id = empresaAtualId();
     if (!id) return;
     const db = garantirEstrutura(dadosAtualizados);
-    reconciliarStatusEquipamentos(db);
     aplicarImagensEquipamentos(db);
     salvarJSON(chaveEmpresa(id), db);
   }
