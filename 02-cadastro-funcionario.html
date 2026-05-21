@@ -801,6 +801,7 @@ if (criandoNovaEmpresa) {
     document.querySelector(".page-subtitle").textContent = `Gerencie os usuários cadastrados em ${empresa.nome} | Código de acesso: ${GE.codigoEmpresa(empresa)}`;
   }
   renderFuncionarios();
+window.addEventListener("stocksync:sync", renderFuncionarios);
 } else {
   renderCadastroFuncionarioPublico();
 }
