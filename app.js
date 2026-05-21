@@ -1218,6 +1218,60 @@ const GE = (() => {
     });
   }
 
+  function iniciaisUsuario(nome) {
+    return String(nome || "U")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((parte) => parte[0] || "")
+      .join("")
+      .toUpperCase() || "U";
+  }
+
+  function atualizarCabecalhoUsuario(container) {
+    const usuario = usuarioAtual();
+    const avatar = container.querySelector(".user-avatar");
+    const nome = container.querySelector(".user-name");
+    const cargo = container.querySelector(".user-role");
+
+    if (avatar) {
+      avatar.textContent = iniciaisUsuario(usuario.nome);
+      if (usuario.foto) avatar.style.backgroundImage = `url(${usuario.foto})`;
+    }
+    if (nome) nome.textContent = usuario.nome || "Usu?rio";
+    if (cargo) cargo.textContent = usuario.cargo || "Freelancer";
+  }
+
+  function configurarCabecalhoUsuarioGlobal() {
+    if (!document.querySelector(".sidebar") || !document.querySelector(".main")) return;
+    if (/01-login\.html$/i.test(location.pathname)) return;
+
+    let userInfo = document.querySelector(".topbar .user-info, .mobile-header-user");
+    if (!userInfo) {
+      userInfo = document.createElement("div");
+      userInfo.className = "user-info mobile-header-user";
+      userInfo.innerHTML = `
+        <div class="bell" title="Notifica??es" aria-label="Notifica??es">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </div>
+        <div class="user-profile-trigger" title="Abrir perfil">
+          <div class="user-avatar"></div>
+          <div>
+            <div class="user-name"></div>
+            <div class="user-role"></div>
+          </div>
+        </div>`;
+      document.body.appendChild(userInfo);
+    }
+
+    atualizarCabecalhoUsuario(userInfo);
+    userInfo.querySelector(".bell")?.addEventListener("click", () => mensagem("Nenhuma notifica??o nova.", "info"));
+    userInfo.querySelector(".user-profile-trigger")?.addEventListener("click", () => {
+      if (/03-dashboard\.html$/i.test(location.pathname)) return;
+      location.href = "03-dashboard.html";
+    });
+  }
+
   function configurarTema() {
     if (!document.querySelector(".theme-toggle")) {
       const sidebarFooter = document.querySelector(".sidebar-footer");
@@ -1360,6 +1414,7 @@ const GE = (() => {
 
   document.addEventListener("DOMContentLoaded", () => {
     configurarTema();
+    configurarCabecalhoUsuarioGlobal();
     configurarNotificacoesAdmin();
     configurarLogout();
     iniciarSincronizacaoBackend();
