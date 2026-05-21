@@ -4,7 +4,62 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Logs do Sistema</title>
-<link rel="stylesheet" href="styles.css?v=20260521-no-freeze-global">
+<link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
+<style>
+.logs-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(140px, .8fr) minmax(140px, .8fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.logs-toolbar .btn {
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+.logs-summary {
+  margin: 0 0 14px;
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.logs-summary strong {
+  color: var(--text);
+}
+
+.logs-table td[data-label="Detalhes"] {
+  line-height: 1.45;
+}
+
+@media (max-width: 820px) {
+  .logs-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .logs-toolbar .form-group:first-child,
+  .logs-toolbar .btn {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .logs-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .logs-toolbar .form-group:first-child,
+  .logs-toolbar .btn {
+    grid-column: auto;
+  }
+
+  .logs-summary {
+    font-size: 12.5px;
+  }
+}
+</style>
 </head>
 <body>
 <aside class="sidebar">
@@ -28,9 +83,33 @@
   </div>
 
   <div class="card">
-    <div class="table-wrap">
-      <table>
-        <thead>
+    <div class="logs-toolbar">
+      <div class="form-group">
+        <label class="form-label" for="periodoRelatorioLogs">Período do relatório</label>
+        <select class="form-select" id="periodoRelatorioLogs">
+          <option value="7">Últimos 7 dias</option>
+          <option value="30" selected>Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+          <option value="custom">Período personalizado</option>
+          <option value="all">Todos os logs</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="logsDataInicio">De</label>
+        <input class="form-input" id="logsDataInicio" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="logsDataFim">Até</label>
+        <input class="form-input" id="logsDataFim" type="date">
+      </div>
+      <button class="btn btn-primary" id="baixarRelatorioLogs" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar relatório
+      </button>
+    </div>
+    <div class="logs-summary" id="logsResumoRelatorio"></div>
+    <div class="table-wrap logs-table mobile-card-table">
+      <table>        <thead>
           <tr>
             <th>Data/Hora</th>
             <th>Usuário</th>
@@ -92,35 +171,193 @@
     </div>
   </div>
 </main>
-<script src="app.js?v=20260521-no-freeze-global"></script>
+<script src="app.js?v=20260521-mobile-header-controls"></script>
 <script>
 const tbody = document.querySelector("tbody");
 const botoes = document.querySelectorAll(".page-btn");
+const periodoRelatorio = document.getElementById("periodoRelatorioLogs");
+const dataInicioInput = document.getElementById("logsDataInicio");
+const dataFimInput = document.getElementById("logsDataFim");
+const baixarRelatorioBtn = document.getElementById("baixarRelatorioLogs");
+const resumoRelatorio = document.getElementById("logsResumoRelatorio");
 let pagina = 1;
 const porPagina = 6;
 
+function dataISO(data) {
+  if (!data || Number.isNaN(data.getTime())) return "";
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function formatarDataBR(data) {
+  if (!data || Number.isNaN(data.getTime())) return "";
+  return data.toLocaleDateString("pt-BR");
+}
+
+function fimDoDia(data) {
+  const copia = new Date(data);
+  copia.setHours(23, 59, 59, 999);
+  return copia;
+}
+
+function dataLogParaDate(log) {
+  const texto = String(log?.data || "").trim();
+  if (!texto) return null;
+
+  const padraoBR = texto.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (padraoBR) {
+    const agora = new Date();
+    const dia = Number(padraoBR[1]);
+    const mes = Number(padraoBR[2]) - 1;
+    let ano = padraoBR[3] ? Number(padraoBR[3]) : agora.getFullYear();
+    if (ano < 100) ano += 2000;
+    const hora = padraoBR[4] ? Number(padraoBR[4]) : 12;
+    const minuto = padraoBR[5] ? Number(padraoBR[5]) : 0;
+    const data = new Date(ano, mes, dia, hora, minuto);
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  const tentativa = new Date(texto);
+  return Number.isNaN(tentativa.getTime()) ? null : tentativa;
+}
+
+function periodoSelecionado() {
+  const agora = new Date();
+  let inicio = null;
+  let fim = fimDoDia(agora);
+  const valor = periodoRelatorio.value;
+
+  if (valor === "all") return { inicio: null, fim: null, rotulo: "todos os logs" };
+
+  if (valor === "custom") {
+    inicio = dataInicioInput.value ? new Date(`${dataInicioInput.value}T00:00:00`) : null;
+    fim = dataFimInput.value ? fimDoDia(new Date(`${dataFimInput.value}T00:00:00`)) : null;
+    const rotuloInicio = inicio ? formatarDataBR(inicio) : "inicio";
+    const rotuloFim = fim ? formatarDataBR(fim) : "hoje";
+    return { inicio, fim, rotulo: `${rotuloInicio} ate ${rotuloFim}` };
+  }
+
+  const dias = Number(valor || 30);
+  inicio = new Date(agora);
+  inicio.setDate(inicio.getDate() - (dias - 1));
+  inicio.setHours(0, 0, 0, 0);
+  return { inicio, fim, rotulo: `ultimos ${dias} dias` };
+}
+
+function logsDoSistema() {
+  return Array.isArray(GE.dados().logs) ? GE.dados().logs : [];
+}
+
+function logsFiltradosPorPeriodo() {
+  const periodo = periodoSelecionado();
+  const logs = logsDoSistema();
+  if (!periodo.inicio && !periodo.fim) return { logs, periodo };
+
+  const filtrados = logs.filter((log) => {
+    const data = dataLogParaDate(log);
+    if (!data) return false;
+    if (periodo.inicio && data < periodo.inicio) return false;
+    if (periodo.fim && data > periodo.fim) return false;
+    return true;
+  });
+
+  return { logs: filtrados, periodo };
+}
+
+function atualizarResumoRelatorio() {
+  const { logs, periodo } = logsFiltradosPorPeriodo();
+  const total = logsDoSistema().length;
+  resumoRelatorio.innerHTML = `Relatorio configurado para <strong>${periodo.rotulo}</strong>: <strong>${logs.length}</strong> registro(s) encontrado(s) de ${total} log(s) do sistema.`;
+}
+
 function renderLogs() {
-  const logs = GE.dados().logs;
+  const logs = logsDoSistema();
   const total = Math.max(1, Math.ceil(logs.length / porPagina));
   if (pagina > total) pagina = total;
   const inicio = (pagina - 1) * porPagina;
   tbody.innerHTML = logs.slice(inicio, inicio + porPagina).map((log) => `
     <tr>
-      <td style="font-family:var(--mono);font-size:11.5px">${log.data}</td>
-      <td style="color:var(--text2)">${log.usuario}</td>
-      <td><span class="badge ${log.tipo}">${log.acao}</span></td>
-      <td style="color:var(--text2)">${log.detalhes}</td>
+      <td data-label="Data/Hora" style="font-family:var(--mono);font-size:11.5px">${log.data || "-"}</td>
+      <td data-label="Usuario" style="color:var(--text2)">${log.usuario || "-"}</td>
+      <td data-label="Acao"><span class="badge ${log.tipo || "badge-purple"}">${log.acao || "Registro"}</span></td>
+      <td data-label="Detalhes" style="color:var(--text2)">${log.detalhes || "-"}</td>
     </tr>`).join("") || `<tr><td colspan="4" style="color:var(--text3);font-family:var(--font)">Nenhum log registrado.</td></tr>`;
 
   botoes.forEach((botao) => botao.classList.remove("active"));
   const numero = [...botoes].find((botao) => botao.textContent.trim() === String(pagina));
   if (numero) numero.classList.add("active");
+  atualizarResumoRelatorio();
 }
+
+function escaparCSV(valor) {
+  const texto = String(valor ?? "").replace(/\r?\n/g, " ");
+  return `"${texto.replace(/"/g, '""')}"`;
+}
+
+function nomeArquivoRelatorio(periodo) {
+  const empresa = GE.empresaAtual?.()?.codigo || GE.empresaAtual?.()?.nome || "stocksync";
+  const limpo = String(empresa).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "stocksync";
+  const data = dataISO(new Date());
+  const periodoLimpo = periodo.rotulo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase();
+  return `relatorio-logs-${limpo}-${periodoLimpo}-${data}.csv`;
+}
+
+function baixarRelatorioLogs() {
+  const { logs, periodo } = logsFiltradosPorPeriodo();
+  const empresa = GE.empresaAtual?.()?.nome || "StockSync";
+  const linhas = [
+    ["Relatorio de logs do sistema"],
+    ["Empresa", empresa],
+    ["Periodo", periodo.rotulo],
+    ["Gerado em", new Date().toLocaleString("pt-BR")],
+    ["Total de registros", logs.length],
+    [],
+    ["Data/Hora", "Usuario", "Acao", "Detalhes"]
+  ];
+
+  logs.forEach((log) => {
+    linhas.push([log.data || "", log.usuario || "", log.acao || "", log.detalhes || ""]);
+  });
+
+  const csv = `\ufeff${linhas.map((linha) => linha.map(escaparCSV).join(";")).join("\r\n")}`;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivoRelatorio(periodo);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  GE.notificar(`Relatorio gerado com ${logs.length} log(s).`, "sucesso");
+}
+
+function configurarPeriodoPadrao() {
+  const hoje = new Date();
+  const inicio = new Date(hoje);
+  inicio.setDate(inicio.getDate() - 29);
+  dataInicioInput.value = dataISO(inicio);
+  dataFimInput.value = dataISO(hoje);
+}
+
+periodoRelatorio.addEventListener("change", () => {
+  const personalizado = periodoRelatorio.value === "custom";
+  dataInicioInput.disabled = !personalizado;
+  dataFimInput.disabled = !personalizado;
+  atualizarResumoRelatorio();
+});
+
+dataInicioInput.addEventListener("change", atualizarResumoRelatorio);
+dataFimInput.addEventListener("change", atualizarResumoRelatorio);
+baixarRelatorioBtn.addEventListener("click", baixarRelatorioLogs);
 
 botoes.forEach((botao, index) => {
   botao.addEventListener("click", () => {
     const texto = botao.textContent.trim();
-    const total = Math.max(1, Math.ceil(GE.dados().logs.length / porPagina));
+    const total = Math.max(1, Math.ceil(logsDoSistema().length / porPagina));
     if (!texto && index === 0) pagina = Math.max(1, pagina - 1);
     else if (!texto) pagina = Math.min(total, pagina + 1);
     else pagina = Math.min(total, Number(texto));
@@ -128,6 +365,8 @@ botoes.forEach((botao, index) => {
   });
 });
 
+configurarPeriodoPadrao();
+periodoRelatorio.dispatchEvent(new Event("change"));
 renderLogs();
 </script>
 </body>
