@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Locações</title>
-<link rel="stylesheet" href="styles.css?v=20260521-no-freeze-global">
+<link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
 <style>
 .modal-overlay {
   position: fixed;
@@ -29,6 +29,91 @@
 .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
 .modal-sub { font-size: 12.5px; color: var(--text3); margin-bottom: 24px; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+.equipment-picker { position: relative; margin-top: 18px; }
+.locacao-results {
+  display: none;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface2);
+}
+.locacao-result {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.locacao-result:last-child { border-bottom: 0; }
+.locacao-result:hover { background: rgba(124,58,237,0.12); }
+.locacao-code { color: var(--text2); font-family: var(--mono); font-size: 12px; }
+.locacao-name strong { display:block; font-size:13px; color:var(--text); }
+.locacao-name span { display:block; margin-top:2px; font-size:12px; color:var(--text3); }
+.selected-equipment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.selected-equipment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text2);
+  padding: 7px 9px 7px 11px;
+  font-size: 12px;
+  line-height: 1;
+}
+.selected-equipment-chip strong { color: var(--text); font-family: var(--mono); }
+.selected-equipment-chip button {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.15);
+  color: var(--red);
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1;
+}
+.locacao-actions { display: inline-flex; gap: 7px; align-items: center; }
+.locacao-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.locacao-action:hover { border-color: var(--accent2); color: var(--text); }
+.locacao-action.finish { color: var(--green); border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.1); }
+.locacao-action.delete { color: var(--red); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.1); }
+.locacao-action:disabled { opacity: 0.45; cursor: not-allowed; }
+.locacao-empty { color: var(--text3); font-size: 13px; line-height: 1.4; padding-top: 10px; }
+@media (max-width: 640px) {
+  .locacoes-table tbody td:nth-child(1)::before { content: "Empresa"; }
+  .locacoes-table tbody td:nth-child(2)::before { content: "Saida"; }
+  .locacoes-table tbody td:nth-child(3)::before { content: "Retorno"; }
+  .locacoes-table tbody td:nth-child(4)::before { content: "Qtd."; }
+  .locacoes-table tbody td:nth-child(5)::before { content: "Status"; }
+  .locacoes-table tbody td:nth-child(6)::before { content: "Acoes"; }
+}
 </style>
 </head>
 <body>
@@ -57,7 +142,7 @@
   </div>
 
   <div class="card">
-    <div class="table-wrap">
+    <div class="table-wrap locacoes-table mobile-card-table">
       <table>
         <thead>
           <tr>
@@ -66,6 +151,7 @@
             <th>Data Retorno</th>
             <th>Qtd. Equip.</th>
             <th>Status</th>
+            <th>A&ccedil;&otilde;es</th>
           </tr>
         </thead>
         <tbody>
@@ -117,9 +203,12 @@
       </div>
     </div>
 
-    <div class="form-group" style="margin-top:18px">
+    <div class="form-group equipment-picker">
       <label class="form-label">Equipamentos</label>
-      <input class="form-input" id="locacaoEquipamentos" type="text" placeholder="Ex: EQP001, EQP005">
+      <input class="form-input" id="locacaoEquipamentos" type="text" autocomplete="off" placeholder="Digite o c?digo ou nome do equipamento...">
+      <div class="locacao-results" id="locacaoResultados"></div>
+      <div class="selected-equipment-list" id="locacaoSelecionados"></div>
+      <div class="locacao-empty" id="locacaoSelecionadosVazio">Nenhum equipamento selecionado.</div>
     </div>
 
     <div class="modal-actions">
@@ -129,60 +218,269 @@
   </div>
 </div>
 
-<script src="app.js?v=20260521-no-freeze-global"></script>
+<script src="app.js?v=20260521-mobile-header-controls"></script>
 <script>
 const tbody = document.querySelector("tbody");
 const modalLocacao = document.getElementById("modalLocacao");
+const modalTitulo = document.querySelector(".modal-title");
+const modalSub = document.querySelector(".modal-sub");
 const empresaInput = document.getElementById("locacaoEmpresa");
 const saidaInput = document.getElementById("locacaoSaida");
 const retornoInput = document.getElementById("locacaoRetorno");
 const equipamentosInput = document.getElementById("locacaoEquipamentos");
+const resultadosBox = document.getElementById("locacaoResultados");
+const selecionadosBox = document.getElementById("locacaoSelecionados");
+const selecionadosVazio = document.getElementById("locacaoSelecionadosVazio");
+const salvarLocacaoBtn = document.getElementById("salvarLocacao");
+let locacaoEditandoId = "";
+let equipamentosSelecionados = [];
 
-function renderLocacoes() {
-  const locacoes = GE.dados().locacoes;
-  tbody.innerHTML = locacoes.map((locacao) => `
-    <tr>
-      <td style="color:var(--text);font-weight:500">${locacao.empresa}</td>
-      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(locacao.saida)}</td>
-      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(locacao.retorno)}</td>
-      <td style="color:var(--text2)">${locacao.equipamentos.length || "-"}</td>
-      <td><span class="badge ${locacao.status === "Finalizada" ? "badge-green" : "badge-cyan"}">${locacao.status}</span></td>
-    </tr>`).join("");
+function textoSeguro(valor) {
+  return String(valor || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-document.getElementById("novaLocacao").addEventListener("click", () => {
-  const hoje = new Date().toISOString().slice(0, 10);
-  saidaInput.value = hoje;
-  retornoInput.value = hoje;
-  modalLocacao.classList.add("open");
-  empresaInput.focus();
-});
+function gerarIdLocacao() {
+  return `LOC-${Date.now().toString(36).toUpperCase()}`;
+}
 
-document.getElementById("cancelarLocacao").addEventListener("click", () => {
-  modalLocacao.classList.remove("open");
-});
+function garantirIdsLocacoes() {
+  const db = GE.dados();
+  let alterou = false;
+  db.locacoes = (db.locacoes || []).map((locacao, index) => {
+    if (locacao.id) return locacao;
+    alterou = true;
+    return { ...locacao, id: `LOC-ANTIGA-${index + 1}` };
+  });
+  if (alterou) GE.salvar(db);
+}
 
-modalLocacao.addEventListener("click", (event) => {
-  if (event.target === modalLocacao) modalLocacao.classList.remove("open");
-});
+function equipamentoPorCodigo(codigo) {
+  return (GE.dados().equipamentos || []).find((eq) => eq.codigo === codigo);
+}
 
-document.getElementById("salvarLocacao").addEventListener("click", () => {
-  const empresa = empresaInput.value.trim();
-  const saida = saidaInput.value;
-  const retorno = retornoInput.value;
-  const equipamentos = equipamentosInput.value.split(",").map((codigo) => codigo.trim()).filter(Boolean);
+function nomeEquipamento(codigo) {
+  const eq = equipamentoPorCodigo(codigo);
+  return eq ? eq.nome : codigo;
+}
 
-  if (!empresa || !saida || !retorno || !equipamentos.length) {
-    GE.mensagem("Preencha empresa, datas e pelo menos um equipamento.", "warning");
+function resumoEquipamentos(codigos) {
+  if (!codigos || !codigos.length) return "-";
+  return codigos.slice(0, 2).map(nomeEquipamento).join(", ") + (codigos.length > 2 ? ` +${codigos.length - 2}` : "");
+}
+
+function equipamentoPodeSerLocado(eq) {
+  if (equipamentosSelecionados.includes(eq.codigo)) return false;
+  if (locacaoEditandoId) {
+    const locacao = (GE.dados().locacoes || []).find((item) => item.id === locacaoEditandoId);
+    if ((locacao?.equipamentos || []).includes(eq.codigo)) return true;
+  }
+  return eq.status === "disponivel";
+}
+
+function renderSelecionados() {
+  selecionadosVazio.style.display = equipamentosSelecionados.length ? "none" : "block";
+  selecionadosBox.innerHTML = equipamentosSelecionados.map((codigo) => `
+    <span class="selected-equipment-chip">
+      <strong>${textoSeguro(codigo)}</strong>
+      <span>${textoSeguro(nomeEquipamento(codigo))}</span>
+      <button type="button" title="Remover" onclick="removerSelecionadoLocacao('${textoSeguro(codigo)}')">x</button>
+    </span>
+  `).join("");
+}
+
+function removerSelecionadoLocacao(codigo) {
+  equipamentosSelecionados = equipamentosSelecionados.filter((item) => item !== codigo);
+  renderSelecionados();
+  renderSugestoesLocacao();
+}
+window.removerSelecionadoLocacao = removerSelecionadoLocacao;
+
+function adicionarSelecionadoLocacao(codigo) {
+  if (!equipamentosSelecionados.includes(codigo)) equipamentosSelecionados.push(codigo);
+  equipamentosInput.value = "";
+  resultadosBox.style.display = "none";
+  renderSelecionados();
+  equipamentosInput.focus();
+}
+window.adicionarSelecionadoLocacao = adicionarSelecionadoLocacao;
+
+function renderSugestoesLocacao() {
+  const termo = GE.normalizar(equipamentosInput.value.trim());
+  if (!termo) {
+    resultadosBox.style.display = "none";
+    resultadosBox.innerHTML = "";
     return;
   }
 
-  GE.salvarLocacao({ empresa, saida, retorno, equipamentos });
-  empresaInput.value = "";
-  equipamentosInput.value = "";
-  modalLocacao.classList.remove("open");
+  const encontrados = (GE.dados().equipamentos || [])
+    .filter(equipamentoPodeSerLocado)
+    .filter((eq) => GE.normalizar(`${eq.codigo} ${eq.nome} ${eq.categoria}`).includes(termo))
+    .slice(0, 8);
+
+  resultadosBox.innerHTML = encontrados.map((eq) => `
+    <button class="locacao-result" type="button" onclick="adicionarSelecionadoLocacao('${textoSeguro(eq.codigo)}')">
+      <span class="locacao-code">${textoSeguro(eq.codigo)}</span>
+      <span class="locacao-name"><strong>${textoSeguro(eq.nome)}</strong><span>${textoSeguro(eq.categoria || "Sem categoria")}</span></span>
+      <span class="badge ${GE.statusInfo[eq.status]?.classe || "badge-green"}">${GE.statusInfo[eq.status]?.texto || eq.status}</span>
+    </button>
+  `).join("") || `<div class="locacao-empty" style="padding:12px">Nenhum equipamento dispon?vel encontrado.</div>`;
+  resultadosBox.style.display = "block";
+}
+
+function usadoForaDaLocacao(codigo, locacaoIgnoradaId = "") {
+  const db = GE.dados();
+  const emOutraLocacao = (db.locacoes || []).some((locacao) => locacao.id !== locacaoIgnoradaId && locacao.status !== "Finalizada" && (locacao.equipamentos || []).includes(codigo));
+  const emEvento = (db.eventos || []).some((evento) => evento.status !== "Finalizado" && (evento.equipamentos || []).includes(codigo));
+  const emManutencao = (db.manutencoes || []).some((manutencao) => manutencao.codigo === codigo && manutencao.status !== "Finalizada");
+  return emOutraLocacao || emEvento || emManutencao;
+}
+
+function liberarSePossivel(db, codigo, locacaoIgnoradaId = "") {
+  const eq = db.equipamentos.find((item) => item.codigo === codigo);
+  if (eq && !usadoForaDaLocacao(codigo, locacaoIgnoradaId)) eq.status = "disponivel";
+}
+
+function salvarLocacaoAtual() {
+  const empresa = empresaInput.value.trim();
+  const saida = saidaInput.value;
+  const retorno = retornoInput.value;
+  const equipamentos = [...new Set(equipamentosSelecionados.map((codigo) => codigo.trim().toUpperCase()).filter(Boolean))];
+
+  if (!empresa || !saida || !retorno || !equipamentos.length) {
+    GE.mensagem("Preencha empresa, datas e selecione pelo menos um equipamento.", "warning");
+    return;
+  }
+
+  const db = GE.dados();
+  const indice = (db.locacoes || []).findIndex((locacao) => locacao.id === locacaoEditandoId);
+  const antiga = indice >= 0 ? db.locacoes[indice] : null;
+  const id = antiga?.id || gerarIdLocacao();
+  const status = antiga?.status || "Em Andamento";
+  const registro = { ...(antiga || {}), id, empresa, saida, retorno, equipamentos, status };
+
+  if (indice >= 0) {
+    const antigos = antiga.equipamentos || [];
+    antigos.filter((codigo) => !equipamentos.includes(codigo)).forEach((codigo) => liberarSePossivel(db, codigo, id));
+    db.locacoes[indice] = registro;
+    db.logs.unshift({ data: new Date().toLocaleDateString("pt-BR"), usuario: GE.usuarioAtual().nome, acao: "Editou Loca\u00e7\u00e3o", tipo: "badge-purple", detalhes: `${empresa} - ${equipamentos.length} equipamentos` });
+  } else {
+    db.locacoes.unshift(registro);
+    db.logs.unshift({ data: new Date().toLocaleDateString("pt-BR"), usuario: GE.usuarioAtual().nome, acao: "Criou Loca\u00e7\u00e3o", tipo: "badge-purple", detalhes: `${empresa} - ${equipamentos.length} equipamentos` });
+  }
+
+  db.equipamentos.forEach((eq) => {
+    if (equipamentos.includes(eq.codigo) && status !== "Finalizada") eq.status = "locado";
+  });
+
+  GE.salvar(db);
+  fecharModalLocacao();
   renderLocacoes();
-  GE.mensagem("Locação criada e equipamentos marcados como locados.", "success");
+  GE.mensagem(indice >= 0 ? "Loca\u00e7\u00e3o atualizada." : "Loca\u00e7\u00e3o criada e equipamentos marcados como locados.", "success");
+}
+
+function abrirModalLocacao(locacao = null) {
+  locacaoEditandoId = locacao?.id || "";
+  modalTitulo.textContent = locacao ? "Editar Loca\u00e7\u00e3o" : "Nova Loca\u00e7\u00e3o";
+  modalSub.textContent = locacao ? "Altere os dados e equipamentos desta loca\u00e7\u00e3o" : "Preencha os dados para registrar a loca\u00e7\u00e3o";
+  salvarLocacaoBtn.textContent = locacao ? "Salvar Altera\u00e7\u00f5es" : "Salvar Loca\u00e7\u00e3o";
+  const hoje = new Date().toISOString().slice(0, 10);
+  empresaInput.value = locacao?.empresa || "";
+  saidaInput.value = locacao?.saida || hoje;
+  retornoInput.value = locacao?.retorno || hoje;
+  equipamentosInput.value = "";
+  equipamentosSelecionados = [...(locacao?.equipamentos || [])];
+  renderSelecionados();
+  resultadosBox.style.display = "none";
+  modalLocacao.classList.add("open");
+  empresaInput.focus();
+}
+
+function fecharModalLocacao() {
+  modalLocacao.classList.remove("open");
+  locacaoEditandoId = "";
+  equipamentosSelecionados = [];
+}
+
+function editarLocacao(id) {
+  const locacao = (GE.dados().locacoes || []).find((item) => item.id === id);
+  if (!locacao) return GE.mensagem("Loca\u00e7\u00e3o n\u00e3o encontrada.", "error");
+  abrirModalLocacao(locacao);
+}
+window.editarLocacao = editarLocacao;
+
+function concluirLocacao(id) {
+  const db = GE.dados();
+  const locacao = (db.locacoes || []).find((item) => item.id === id);
+  if (!locacao) return GE.mensagem("Loca\u00e7\u00e3o n\u00e3o encontrada.", "error");
+  if (locacao.status === "Finalizada") return GE.mensagem("Esta loca\u00e7\u00e3o j\u00e1 est\u00e1 finalizada.", "info");
+
+  GE.confirmar(`Concluir a loca\u00e7\u00e3o de ${locacao.empresa} e devolver os equipamentos ao estoque?`, () => {
+    locacao.status = "Finalizada";
+    locacao.finalizadaEm = new Date().toISOString().slice(0, 10);
+    (locacao.equipamentos || []).forEach((codigo) => liberarSePossivel(db, codigo, id));
+    db.logs.unshift({ data: new Date().toLocaleDateString("pt-BR"), usuario: GE.usuarioAtual().nome, acao: "Concluiu Loca\u00e7\u00e3o", tipo: "badge-green", detalhes: `${locacao.empresa} - ${locacao.equipamentos.length} equipamentos` });
+    GE.salvar(db);
+    renderLocacoes();
+    GE.mensagem("Loca\u00e7\u00e3o conclu\u00edda e equipamentos liberados.", "success");
+  }, { titulo: "Concluir loca\u00e7\u00e3o", confirmar: "Concluir" });
+}
+window.concluirLocacao = concluirLocacao;
+
+function excluirLocacao(id) {
+  const db = GE.dados();
+  const locacao = (db.locacoes || []).find((item) => item.id === id);
+  if (!locacao) return GE.mensagem("Loca\u00e7\u00e3o n\u00e3o encontrada.", "error");
+
+  GE.confirmar(`Excluir a loca\u00e7\u00e3o de ${locacao.empresa}?`, () => {
+    db.locacoes = db.locacoes.filter((item) => item.id !== id);
+    if (locacao.status !== "Finalizada") (locacao.equipamentos || []).forEach((codigo) => liberarSePossivel(db, codigo, id));
+    db.logs.unshift({ data: new Date().toLocaleDateString("pt-BR"), usuario: GE.usuarioAtual().nome, acao: "Excluiu Loca\u00e7\u00e3o", tipo: "badge-red", detalhes: locacao.empresa });
+    GE.salvar(db);
+    renderLocacoes();
+    GE.mensagem("Loca\u00e7\u00e3o exclu\u00edda.", "success");
+  }, { titulo: "Excluir loca\u00e7\u00e3o", confirmar: "Excluir", perigo: true });
+}
+window.excluirLocacao = excluirLocacao;
+
+function renderLocacoes() {
+  garantirIdsLocacoes();
+  const locacoes = GE.dados().locacoes || [];
+  tbody.innerHTML = locacoes.map((locacao) => {
+    const finalizada = locacao.status === "Finalizada";
+    return `
+    <tr>
+      <td style="color:var(--text);font-weight:500">${textoSeguro(locacao.empresa)}<div style="color:var(--text3);font-size:12px;margin-top:3px">${textoSeguro(resumoEquipamentos(locacao.equipamentos || []))}</div></td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(locacao.saida)}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(locacao.retorno)}</td>
+      <td style="color:var(--text2)">${(locacao.equipamentos || []).length || "-"}</td>
+      <td><span class="badge ${finalizada ? "badge-green" : "badge-cyan"}">${textoSeguro(locacao.status || "Em Andamento")}</span></td>
+      <td>
+        <div class="locacao-actions">
+          <button class="locacao-action" title="Editar loca\u00e7\u00e3o" onclick="editarLocacao('${textoSeguro(locacao.id)}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
+          <button class="locacao-action finish" title="Concluir loca\u00e7\u00e3o" onclick="concluirLocacao('${textoSeguro(locacao.id)}')" ${finalizada ? "disabled" : ""}><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 6L9 17l-5-5"/></svg></button>
+          <button class="locacao-action delete" title="Excluir loca\u00e7\u00e3o" onclick="excluirLocacao('${textoSeguro(locacao.id)}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhuma loca\u00e7\u00e3o cadastrada.</td></tr>`;
+}
+
+document.getElementById("novaLocacao").addEventListener("click", () => abrirModalLocacao());
+document.getElementById("cancelarLocacao").addEventListener("click", fecharModalLocacao);
+modalLocacao.addEventListener("click", (event) => { if (event.target === modalLocacao) fecharModalLocacao(); });
+salvarLocacaoBtn.addEventListener("click", salvarLocacaoAtual);
+equipamentosInput.addEventListener("input", renderSugestoesLocacao);
+equipamentosInput.addEventListener("focus", renderSugestoesLocacao);
+equipamentosInput.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  const primeiro = resultadosBox.querySelector(".locacao-result");
+  if (primeiro) primeiro.click();
 });
 
 renderLocacoes();
