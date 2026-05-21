@@ -368,6 +368,7 @@ botoes.forEach((botao, index) => {
 configurarPeriodoPadrao();
 periodoRelatorio.dispatchEvent(new Event("change"));
 renderLogs();
+window.addEventListener("stocksync:sync", renderLogs);
 </script>
 </body>
 </html>
