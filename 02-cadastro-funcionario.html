@@ -4,8 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Cadastro de Funcionário</title>
-<link rel="stylesheet" href="styles.css?v=20260521-account-choice">
+<script>
+if (new URLSearchParams(window.location.search).has("novo")) {
+  document.documentElement.classList.add("public-boot");
+}
+</script>
+<link rel="stylesheet" href="styles.css?v=20260521-no-public-flicker">
 <style>
+.public-boot body {
+  background: var(--bg);
+}
+.public-boot .sidebar,
+.public-boot .main {
+  visibility: hidden;
+}
+.public-boot-ready .main {
+  animation: publicFadeIn 0.16s ease-out;
+}
+@keyframes publicFadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.6);
@@ -338,7 +357,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260521-account-choice"></script>
+<script src="app.js?v=20260521-no-public-flicker"></script>
 <script>
 const modalFuncionario = document.getElementById("modalFuncionario");
 const tabelaFuncionarios = document.getElementById("funcionariosTabela");
@@ -379,6 +398,11 @@ function prepararTelaPublica() {
   document.querySelector(".main").style.padding = "";
   localStorage.removeItem("usuarioLogado");
   localStorage.removeItem("empresaAtualId");
+}
+
+function revelarTelaPublica() {
+  document.documentElement.classList.remove("public-boot");
+  document.documentElement.classList.add("public-boot-ready");
 }
 
 function renderCadastroFuncionarioPublico() {
@@ -437,6 +461,7 @@ function renderCadastroFuncionarioPublico() {
     </div>
   `;
   GE.atualizarLogosTema();
+  revelarTelaPublica();
 
   document.getElementById("voltarLoginFuncionario").addEventListener("click", () => {
     window.location.href = "01-login.html";
@@ -520,6 +545,7 @@ function renderCadastroEmpresa() {
     </div>
   `;
   GE.atualizarLogosTema();
+  revelarTelaPublica();
 
   document.getElementById("voltarFuncionario").addEventListener("click", () => {
     renderCadastroFuncionarioPublico();
