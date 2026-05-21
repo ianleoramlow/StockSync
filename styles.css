@@ -1083,9 +1083,10 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   }
 
   .theme-toggle {
-    position: absolute;
+    position: fixed;
     top: 10px;
-    right: calc(12px + var(--mobile-profile-width) + 64px);
+    right: calc(6px + var(--mobile-profile-width) + 68px);
+    z-index: 310;
     width: 34px;
     min-width: 34px;
     height: 34px;
@@ -1231,11 +1232,12 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     line-height: 1.35;
   }
 
-  .topbar .user-info {
-    position: absolute;
-    top: -144px;
-    right: -6px;
-    z-index: 260;
+  .topbar .user-info,
+  .mobile-header-user {
+    position: fixed;
+    top: 10px;
+    right: 6px;
+    z-index: 320;
     width: calc(var(--mobile-profile-width) + 50px);
     display: flex;
     justify-content: flex-end;
@@ -1243,14 +1245,16 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     gap: 16px;
   }
 
-  .topbar .bell {
+  .topbar .bell,
+  .mobile-header-user .bell {
     order: 1;
     width: 34px;
     height: 34px;
     flex: 0 0 34px;
   }
 
-  .topbar .user-profile-trigger {
+  .topbar .user-profile-trigger,
+  .mobile-header-user .user-profile-trigger {
     order: 2;
     width: var(--mobile-profile-width);
     min-width: 0;
@@ -1259,13 +1263,15 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     gap: 8px;
   }
 
-  .topbar .user-avatar {
+  .topbar .user-avatar,
+  .mobile-header-user .user-avatar {
     width: 34px;
     height: 34px;
     flex-shrink: 0;
   }
 
-  .topbar .user-name {
+  .topbar .user-name,
+  .mobile-header-user .user-name {
     max-width: calc(var(--mobile-profile-width) - 48px);
     font-size: 12px;
     line-height: 1.1;
@@ -1274,7 +1280,8 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     white-space: nowrap;
   }
 
-  .topbar .user-role {
+  .topbar .user-role,
+  .mobile-header-user .user-role {
     max-width: calc(var(--mobile-profile-width) - 48px);
     font-size: 10.5px;
     line-height: 1.1;
