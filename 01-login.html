@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StockSync – Login</title>
-  <link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+  <link rel="stylesheet" href="styles.css?v=20260521-account-choice">
   <style>
     body {
       display: flex;
@@ -81,6 +81,87 @@
       cursor: pointer;
     }
 
+    .account-choice-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1002;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, 0.64);
+      backdrop-filter: blur(6px);
+    }
+
+    .account-choice-overlay.open {
+      display: flex;
+    }
+
+    .account-choice-modal {
+      width: min(430px, 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: var(--shadow-lg);
+      padding: 22px;
+    }
+
+    .account-choice-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .account-choice-sub {
+      color: var(--text3);
+      font-size: 12.5px;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .account-choice-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .account-choice-card {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface2);
+      color: var(--text);
+      padding: 14px;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: border-color 0.16s, background 0.16s, transform 0.16s;
+    }
+
+    .account-choice-card:hover {
+      border-color: rgba(124, 58, 237, 0.55);
+      background: var(--surface3);
+      transform: translateY(-1px);
+    }
+
+    .account-choice-card strong {
+      display: block;
+      font-size: 14.5px;
+      margin-bottom: 4px;
+    }
+
+    .account-choice-card span {
+      display: block;
+      color: var(--text3);
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+
+    .account-choice-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
     .eye-btn {
       position: absolute;
       right: 12px;
@@ -150,6 +231,57 @@
       padding-top: 9px;
       padding-bottom: 9px;
     }
+
+    @media (max-width: 520px) {
+      body {
+        align-items: flex-start;
+        padding: 12px;
+      }
+
+      .login-wrap {
+        width: 100%;
+        max-width: 390px;
+        margin: 12px auto;
+        padding: 20px 18px;
+        border-radius: 12px;
+      }
+
+      .login-logo {
+        margin-bottom: 16px;
+      }
+
+      .login-brand-logo {
+        width: min(220px, 82vw);
+      }
+
+      .login-sub {
+        font-size: 12.5px;
+      }
+
+      .company-code-item {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .forgot {
+        text-align: left;
+      }
+
+      .account-choice-modal {
+        padding: 18px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .login-wrap {
+        padding: 18px 14px;
+      }
+
+      .login-brand-logo {
+        width: min(198px, 78vw);
+      }
+    }
   </style>
 </head>
 
@@ -197,10 +329,29 @@
 
     <div class="login-footer">
       Não tem conta?
-      <a onclick="window.location.href='02-cadastro-funcionario.html?novo=funcionario'">Criar conta</a>
+      <a id="abrirEscolhaConta">Criar conta</a>
     </div>
   </div>
-  <script src="app.js?v=20260521-backend-db"></script>
+  <div class="account-choice-overlay" id="escolhaContaOverlay">
+    <div class="account-choice-modal">
+      <div class="account-choice-title">Criar conta</div>
+      <div class="account-choice-sub">Escolha como você quer acessar o StockSync.</div>
+      <div class="account-choice-list">
+        <button class="account-choice-card" type="button" id="criarContaFuncionario">
+          <strong>Funcionário</strong>
+          <span>Solicitar acesso ao ambiente de uma empresa usando o código dela.</span>
+        </button>
+        <button class="account-choice-card" type="button" id="criarContaEmpresa">
+          <strong>Empresa</strong>
+          <span>Criar um novo ambiente empresarial e cadastrar o primeiro administrador.</span>
+        </button>
+      </div>
+      <div class="account-choice-actions">
+        <button class="btn btn-secondary" type="button" id="fecharEscolhaConta">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  <script src="app.js?v=20260521-account-choice"></script>
   <script>
     function toggleSenha() {
       const input = document.getElementById("senhaInput");
@@ -209,6 +360,28 @@
 
     document.getElementById("forgotLink").addEventListener("click", function () {
       GE.mensagem("Procure um administrador para redefinir sua senha.", "info");
+    });
+
+    const escolhaContaOverlay = document.getElementById("escolhaContaOverlay");
+
+    document.getElementById("abrirEscolhaConta").addEventListener("click", function () {
+      escolhaContaOverlay.classList.add("open");
+    });
+
+    document.getElementById("fecharEscolhaConta").addEventListener("click", function () {
+      escolhaContaOverlay.classList.remove("open");
+    });
+
+    escolhaContaOverlay.addEventListener("click", function (event) {
+      if (event.target === escolhaContaOverlay) escolhaContaOverlay.classList.remove("open");
+    });
+
+    document.getElementById("criarContaFuncionario").addEventListener("click", function () {
+      window.location.href = "02-cadastro-funcionario.html?novo=funcionario";
+    });
+
+    document.getElementById("criarContaEmpresa").addEventListener("click", function () {
+      window.location.href = "02-cadastro-funcionario.html?novo=empresa";
     });
 
     function textoSeguro(texto) {
