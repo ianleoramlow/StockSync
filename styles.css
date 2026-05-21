@@ -209,6 +209,10 @@ body {
   gap: 12px;
 }
 
+.mobile-header-user {
+  display: none;
+}
+
 .user-profile-trigger {
   display: flex;
   align-items: center;
