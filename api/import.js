@@ -1,4 +1,5 @@
 const { cors, json, chaveValida, setStorageValue } = require("./_supabase");
+const { importStorageNormalized } = require("./_normalized");
 
 module.exports = async function handler(req, res) {
   cors(res);
@@ -11,12 +12,14 @@ module.exports = async function handler(req, res) {
       return json(res, 400, { ok: false, erro: "Arquivo de banco inválido." });
     }
 
+    const normalized = await importStorageNormalized(storage);
+
     const keys = Object.keys(storage).filter(chaveValida);
     for (const key of keys) {
       await setStorageValue(key, storage[key]);
     }
 
-    json(res, 200, { ok: true, imported: keys.length });
+    json(res, 200, { ok: true, imported: keys.length, normalized });
   } catch (error) {
     json(res, error.status || 500, { ok: false, erro: "Não foi possível importar os dados." });
   }
