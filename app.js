@@ -34,6 +34,22 @@ const GE = (() => {
     }
   }
 
+  function requisicaoBackendAsync(metodo, caminho, corpo = null) {
+    if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
+
+    fetch(caminho, {
+      method: metodo,
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: corpo !== null ? JSON.stringify(corpo) : undefined,
+      keepalive: false
+    }).catch(() => {
+      backendDisponivel = false;
+    });
+  }
+
   function backendAtivo() {
     if (backendDisponivel !== null) return backendDisponivel;
     const resposta = requisicaoBackend("GET", "/api/health");
@@ -55,7 +71,7 @@ const GE = (() => {
   function salvarBackend(chave, valor) {
     if (!chaveCompartilhada(chave) || !backendAtivo()) return;
     backendCache.set(chave, valor);
-    requisicaoBackend("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value: valor });
+    requisicaoBackendAsync("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value: valor });
   }
 
   function temaSalvo() {
@@ -237,13 +253,21 @@ const GE = (() => {
   }
 
   function lerJSON(chave, fallback = null) {
-    const valorBackend = lerBackend(chave);
-    if (valorBackend !== BACKEND_MISSING) return valorBackend || fallback;
-
     try {
       const valorLocal = JSON.parse(localStorage.getItem(chave) || "null");
-      if (valorLocal && chaveCompartilhada(chave)) salvarBackend(chave, valorLocal);
-      return valorLocal || fallback;
+      if (valorLocal) return valorLocal;
+    } catch (error) {
+      return fallback;
+    }
+
+    const valorBackend = lerBackend(chave);
+    if (valorBackend !== BACKEND_MISSING) {
+      if (valorBackend) localStorage.setItem(chave, JSON.stringify(valorBackend));
+      return valorBackend || fallback;
+    }
+
+    try {
+      return JSON.parse(localStorage.getItem(chave) || "null") || fallback;
     } catch (error) {
       return fallback;
     }
@@ -459,6 +483,8 @@ const GE = (() => {
 
   function dadosDaEmpresa(id) {
     const db = garantirEstrutura(lerJSON(chaveEmpresa(id), dadosVazios()));
+    let alterou = false;
+
     if (!db.estoqueInicialCriado && db.equipamentos.length === 0) {
       db.equipamentos = estoqueInicialEquipamentos();
       db.logs.unshift({
@@ -468,7 +494,9 @@ const GE = (() => {
         tipo: "badge-green",
         detalhes: `${db.equipamentos.length} equipamentos de exemplo`
       });
+      alterou = true;
     }
+
     if (!db.estoqueGeralCriado) {
       const codigosAtuais = new Set(db.equipamentos.map((eq) => eq.codigo));
       const novosEquipamentos = estoqueInicialEquipamentos().filter((eq) => !codigosAtuais.has(eq.codigo));
@@ -483,12 +511,17 @@ const GE = (() => {
         });
       }
       db.estoqueGeralCriado = true;
+      alterou = true;
     }
+
     if (!db.estoqueInicialCriado && db.equipamentos.length > 0) {
       db.estoqueInicialCriado = true;
+      alterou = true;
     }
-    aplicarImagensEquipamentos(db);
-    salvarJSON(chaveEmpresa(id), db);
+
+    if (aplicarImagensEquipamentos(db)) alterou = true;
+    if (alterou) salvarJSON(chaveEmpresa(id), db);
+
     return db;
   }
 
