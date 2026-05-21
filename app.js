@@ -1173,6 +1173,36 @@ const GE = (() => {
     return db.funcionarios[indice];
   }
 
+  function excluirFuncionario(email) {
+    const atual = usuarioAtual();
+    if (atual.cargo !== "Administrador") return { erro: "Apenas administradores podem excluir funcionarios." };
+
+    const db = dados();
+    db.funcionarios = db.funcionarios || [];
+    const indice = db.funcionarios.findIndex((funcionario) => normalizar(funcionario.email) === normalizar(email));
+    if (indice < 0) return { erro: "Funcionario nao encontrado." };
+
+    const funcionario = db.funcionarios[indice];
+    if (normalizar(funcionario.email) === normalizar(atual.email)) {
+      return { erro: "Voce nao pode excluir a propria conta enquanto esta logado." };
+    }
+
+    const admins = db.funcionarios.filter((item) => cargoSistema(item.cargo) === "Administrador");
+    if (cargoSistema(funcionario.cargo) === "Administrador" && admins.length <= 1) {
+      return { erro: "A empresa precisa manter pelo menos um administrador." };
+    }
+
+    db.funcionarios.splice(indice, 1);
+    db.logs.unshift({
+      data: hojeCurto(),
+      usuario: atual.nome,
+      acao: "Excluiu Funcionario",
+      tipo: "badge-red",
+      detalhes: `${funcionario.nome} - ${funcionario.email}`
+    });
+    salvar(db);
+    return funcionario;
+  }
   function atualizarUsuarioAtual(dadosUsuario) {
     const atual = usuarioAtual();
     const db = dados();
@@ -1423,7 +1453,7 @@ const GE = (() => {
   return {
     dados, salvar, log, normalizar, badge, statusInfo, dataBR, mensagem, imagemEquipamento,
     getEquipamento, salvarEquipamento, salvarEquipamentosEmLote, removerEquipamento, enviarManutencao, finalizarManutencao,
-    salvarEvento, editarEvento, atualizarStatusEvento, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
+    salvarEvento, editarEvento, atualizarStatusEvento, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
     empresas, empresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema
   };
 })();
