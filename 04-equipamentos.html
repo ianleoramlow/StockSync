@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Equipamentos</title>
-<link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+<link rel="stylesheet" href="styles.css?v=20260521-equip-no-freeze">
 <style>
 .maintenance-action {
   width: 34px;
@@ -274,7 +274,7 @@ onclick="window.location.href='05-cadastro-equipamento.html'">
     </div>
   </div>
 </div>
-<script src="app.js?v=20260521-backend-db"></script>
+<script src="app.js?v=20260521-equip-no-freeze"></script>
 <script>
 const filtros = {
   todos: { titulo: "Equipamentos", subtitulo: "Todos os equipamentos cadastrados no sistema" },
@@ -330,15 +330,15 @@ function configurarCabecalhoStatus() {
   });
 }
 
-function eventosDoEquipamento(codigo) {
-  return (GE.dados().eventos || [])
+function eventosDoEquipamento(codigo, eventos = []) {
+  return eventos
     .filter((evento) => evento.status !== "Finalizado" && (evento.equipamentos || []).includes(codigo))
     .map((evento) => evento.nome || evento.id);
 }
 
-function rotuloEventoDoEquipamento(codigo) {
-  const eventos = eventosDoEquipamento(codigo);
-  return eventos.length ? eventos.join(", ") : "Evento não identificado";
+function rotuloEventoDoEquipamento(codigo, eventos = []) {
+  const eventosEncontrados = eventosDoEquipamento(codigo, eventos);
+  return eventosEncontrados.length ? eventosEncontrados.join(", ") : "Evento não identificado";
 }
 
 function textoSeguro(valor) {
@@ -355,7 +355,7 @@ function conteudoStatusGrupo(grupo) {
     return `<span class="event-name-badge" title="${textoSeguro(grupo.eventoNome)}">${textoSeguro(grupo.eventoNome)}</span>`;
   }
 
-  const origemManutencao = filtroAtual === "manutencao" ? origemManutencaoGrupo(grupo.codigos) : "";
+  const origemManutencao = filtroAtual === "manutencao" ? grupo.origemManutencao : "";
   const complementoOrigem = origemManutencao
     ? `<span class="maintenance-origin">${textoSeguro(origemManutencao)}</span>`
     : "";
@@ -363,13 +363,13 @@ function conteudoStatusGrupo(grupo) {
   return `${GE.badge(grupo.status)}${complementoOrigem}`;
 }
 
-function manutencaoAtiva(codigo) {
-  return (GE.dados().manutencoes || []).find((manutencao) => manutencao.codigo === codigo && manutencao.status !== "Finalizada");
+function manutencaoAtiva(codigo, manutencoes = []) {
+  return manutencoes.find((manutencao) => manutencao.codigo === codigo && manutencao.status !== "Finalizada");
 }
 
-function origemManutencaoGrupo(codigos) {
+function origemManutencaoGrupo(codigos, manutencoes = []) {
   const origens = codigos
-    .map((codigo) => manutencaoAtiva(codigo)?.origem)
+    .map((codigo) => manutencaoAtiva(codigo, manutencoes)?.origem)
     .filter(Boolean);
   const unicas = [...new Set(origens)];
   const textoOrigem = unicas.join(", ");
@@ -378,20 +378,54 @@ function origemManutencaoGrupo(codigos) {
     : "";
 }
 
-function renderEquipamentos() {
-  const termo = GE.normalizar(busca.value.trim());
-  const manutencoesAtivas = new Set((GE.dados().manutencoes || [])
+function mapaEventosPorCodigo(eventos = []) {
+  const mapa = new Map();
+
+  eventos
+    .filter((evento) => evento.status !== "Finalizado")
+    .forEach((evento) => {
+      (evento.equipamentos || []).forEach((codigo) => {
+        if (!mapa.has(codigo)) mapa.set(codigo, []);
+        mapa.get(codigo).push(evento.nome || evento.id);
+      });
+    });
+
+  return mapa;
+}
+
+function mapaManutencoesAtivas(manutencoes = []) {
+  const mapa = new Map();
+  manutencoes
     .filter((manutencao) => manutencao.status !== "Finalizada")
-    .map((manutencao) => manutencao.codigo));
-  const equipamentos = GE.dados().equipamentos.filter((eq) => {
+    .forEach((manutencao) => mapa.set(manutencao.codigo, manutencao));
+  return mapa;
+}
+
+function textoOrigemManutencao(origens = []) {
+  const unicas = [...new Set(origens.filter(Boolean))];
+  const textoOrigem = unicas.join(", ");
+  return unicas.length
+    ? `${textoOrigem.startsWith("Evento:") ? "Enviado pelo" : "Origem:"} ${textoOrigem}`
+    : "";
+}
+
+function renderEquipamentos() {
+  const db = GE.dados();
+  const termo = GE.normalizar(busca.value.trim());
+  const manutencoes = db.manutencoes || [];
+  const manutencaoPorCodigo = mapaManutencoesAtivas(manutencoes);
+  const equipamentos = db.equipamentos.filter((eq) => {
     const combinaStatus = filtroAtual === "todos"
       || eq.status === filtroAtual
-      || (filtroAtual === "manutencao" && manutencoesAtivas.has(eq.codigo))
+      || (filtroAtual === "manutencao" && manutencaoPorCodigo.has(eq.codigo))
       || (filtroAtual === "evento" && statusFluxoEvento.includes(eq.status));
     const combinaBusca = GE.normalizar(`${eq.codigo} ${eq.nome} ${eq.categoria}`).includes(termo);
     return combinaStatus && combinaBusca;
   });
-  const grupos = agruparEquipamentos(equipamentos);
+  const grupos = agruparEquipamentos(equipamentos, {
+    eventoPorCodigo: mapaEventosPorCodigo(db.eventos || []),
+    manutencaoPorCodigo
+  });
 
   tbody.innerHTML = grupos.map((grupo) => `
     <tr data-status="${grupo.status}">
@@ -419,12 +453,16 @@ function nomeBase(nome) {
   return nome.replace(/\s+\d+$/, "").trim();
 }
 
-function agruparEquipamentos(equipamentos) {
+function agruparEquipamentos(equipamentos, contexto) {
   const mapa = new Map();
+  const eventoPorCodigo = contexto.eventoPorCodigo;
+  const manutencaoPorCodigo = contexto.manutencaoPorCodigo;
 
   equipamentos.forEach((eq) => {
-    const eventoNome = rotuloEventoDoEquipamento(eq.codigo);
-    const statusGrupo = filtroAtual === "manutencao" && manutencaoAtiva(eq.codigo) ? "manutencao" : eq.status;
+    const eventos = eventoPorCodigo.get(eq.codigo) || [];
+    const eventoNome = eventos.length ? eventos.join(", ") : "Evento não identificado";
+    const manutencao = manutencaoPorCodigo.get(eq.codigo);
+    const statusGrupo = filtroAtual === "manutencao" && manutencao ? "manutencao" : eq.status;
     const chaveEvento = filtroAtual === "evento" && visualizacaoEvento === "evento"
       ? `|${GE.normalizar(eventoNome)}`
       : "";
@@ -435,6 +473,8 @@ function agruparEquipamentos(equipamentos) {
         categoria: eq.categoria,
         status: statusGrupo,
         eventoNome,
+        origensManutencao: [],
+        origemManutencao: "",
         quantidade: 0,
         codigos: [],
         principal: eq
@@ -444,9 +484,13 @@ function agruparEquipamentos(equipamentos) {
     const grupo = mapa.get(chave);
     grupo.quantidade += 1;
     grupo.codigos.push(eq.codigo);
+    if (manutencao?.origem) grupo.origensManutencao.push(manutencao.origem);
   });
 
-  return [...mapa.values()];
+  return [...mapa.values()].map((grupo) => ({
+    ...grupo,
+    origemManutencao: textoOrigemManutencao(grupo.origensManutencao)
+  }));
 }
 
 function resumoCodigos(codigos) {
