@@ -1085,9 +1085,9 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   .theme-toggle {
     position: absolute;
     top: 10px;
-    right: calc(12px + var(--mobile-profile-width) + 48px);
-    width: 36px;
-    min-width: 36px;
+    right: calc(12px + var(--mobile-profile-width) + 64px);
+    width: 34px;
+    min-width: 34px;
     height: 34px;
     margin: 0;
     padding: 0;
@@ -1115,16 +1115,16 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     position: absolute;
     top: 50px;
     right: 12px;
-    width: var(--mobile-profile-width);
+    width: calc(var(--mobile-profile-width) - 12px);
     min-width: 0;
-    height: 28px;
-    padding: 0 10px;
+    height: 26px;
+    padding: 0 8px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface2);
     justify-content: center;
-    font-size: 12px;
-    gap: 6px;
+    font-size: 11px;
+    gap: 5px;
   }
 
   .btn-logout svg {
@@ -1234,20 +1234,20 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   .topbar .user-info {
     position: absolute;
     top: -144px;
-    right: 12px;
+    right: -6px;
     z-index: 260;
-    width: calc(var(--mobile-profile-width) + 41px);
+    width: calc(var(--mobile-profile-width) + 50px);
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 7px;
+    gap: 16px;
   }
 
   .topbar .bell {
     order: 1;
     width: 34px;
     height: 34px;
-    flex-shrink: 0;
+    flex: 0 0 34px;
   }
 
   .topbar .user-profile-trigger {
@@ -1255,7 +1255,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     width: var(--mobile-profile-width);
     min-width: 0;
     max-width: var(--mobile-profile-width);
-    padding: 2px 4px;
+    padding: 2px 0 2px 4px;
     gap: 8px;
   }
 
