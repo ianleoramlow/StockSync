@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Novo Equipamento</title>
-<link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+<link rel="stylesheet" href="styles.css?v=20260521-no-freeze-global">
 <style>
 .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200; }
 .modal { background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:520px;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg); }
@@ -85,7 +85,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260521-backend-db"></script>
+<script src="app.js?v=20260521-no-freeze-global"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const codigoEdicao = params.get("codigo");
