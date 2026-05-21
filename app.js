@@ -15,6 +15,7 @@ const GE = (() => {
   let ultimaGravacaoLocal = 0;
   let sincronizacaoEmAndamento = false;
   let ultimaAssinaturaRemota = "";
+  let atualizacaoVisualSyncConfigurada = false;
 
   function chaveCompartilhada(chave) {
     return chave === EMPRESAS_KEY
@@ -64,7 +65,10 @@ const GE = (() => {
   function enviarChaveBackend(chave, valor) {
     const payload = payloadChaveBackend(chave, valor);
     if (!payload) return Promise.resolve(null);
-    return requisicaoBackendAsync("POST", payload.caminho, payload.corpo);
+    return requisicaoBackendAsync("POST", payload.caminho, payload.corpo).then((resposta) => {
+      if (resposta && ehChaveDadosEmpresa(chave)) atualizarSnapshotEmpresa(chave, valor);
+      return resposta;
+    });
   }
   function requisicaoBackend(metodo, caminho, corpo = null) {
     if (!location.protocol.startsWith("http")) return null;
@@ -120,6 +124,7 @@ const GE = (() => {
     if (!resposta?.exists) return BACKEND_MISSING;
 
     backendCache.set(chave, resposta.value);
+    atualizarSnapshotEmpresa(chave, resposta.value);
     return resposta.value;
   }
 
@@ -177,6 +182,7 @@ const GE = (() => {
         if (local !== remoto) {
           localStorage.setItem(chave, remoto);
           backendCache.set(chave, valor);
+          atualizarSnapshotEmpresa(chave, valor);
           chavesAlteradas.push(chave);
         }
       });
@@ -199,8 +205,35 @@ const GE = (() => {
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") sincronizarBackend(true);
     });
+    configurarAtualizacaoVisualSync();
   }
 
+
+  function podeAtualizarTelaAposSync() {
+    if (/01-login\.html$/i.test(location.pathname)) return false;
+    if (/03-dashboard\.html$/i.test(location.pathname)) return false;
+
+    const ativo = document.activeElement;
+    const digitando = ativo && ["INPUT", "TEXTAREA", "SELECT"].includes(ativo.tagName);
+    const modalAberto = document.querySelector(".modal-overlay.open, .modal.open, [role='dialog'].open");
+    return !digitando && !modalAberto;
+  }
+
+  function configurarAtualizacaoVisualSync() {
+    if (atualizacaoVisualSyncConfigurada) return;
+    atualizacaoVisualSyncConfigurada = true;
+    window.addEventListener("stocksync:sync", () => {
+      if (podeAtualizarTelaAposSync()) {
+        setTimeout(() => location.reload(), 250);
+      }
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key && chaveCompartilhada(event.key)) {
+        window.dispatchEvent(new CustomEvent("stocksync:sync", { detail: { chaves: [event.key] } }));
+      }
+    });
+  }
   function flushBackendWrites() {
     if (!backendWriteQueue.size) return;
 
@@ -694,7 +727,6 @@ const GE = (() => {
     const db = garantirEstrutura(dadosAtualizados);
     aplicarImagensEquipamentos(db);
     salvarJSON(chaveEmpresa(id), db);
-    snapshotsEmpresa.set(id, clone(db));
   }
 
   function emailExisteEmOutraEmpresa(email, empresaIgnorada = "") {
