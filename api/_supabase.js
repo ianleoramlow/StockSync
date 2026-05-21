@@ -29,12 +29,18 @@ function supabaseEndpoint(path) {
 
 async function supabaseFetch(path, options = {}) {
   requireSupabase();
+  const usaChaveNova = SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_");
+  const authHeaders = usaChaveNova
+    ? { apikey: SUPABASE_SERVICE_ROLE_KEY }
+    : {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      };
 
   const response = await fetch(supabaseEndpoint(path), {
     ...options,
     headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      ...authHeaders,
       "Content-Type": "application/json",
       Prefer: "return=representation",
       ...(options.headers || {})
