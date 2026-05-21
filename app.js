@@ -32,6 +32,41 @@ const GE = (() => {
     return String(chave || "").replace(/^ge_dados_/i, "");
   }
 
+
+  function chavePendenciaBackend(chave) {
+    return `stocksync_dirty_${chave}`;
+  }
+
+  function marcarPendenciaBackend(chave, valor) {
+    if (!chaveCompartilhada(chave)) return;
+    try {
+      localStorage.setItem(chavePendenciaBackend(chave), JSON.stringify({ valor, data: Date.now() }));
+    } catch (error) {}
+  }
+
+  function limparPendenciaBackend(chave) {
+    try {
+      localStorage.removeItem(chavePendenciaBackend(chave));
+    } catch (error) {}
+  }
+
+  function pendenciaBackend(chave) {
+    try {
+      return JSON.parse(localStorage.getItem(chavePendenciaBackend(chave)) || "null");
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function restaurarPendenciasBackend() {
+    if (typeof localStorage === "undefined") return;
+    Object.keys(localStorage).forEach((key) => {
+      if (!key.startsWith("stocksync_dirty_")) return;
+      const chave = key.replace("stocksync_dirty_", "");
+      const pendencia = pendenciaBackend(chave);
+      if (pendencia && chaveCompartilhada(chave)) backendWriteQueue.set(chave, pendencia.valor);
+    });
+  }
   function atualizarSnapshotEmpresa(chave, valor) {
     if (!ehChaveDadosEmpresa(chave)) return;
     snapshotsEmpresa.set(empresaIdDaChave(chave), clone(valor));
@@ -66,7 +101,9 @@ const GE = (() => {
     const payload = payloadChaveBackend(chave, valor);
     if (!payload) return Promise.resolve(null);
     return requisicaoBackendAsync("POST", payload.caminho, payload.corpo).then((resposta) => {
-      if (resposta && ehChaveDadosEmpresa(chave)) atualizarSnapshotEmpresa(chave, valor);
+      if (resposta) {
+        if (ehChaveDadosEmpresa(chave)) atualizarSnapshotEmpresa(chave, valor);
+      }
       return resposta;
     });
   }
@@ -133,13 +170,21 @@ const GE = (() => {
 
     backendCache.set(chave, valor);
     backendWriteQueue.set(chave, valor);
+    marcarPendenciaBackend(chave, valor);
 
     clearTimeout(backendWriteTimers.get(chave));
     backendWriteTimers.set(chave, setTimeout(() => {
       const value = backendWriteQueue.get(chave);
-      backendWriteQueue.delete(chave);
-      backendWriteTimers.delete(chave);
-      enviarChaveBackend(chave, value);
+      enviarChaveBackend(chave, value).then((resposta) => {
+        if (resposta && JSON.stringify(backendWriteQueue.get(chave) ?? null) === JSON.stringify(value ?? null)) {
+          backendWriteQueue.delete(chave);
+          backendWriteTimers.delete(chave);
+          limparPendenciaBackend(chave);
+        } else if (!resposta) {
+          clearTimeout(backendWriteTimers.get(chave));
+          backendWriteTimers.set(chave, setTimeout(() => salvarBackend(chave, value), 2000));
+        }
+      });
     }, 250));
   }
 
@@ -159,7 +204,7 @@ const GE = (() => {
     if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
     if (sincronizacaoEmAndamento) return;
     if (backendWriteQueue.size) return;
-    if (!remotoObrigatorio && Date.now() - ultimaGravacaoLocal < 3000) return;
+    if (Date.now() - ultimaGravacaoLocal < 30000) return;
     if (document.visibilityState && document.visibilityState !== "visible") return;
 
     sincronizacaoEmAndamento = true;
@@ -177,6 +222,12 @@ const GE = (() => {
       const chavesAlteradas = [];
       Object.entries(storage).forEach(([chave, valor]) => {
         if (!chaveCompartilhada(chave) || backendWriteQueue.has(chave)) return;
+        const pendencia = pendenciaBackend(chave);
+        if (pendencia) {
+          backendWriteQueue.set(chave, pendencia.valor);
+          salvarBackend(chave, pendencia.valor);
+          return;
+        }
         const remoto = JSON.stringify(valor ?? null);
         const local = localStorage.getItem(chave);
         if (local !== remoto) {
@@ -199,6 +250,8 @@ const GE = (() => {
 
   function iniciarSincronizacaoBackend() {
     if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
+    restaurarPendenciasBackend();
+    backendWriteQueue.forEach((valor, chave) => salvarBackend(chave, valor));
     setTimeout(() => sincronizarBackend(true), 900);
     setInterval(() => sincronizarBackend(false), 4000);
     window.addEventListener("focus", () => sincronizarBackend(true));
@@ -225,19 +278,18 @@ const GE = (() => {
     backendWriteQueue.forEach((value, chave) => {
       clearTimeout(backendWriteTimers.get(chave));
       backendWriteTimers.delete(chave);
+      marcarPendenciaBackend(chave, value);
 
-      const caminho = `/api/storage/${encodeURIComponent(chave)}`;
-      const payload = JSON.stringify({ value });
+      const destino = payloadChaveBackend(chave, value);
+      if (!destino) return;
+
+      const payload = JSON.stringify(destino.corpo);
       const enviadoPorBeacon = typeof navigator !== "undefined"
         && typeof navigator.sendBeacon === "function"
-        && navigator.sendBeacon(caminho, new Blob([payload], { type: "application/json" }));
+        && navigator.sendBeacon(destino.caminho, new Blob([payload], { type: "application/json" }));
 
-      if (!enviadoPorBeacon) {
-        requisicaoBackendAsync("POST", caminho, { value });
-      }
+      if (!enviadoPorBeacon) enviarChaveBackend(chave, value);
     });
-
-    backendWriteQueue.clear();
   }
 
   if (typeof window !== "undefined") {
