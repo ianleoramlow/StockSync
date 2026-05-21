@@ -359,14 +359,24 @@ document.getElementById("salvarPerfil").addEventListener("click", () => {
   modalPerfil.classList.remove("open");
 });
 
-let totalEquipamentos = 0;
-let totaisStatus = { disponivel: 0, evento: 0, locado: 0, manutencao: 0 };
-const statusFluxoEvento = ["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"];
+const db = GE.dados();
 const valores = document.querySelectorAll(".stat-value");
-const moves = document.querySelector(".card:last-child");
-const antigos = moves.querySelectorAll(".move-item");
-antigos.forEach((item) => item.remove());
-document.querySelector(".bell").addEventListener("click", () => GE.mensagem("Nenhuma notificação nova.", "info"));
+const totalEquipamentos = db.equipamentos.length;
+const statusFluxoEvento = ["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"];
+const manutencoesAtivas = new Set((db.manutencoes || [])
+  .filter((manutencao) => manutencao.status !== "Finalizada")
+  .map((manutencao) => manutencao.codigo));
+const totaisStatus = {
+  disponivel: db.equipamentos.filter((eq) => eq.status === "disponivel").length,
+  evento: db.equipamentos.filter((eq) => statusFluxoEvento.includes(eq.status)).length,
+  locado: db.equipamentos.filter((eq) => eq.status === "locado").length,
+  manutencao: db.equipamentos.filter((eq) => eq.status === "manutencao" || manutencoesAtivas.has(eq.codigo)).length
+};
+
+valores[0].textContent = totalEquipamentos;
+valores[1].textContent = totaisStatus.disponivel;
+valores[2].textContent = totaisStatus.evento;
+valores[3].textContent = totaisStatus.manutencao;
 
 function porcentagemStatus(status) {
   if (!totalEquipamentos) return 0;
@@ -398,41 +408,18 @@ function atualizarGraficoEstoque() {
   });
 }
 
-function renderMovimentacoes(db) {
-  moves.querySelectorAll(".move-item").forEach((item) => item.remove());
-  (db.logs || []).slice(0, 4).forEach((log) => {
-    const item = document.createElement("div");
-    item.className = "move-item";
-    item.innerHTML = `<div class="move-time">${log.data || "-"}</div><div class="move-desc">${log.acao || "Registro"} - ${log.detalhes || ""}</div>`;
-    moves.appendChild(item);
-  });
-}
+atualizarGraficoEstoque();
 
-function renderDashboard() {
-  const db = GE.dados();
-  const manutencoesAtivas = new Set((db.manutencoes || [])
-    .filter((manutencao) => manutencao.status !== "Finalizada")
-    .map((manutencao) => manutencao.codigo));
-
-  totalEquipamentos = db.equipamentos.length;
-  totaisStatus = {
-    disponivel: db.equipamentos.filter((eq) => eq.status === "disponivel").length,
-    evento: db.equipamentos.filter((eq) => statusFluxoEvento.includes(eq.status)).length,
-    locado: db.equipamentos.filter((eq) => eq.status === "locado").length,
-    manutencao: db.equipamentos.filter((eq) => eq.status === "manutencao" || manutencoesAtivas.has(eq.codigo)).length
-  };
-
-  valores[0].textContent = totalEquipamentos;
-  valores[1].textContent = totaisStatus.disponivel;
-  valores[2].textContent = totaisStatus.evento;
-  valores[3].textContent = totaisStatus.manutencao;
-  atualizarGraficoEstoque();
-  renderMovimentacoes(db);
-}
-
-renderDashboard();
-window.addEventListener("stocksync:sync", renderDashboard);
-window.addEventListener("focus", renderDashboard);</script>
+const moves = document.querySelector(".card:last-child");
+const antigos = moves.querySelectorAll(".move-item");
+antigos.forEach((item) => item.remove());
+document.querySelector(".bell").addEventListener("click", () => GE.mensagem("Nenhuma notificação nova.", "info"));
+db.logs.slice(0, 4).forEach((log) => {
+  const item = document.createElement("div");
+  item.className = "move-item";
+  item.innerHTML = `<div class="move-time">${log.data}</div><div class="move-desc">${log.acao} - ${log.detalhes}</div>`;
+  moves.appendChild(item);
+});</script>
 </body>
 </html>
 
