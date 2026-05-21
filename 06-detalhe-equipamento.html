@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Detalhe Equipamento</title>
-<link rel="stylesheet" href="styles.css?v=20260521-backend-db">
+<link rel="stylesheet" href="styles.css?v=20260521-no-freeze-global">
 <style>
 .equip-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:24px; }
 .equip-title-row { display:flex;align-items:center;gap:12px; }
@@ -104,7 +104,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260521-backend-db"></script>
+<script src="app.js?v=20260521-no-freeze-global"></script>
 <script>
 function normalizarDetalhe(texto) {
   return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
