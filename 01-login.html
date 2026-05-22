@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StockSync – Login</title>
-  <link rel="stylesheet" href="styles.css?v=20260521-mobile-event-date">
+  <title>StockSync-Login</title>
+  <link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
   <style>
     body {
       display: flex;
@@ -325,7 +325,7 @@
 
     <a class="forgot" id="forgotLink">Esqueceu a senha?</a>
 
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px 12px">Entrar</button>
+    <button id="entrarSistemaBtn" type="button" class="btn btn-primary" style="width:100%;justify-content:center;padding:10px 12px">Entrar</button>
 
     <div class="login-footer">
       Não tem conta?
@@ -351,7 +351,7 @@
       </div>
     </div>
   </div>
-  <script src="app.js?v=20260521-mobile-event-date"></script>
+  <script src="app.js?v=20260521-mobile-header-controls"></script>
   <script>
     function toggleSenha() {
       const input = document.getElementById("senhaInput");
@@ -417,7 +417,9 @@
       GE.mensagem(`Código ${codigo} preenchido.`, "success");
     }
 
-    document.querySelector(".btn.btn-primary").addEventListener("click", function () {
+    function entrarSistema(event) {
+      if (event) event.preventDefault();
+
       const campos = document.querySelectorAll(".form-input");
       const codigoEmpresa = campos[0].value.trim();
       const email = campos[1].value.trim();
@@ -428,7 +430,13 @@
         return;
       }
 
-      const usuario = GE.autenticar(email, senha, codigoEmpresa);
+      let usuario = null;
+      try {
+        usuario = GE.autenticar(email, senha, codigoEmpresa);
+      } catch (erro) {
+        GE.mensagem(`Erro ao acessar: ${erro.message}`, "error");
+        return;
+      }
 
       if (!usuario) {
         GE.mensagem("Código da empresa, e-mail ou senha incorretos.", "error");
@@ -442,11 +450,26 @@
 
       GE.mensagem(`Login realizado com sucesso em ${usuario.empresaNome}!`, "success", { tempo: 1200 });
       setTimeout(() => window.location.href = "03-dashboard.html", 650);
+    }
+
+    window.entrarSistema = entrarSistema;
+    document.getElementById("entrarSistemaBtn").addEventListener("click", entrarSistema);
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") entrarSistema(event);
     });
   </script>
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
 
 
 
