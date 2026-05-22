@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Importar Evento</title>
-<link rel="stylesheet" href="styles.css?v=20260521-no-freeze-global">
+<link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
 <style>
 .json-preview { background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;font-family:var(--mono);font-size:12px;color:var(--text2);line-height:1.7;margin-top:16px; }
 .json-key { color:var(--cyan); }
@@ -65,13 +65,13 @@
     </div>
   </div>
 </main>
-<script src="app.js?v=20260521-no-freeze-global"></script>
+<script src="app.js?v=20260521-mobile-header-controls"></script>
 <script>
 const escolher = document.getElementById("escolherJson");
 const importar = document.getElementById("importarEvento");
 const jsonEvento = document.getElementById("jsonEvento");
 
-jsonEvento.value = `{ "evento_id": "EVT123", "nome": "Show de Ver?o 2024", "data": "2024-01-28", "local": "Arena Anhembi", "equipamentos": ["EQP001", "EQP002", "EQP005"] }`;
+jsonEvento.value = `{ "evento_id": "EVT123", "nome": "Show de Verão 2024", "data": "2024-01-28", "local": "Arena Anhembi", "equipamentos": ["EQP001", "EQP002", "EQP005"] }`;
 
 escolher.addEventListener("click", () => {
   const input = document.createElement("input");
