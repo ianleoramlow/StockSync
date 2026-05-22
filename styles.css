@@ -1398,7 +1398,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   .event-list-table tbody td:nth-child(4)::before { content: "Local"; }
   .event-list-table tbody td:nth-child(5)::before { content: "Qtd."; }
 
-  .event-detail-table tbody td:nth-child(1)::before { content: "C?digos"; }
+  .event-detail-table tbody td:nth-child(1)::before { content: "Códigos"; }
   .event-detail-table tbody td:nth-child(2)::before { content: "Equipamento"; }
   .event-detail-table tbody td:nth-child(3)::before { content: "Categoria"; }
   .event-detail-table tbody td:nth-child(4)::before { content: "Quantidade"; }
