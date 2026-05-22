@@ -1287,6 +1287,13 @@ const GE = (() => {
     if (!document.querySelector(".sidebar") || !document.querySelector(".main")) return;
     if (/01-login\.html$/i.test(location.pathname)) return;
 
+    const parametrosPagina = new URLSearchParams(location.search);
+    const cadastroPublico = /02-cadastro-funcionario\.html$/i.test(location.pathname) && parametrosPagina.has("novo");
+    if (cadastroPublico) {
+      document.querySelectorAll(".mobile-header-user, .topbar .user-info").forEach((item) => item.remove());
+      return;
+    }
+
     let userInfo = document.querySelector(".topbar .user-info, .mobile-header-user");
     if (!userInfo) {
       userInfo = document.createElement("div");
