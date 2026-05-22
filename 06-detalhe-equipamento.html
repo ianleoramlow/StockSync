@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StockSync – Detalhe Equipamento</title>
-<link rel="stylesheet" href="styles.css?v=20260521-no-freeze-global">
+<link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
 <style>
 .equip-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:24px; }
 .equip-title-row { display:flex;align-items:center;gap:12px; }
@@ -104,7 +104,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260521-no-freeze-global"></script>
+<script src="app.js?v=20260521-mobile-header-controls"></script>
 <script>
 function normalizarDetalhe(texto) {
   return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -185,7 +185,7 @@ if (!eq) {
   valores[1].textContent = eq.categoria;
   valores[2].textContent = eq.codigo;
   valores[3].innerHTML = GE.badge(eq.status);
-  valores[4].textContent = eq.descricao || "Sem descri??o cadastrada";
+  valores[4].textContent = eq.descricao || "Sem descrição cadastrada";
 }
 
 document.getElementById("editarEquipamento").addEventListener("click", () => {
