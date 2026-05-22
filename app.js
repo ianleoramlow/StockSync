@@ -14,6 +14,7 @@ const GE = (() => {
   let ultimaGravacaoLocal = 0;
   let sincronizacaoEmAndamento = false;
   let ultimaAssinaturaRemota = "";
+  const snapshotsEmpresa = new Map();
 
   function chaveCompartilhada(chave) {
     return chave === EMPRESAS_KEY
@@ -365,6 +366,14 @@ const GE = (() => {
   }
 
   function lerJSON(chave, fallback = null) {
+    if (chaveCompartilhada(chave) && backendDisponivel !== false) {
+      const valorBackend = lerBackend(chave);
+      if (valorBackend !== BACKEND_MISSING) {
+        if (valorBackend) localStorage.setItem(chave, JSON.stringify(valorBackend));
+        return valorBackend || fallback;
+      }
+    }
+
     try {
       const valorLocal = JSON.parse(localStorage.getItem(chave) || "null");
       if (valorLocal) return valorLocal;
@@ -372,17 +381,15 @@ const GE = (() => {
       return fallback;
     }
 
-    const valorBackend = lerBackend(chave);
-    if (valorBackend !== BACKEND_MISSING) {
-      if (valorBackend) localStorage.setItem(chave, JSON.stringify(valorBackend));
-      return valorBackend || fallback;
+    if (!chaveCompartilhada(chave)) {
+      const valorBackend = lerBackend(chave);
+      if (valorBackend !== BACKEND_MISSING) {
+        if (valorBackend) localStorage.setItem(chave, JSON.stringify(valorBackend));
+        return valorBackend || fallback;
+      }
     }
 
-    try {
-      return JSON.parse(localStorage.getItem(chave) || "null") || fallback;
-    } catch (error) {
-      return fallback;
-    }
+    return fallback;
   }
 
   function salvarJSON(chave, valor) {
@@ -416,7 +423,8 @@ const GE = (() => {
   }
 
   function dadosVazios() {
-    return {
+  
+  return {
       equipamentos: estoqueInicialEquipamentos(),
       eventos: [],
       locacoes: [],
@@ -461,30 +469,24 @@ const GE = (() => {
   }
 
   function corrigirAcentosDados(db) {
-    const trocas = [
-      ["DisponÃ­vel", "Disponível"],
-      ["ManutenÃ§Ã£o", "Manutenção"],
-      ["IluminaÃ§Ã£o", "Iluminação"],
-      ["VerÃ£o", "Verão"],
-      ["JoÃ£o", "João"],
-      ["LocaÃ§Ã£o", "Locação"],
-      ["ProduÃ§Ãµes", "Produções"],
-      ["UsuÃ¡rio", "Usuário"],
-      ["TÃ©cnico", "Técnico"],
-      ["Ã¡udio", "áudio"],
-      ["cÃ¡psula", "cápsula"],
-      ["dinÃ¢mico", "dinâmico"],
-      ["descriÃ§Ã£o", "descricao"],
-      ['"usuÃ¡rio"', '"usuario"'],
-      ['"descriÃ§Ã£o"', '"descricao"']
-    ];
     let texto = JSON.stringify(db || {});
-    trocas.forEach(([errado, certo]) => {
-      texto = texto.replaceAll(errado, certo);
-    });
+    const mojibakeRun = /(?:[\u00C3\u00C2][\u0080-\u00BF\u00A0-\u00FF]|\u00E2[\u0080-\u00BF\u00A0-\u00FF]{1,2})+/g;
+
+    for (let i = 0; i < 5; i += 1) {
+      const corrigido = texto.replace(mojibakeRun, (trecho) => {
+        try {
+          return decodeURIComponent(escape(trecho));
+        } catch (error) {
+          return trecho;
+        }
+      });
+
+      if (corrigido === texto) break;
+      texto = corrigido;
+    }
+
     return JSON.parse(texto);
   }
-
   function garantirEstrutura(db) {
     const base = dadosVazios();
     const corrigido = corrigirAcentosDados(db || {});
@@ -512,7 +514,8 @@ const GE = (() => {
       const anteriores = lista.slice(0, index).map((item) => item.codigo ? item : { ...item, codigo: item.id });
       const codigo = criarCodigoEmpresa(empresa.nome || empresa.id || "empresa", anteriores);
       alterou = true;
-      return { ...empresa, codigo };
+    
+  return { ...empresa, codigo };
     });
 
     if (alterou) salvarEmpresas(atualizadas);
@@ -713,7 +716,8 @@ const GE = (() => {
       const pendente = (db.solicitacoesFuncionarios || []).find((item) => normalizar(item.email) === emailNormalizado && item.senha === senha && item.status === "Pendente");
       const pendenteGlobal = solicitacoesGlobais().find((item) => item.empresaId === empresa.id && normalizar(item.email) === emailNormalizado && item.senha === senha && item.status === "Pendente");
       if (pendente || pendenteGlobal) {
-        return { erro: "Seu cadastro ainda está aguardando aprovação de um administrador." };
+      
+  return { erro: "Seu cadastro ainda está aguardando aprovação de um administrador." };
       }
     }
 
@@ -778,7 +782,8 @@ const GE = (() => {
 
   function usuarioAtual() {
     const usuario = sessaoAtiva() || lerJSON(USUARIO_KEY, null) || { nome: "Freelancer", cargo: "Freelancer" };
-    return { ...usuario, cargo: cargoSistema(usuario.cargo) };
+  
+  return { ...usuario, cargo: cargoSistema(usuario.cargo) };
   }
 
   function log(acao, detalhes, tipo = "badge-purple") {
@@ -1187,12 +1192,14 @@ const GE = (() => {
 
     const funcionario = db.funcionarios[indice];
     if (normalizar(funcionario.email) === normalizar(atual.email)) {
-      return { erro: "Voce nao pode excluir a propria conta enquanto esta logado." };
+    
+  return { erro: "Voce nao pode excluir a propria conta enquanto esta logado." };
     }
 
     const admins = db.funcionarios.filter((item) => cargoSistema(item.cargo) === "Administrador");
     if (cargoSistema(funcionario.cargo) === "Administrador" && admins.length <= 1) {
-      return { erro: "A empresa precisa manter pelo menos um administrador." };
+    
+  return { erro: "A empresa precisa manter pelo menos um administrador." };
     }
 
     db.funcionarios.splice(indice, 1);
@@ -1217,7 +1224,8 @@ const GE = (() => {
       const existeNaEmpresa = (db.funcionarios || []).some((funcionario) => normalizar(funcionario.email) === emailNovo && normalizar(funcionario.email) !== emailAtual);
       const pendenteNaEmpresa = (db.solicitacoesFuncionarios || []).some((funcionario) => normalizar(funcionario.email) === emailNovo && funcionario.status === "Pendente");
       if (existeNaEmpresa || pendenteNaEmpresa || emailExisteEmOutraEmpresa(dadosUsuario.email, empresaId)) {
-        return { erro: "Ja existe um usuario cadastrado com esse e-mail." };
+      
+  return { erro: "Ja existe um usuario cadastrado com esse e-mail." };
       }
     }
 
@@ -1271,7 +1279,7 @@ const GE = (() => {
       avatar.textContent = iniciaisUsuario(usuario.nome);
       if (usuario.foto) avatar.style.backgroundImage = `url(${usuario.foto})`;
     }
-    if (nome) nome.textContent = usuario.nome || "Usu?rio";
+    if (nome) nome.textContent = usuario.nome || "Usuário";
     if (cargo) cargo.textContent = usuario.cargo || "Freelancer";
   }
 
@@ -1284,7 +1292,7 @@ const GE = (() => {
       userInfo = document.createElement("div");
       userInfo.className = "user-info mobile-header-user";
       userInfo.innerHTML = `
-        <div class="bell" title="Notifica??es" aria-label="Notifica??es">
+        <div class="bell" title="Notificações" aria-label="Notificações">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
         </div>
         <div class="user-profile-trigger" title="Abrir perfil">
@@ -1298,7 +1306,7 @@ const GE = (() => {
     }
 
     atualizarCabecalhoUsuario(userInfo);
-    userInfo.querySelector(".bell")?.addEventListener("click", () => mensagem("Nenhuma notifica??o nova.", "info"));
+    userInfo.querySelector(".bell")?.addEventListener("click", () => mensagem("Nenhuma notificação nova.", "info"));
     userInfo.querySelector(".user-profile-trigger")?.addEventListener("click", () => {
       if (/03-dashboard\.html$/i.test(location.pathname)) return;
       location.href = "03-dashboard.html";
@@ -1453,6 +1461,7 @@ const GE = (() => {
     iniciarSincronizacaoBackend();
   });
 
+
   return {
     dados, salvar, log, normalizar, badge, statusInfo, dataBR, mensagem, imagemEquipamento,
     getEquipamento, salvarEquipamento, salvarEquipamentosEmLote, removerEquipamento, enviarManutencao, finalizarManutencao,
@@ -1460,3 +1469,16 @@ const GE = (() => {
     empresas, empresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema
   };
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
