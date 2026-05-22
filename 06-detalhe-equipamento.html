@@ -71,22 +71,7 @@
 
     <div class="card">
       <div class="section-title" style="margin-bottom:16px">Histórico</div>
-      <div class="timeline-item">
-        <div class="timeline-date">10/01/2024</div>
-        <div class="timeline-text">Retornado do evento: <strong>Festival Rock</strong></div>
-      </div>
-      <div class="timeline-item">
-        <div class="timeline-date">05/01/2024</div>
-        <div class="timeline-text">Enviado para manutenção</div>
-      </div>
-      <div class="timeline-item">
-        <div class="timeline-date">20/12/2023</div>
-        <div class="timeline-text">Utilizado no evento: <strong>Show Corporativo</strong></div>
-      </div>
-      <div class="timeline-item">
-        <div class="timeline-date">10/12/2023</div>
-        <div class="timeline-text">Equipamento cadastrado no sistema</div>
-      </div>
+      <div id="historicoEquipamento"></div>
     </div>
   </div>
 </main>
@@ -108,6 +93,150 @@
 <script>
 function normalizarDetalhe(texto) {
   return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function textoSeguroDetalhe(valor) {
+  return String(valor || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function nomeBaseHistoricoDetalhe(nome) {
+  return normalizarDetalhe(nome).replace(/(?:\s|[-_])+(?:n[o\u00ba]?\.?|#)?\d+$/i, "").trim();
+}
+
+function dataHistoricoDetalhe(valor) {
+  if (!valor) return new Date().toLocaleDateString("pt-BR");
+  const texto = String(valor);
+  if (/^\d{4}-\d{2}-\d{2}/.test(texto)) return GE.dataBR(texto.slice(0, 10));
+  return texto;
+}
+
+function ordemHistoricoDetalhe(valor, fallback = 0) {
+  const texto = String(valor || "");
+  if (/^\d{4}-\d{2}-\d{2}/.test(texto)) {
+    const tempo = new Date(texto.slice(0, 10) + "T12:00:00").getTime();
+    return Number.isFinite(tempo) ? tempo : fallback;
+  }
+
+  const partes = texto.match(/^(\d{2})\/(\d{2})(?:\/(\d{4}))?(?:\s+(\d{2}):(\d{2}))?/);
+  if (partes) {
+    const ano = partes[3] ? Number(partes[3]) : new Date().getFullYear();
+    const tempo = new Date(ano, Number(partes[2]) - 1, Number(partes[1]), Number(partes[4] || 12), Number(partes[5] || 0)).getTime();
+    return Number.isFinite(tempo) ? tempo : fallback;
+  }
+
+  return fallback;
+}
+
+function adicionarHistoricoDetalhe(lista, data, texto, ordem) {
+  const chave = normalizarDetalhe(dataHistoricoDetalhe(data) + " " + texto.replace(/<[^>]+>/g, ""));
+  if (lista.some((item) => item.chave === chave)) return;
+  lista.push({ data: dataHistoricoDetalhe(data), texto, ordem, chave });
+}
+
+function renderHistoricoEquipamento(equipamento) {
+  const container = document.getElementById("historicoEquipamento");
+  if (!container || !equipamento) return;
+
+  const db = GE.dados();
+  const codigoAtual = String(equipamento.codigo || "").toUpperCase();
+  const codigoBusca = normalizarDetalhe(codigoAtual);
+  const nomeBusca = normalizarDetalhe(equipamento.nome || "");
+  const nomeBase = nomeBaseHistoricoDetalhe(equipamento.nome || "");
+  const historico = [];
+
+  (db.logs || []).forEach((log, index) => {
+    const textoLog = normalizarDetalhe([log.acao, log.detalhes].join(" "));
+    const citaCodigo = codigoBusca && textoLog.includes(codigoBusca);
+    const citaNome = nomeBusca && textoLog.includes(nomeBusca);
+    const citaNomeBase = nomeBase && nomeBase.length >= 4 && textoLog.includes(nomeBase);
+    if (!citaCodigo && !citaNome && !citaNomeBase) return;
+
+    const detalhes = log.detalhes ? ": " + textoSeguroDetalhe(log.detalhes) : "";
+    const usuario = log.usuario ? ' <span style="color:var(--text3)">por ' + textoSeguroDetalhe(log.usuario) + '</span>' : "";
+    adicionarHistoricoDetalhe(
+      historico,
+      log.data,
+      "<strong>" + textoSeguroDetalhe(log.acao) + "</strong>" + detalhes + usuario,
+      ordemHistoricoDetalhe(log.data, Date.now() - index)
+    );
+  });
+
+  (db.manutencoes || [])
+    .filter((manutencao) => String(manutencao.codigo || "").toUpperCase() === codigoAtual)
+    .forEach((manutencao, index) => {
+      adicionarHistoricoDetalhe(
+        historico,
+        manutencao.data,
+        "Enviado para manutenção: <strong>" + textoSeguroDetalhe(manutencao.problema || "Sem descrição") + "</strong>",
+        ordemHistoricoDetalhe(manutencao.data, 500000 - index)
+      );
+      if (manutencao.status === "Finalizada") {
+        const observacao = manutencao.observacaoFinal ? ": <strong>" + textoSeguroDetalhe(manutencao.observacaoFinal) + "</strong>" : "";
+        adicionarHistoricoDetalhe(
+          historico,
+          manutencao.finalizadaEm || manutencao.data,
+          "Manutenção finalizada" + observacao,
+          ordemHistoricoDetalhe(manutencao.finalizadaEm || manutencao.data, 500100 - index)
+        );
+      }
+    });
+
+  (db.eventos || [])
+    .filter((evento) => (evento.equipamentos || []).includes(codigoAtual))
+    .forEach((evento, index) => {
+      const local = evento.local ? " em " + textoSeguroDetalhe(evento.local) : "";
+      adicionarHistoricoDetalhe(
+        historico,
+        evento.data,
+        "Separado para o evento: <strong>" + textoSeguroDetalhe(evento.nome || evento.id) + "</strong>" + local,
+        ordemHistoricoDetalhe(evento.data, 400000 - index)
+      );
+
+      if (evento.status === "Finalizado") {
+        adicionarHistoricoDetalhe(
+          historico,
+          evento.finalizadoEm || evento.data,
+          "Evento finalizado: <strong>" + textoSeguroDetalhe(evento.nome || evento.id) + "</strong>",
+          ordemHistoricoDetalhe(evento.finalizadoEm || evento.data, 400100 - index)
+        );
+      }
+    });
+
+  (db.locacoes || [])
+    .filter((locacao) => (locacao.equipamentos || []).includes(codigoAtual))
+    .forEach((locacao, index) => {
+      const empresa = textoSeguroDetalhe(locacao.empresa || "Empresa não informada");
+      adicionarHistoricoDetalhe(
+        historico,
+        locacao.saida,
+        "Locado para: <strong>" + empresa + "</strong>",
+        ordemHistoricoDetalhe(locacao.saida, 300000 - index)
+      );
+
+      if (locacao.status === "Finalizada") {
+        adicionarHistoricoDetalhe(
+          historico,
+          locacao.finalizadaEm || locacao.retorno,
+          "Locação concluída: <strong>" + empresa + "</strong>",
+          ordemHistoricoDetalhe(locacao.finalizadaEm || locacao.retorno, 300100 - index)
+        );
+      }
+    });
+
+  historico.sort((a, b) => b.ordem - a.ordem);
+  container.innerHTML = historico.length
+    ? historico.map((item) => `
+      <div class="timeline-item">
+        <div class="timeline-date">${textoSeguroDetalhe(item.data)}</div>
+        <div class="timeline-text">${item.texto}</div>
+      </div>
+    `).join("")
+    : `<div style="color:var(--text3);font-size:13px;line-height:1.5">Nenhum hist?rico registrado ainda para este equipamento.</div>`;
 }
 
 function imagemEquipamentoDetalhe(equipamento = {}) {
@@ -186,6 +315,7 @@ if (!eq) {
   valores[2].textContent = eq.codigo;
   valores[3].innerHTML = GE.badge(eq.status);
   valores[4].textContent = eq.descricao || "Sem descrição cadastrada";
+  renderHistoricoEquipamento(eq);
 }
 
 document.getElementById("editarEquipamento").addEventListener("click", () => {
