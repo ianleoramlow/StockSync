@@ -205,7 +205,7 @@
 
     <div class="form-group equipment-picker">
       <label class="form-label">Equipamentos</label>
-      <input class="form-input" id="locacaoEquipamentos" type="text" autocomplete="off" placeholder="Digite o c?digo ou nome do equipamento...">
+      <input class="form-input" id="locacaoEquipamentos" type="text" autocomplete="off" placeholder="Digite o código ou nome do equipamento...">
       <div class="locacao-results" id="locacaoResultados"></div>
       <div class="selected-equipment-list" id="locacaoSelecionados"></div>
       <div class="locacao-empty" id="locacaoSelecionadosVazio">Nenhum equipamento selecionado.</div>
@@ -328,7 +328,7 @@ function renderSugestoesLocacao() {
       <span class="locacao-name"><strong>${textoSeguro(eq.nome)}</strong><span>${textoSeguro(eq.categoria || "Sem categoria")}</span></span>
       <span class="badge ${GE.statusInfo[eq.status]?.classe || "badge-green"}">${GE.statusInfo[eq.status]?.texto || eq.status}</span>
     </button>
-  `).join("") || `<div class="locacao-empty" style="padding:12px">Nenhum equipamento dispon?vel encontrado.</div>`;
+  `).join("") || `<div class="locacao-empty" style="padding:12px">Nenhum equipamento disponível encontrado.</div>`;
   resultadosBox.style.display = "block";
 }
 
