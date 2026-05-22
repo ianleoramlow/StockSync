@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StockSync – Dashboard</title>
+<title>StockSync - Dashboard</title>
 <link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
 <style>
 .donut-wrap { display: flex; align-items: center; gap: 24px; }
@@ -75,6 +75,39 @@
   border-top: 1px solid var(--border);
 }
 .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:24px; }
+@media (min-width: 769px) {
+  #modalPerfil .modal {
+    width: 400px;
+    padding: 20px 22px;
+    max-height: none;
+    overflow: visible;
+  }
+
+  #modalPerfil .modal-title { font-size: 17px; }
+  #modalPerfil .modal-sub { margin-bottom: 12px; }
+  #modalPerfil .profile-photo-wrap {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  #modalPerfil .profile-photo {
+    width: 58px;
+    height: 58px;
+    font-size: 20px;
+  }
+  #modalPerfil .profile-form { gap: 8px; }
+  #modalPerfil .form-label { margin-bottom: 5px; }
+  #modalPerfil .form-input {
+    min-height: 38px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  #modalPerfil .profile-readonly {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+  #modalPerfil .detail-row { padding: 5px 0; }
+  #modalPerfil .modal-actions { margin-top: 12px; }
+}
 .hidden-file { display:none; }
 </style>
 </head>
@@ -135,7 +168,7 @@
       <div class="stat-label">Total de Equipamentos</div>
       <div class="stat-value">328</div>
     </a>
-    <a class="stat-card stat-link" href="04-equipamentos.html?status=disponivel" aria-label="Ver equipamentos dispon?veis">
+    <a class="stat-card stat-link" href="04-equipamentos.html?status=disponivel" aria-label="Ver equipamentos disponíveis">
       <div class="stat-label">Disponíveis</div>
       <div class="stat-value green">227</div>
     </a>
@@ -143,7 +176,7 @@
       <div class="stat-label">Em Eventos</div>
       <div class="stat-value cyan">76</div>
     </a>
-    <a class="stat-card stat-link" href="04-equipamentos.html?status=manutencao" aria-label="Ver equipamentos em manuten??o">
+    <a class="stat-card stat-link" href="04-equipamentos.html?status=manutencao" aria-label="Ver equipamentos em manutenção">
       <div class="stat-label">Em Manutenção</div>
       <div class="stat-value red">12</div>
     </a>
@@ -184,19 +217,19 @@
       </div>
       <div class="move-item">
         <div class="move-time">10/01 14:32</div>
-        <div class="move-desc">Microfone SMS8 enviado para Casamento João – Por: Maria Santos</div>
+        <div class="move-desc">Microfone SMS8 enviado para Casamento João â€“ Por: Maria Santos</div>
       </div>
       <div class="move-item">
         <div class="move-time">10/01 09:15</div>
-        <div class="move-desc">Mesa de Som X32 retornada do evento Festival Rock – Por: João Silva</div>
+        <div class="move-desc">Mesa de Som X32 retornada do evento Festival Rock â€“ Por: João Silva</div>
       </div>
       <div class="move-item">
         <div class="move-time">09/01 16:45</div>
-        <div class="move-desc">Refletor LED 200W enviado para Locação – TechSom</div>
+        <div class="move-desc">Refletor LED 200W enviado para Locação â€“ TechSom</div>
       </div>
       <div class="move-item">
         <div class="move-time">09/01 10:20</div>
-        <div class="move-desc">Caixa Ativa JBL enviada para Show Corporativo – Por: Pedro Oliveira</div>
+        <div class="move-desc">Caixa Ativa JBL enviada para Show Corporativo â€“ Por: Pedro Oliveira</div>
       </div>
     </div>
   </div>
@@ -422,6 +455,8 @@ db.logs.slice(0, 4).forEach((log) => {
 });</script>
 </body>
 </html>
+
+
 
 
 
