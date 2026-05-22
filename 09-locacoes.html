@@ -30,6 +30,20 @@
 .modal-sub { font-size: 12.5px; color: var(--text3); margin-bottom: 24px; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
 .equipment-picker { position: relative; margin-top: 18px; }
+.locacao-picker-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 10px;
+  align-items: center;
+}
+.locacao-quantity-field {
+  display: grid;
+  grid-template-columns: auto 56px;
+  gap: 6px;
+  align-items: center;
+}
+.locacao-quantity-field .form-label { margin: 0; font-size: 11px; }
+.locacao-quantity-input { text-align: center; padding-left: 8px; padding-right: 8px; }
 .locacao-results {
   display: none;
   margin-top: 8px;
@@ -107,6 +121,8 @@
 .locacao-action:disabled { opacity: 0.45; cursor: not-allowed; }
 .locacao-empty { color: var(--text3); font-size: 13px; line-height: 1.4; padding-top: 10px; }
 @media (max-width: 640px) {
+  .locacao-picker-row { grid-template-columns: minmax(0, 1fr) 96px; }
+  .locacao-quantity-field { grid-template-columns: auto 52px; }
   .locacoes-table tbody td:nth-child(1)::before { content: "Empresa"; }
   .locacoes-table tbody td:nth-child(2)::before { content: "Saida"; }
   .locacoes-table tbody td:nth-child(3)::before { content: "Retorno"; }
@@ -205,7 +221,13 @@
 
     <div class="form-group equipment-picker">
       <label class="form-label">Equipamentos</label>
-      <input class="form-input" id="locacaoEquipamentos" type="text" autocomplete="off" placeholder="Digite o código ou nome do equipamento...">
+      <div class="locacao-picker-row">
+        <input class="form-input" id="locacaoEquipamentos" type="text" autocomplete="off" placeholder="Digite o código ou nome do equipamento...">
+        <div class="locacao-quantity-field">
+          <label class="form-label" for="locacaoQuantidade">Qtd.</label>
+          <input class="form-input locacao-quantity-input" id="locacaoQuantidade" type="number" min="1" value="1" inputmode="numeric">
+        </div>
+      </div>
       <div class="locacao-results" id="locacaoResultados"></div>
       <div class="selected-equipment-list" id="locacaoSelecionados"></div>
       <div class="locacao-empty" id="locacaoSelecionadosVazio">Nenhum equipamento selecionado.</div>
@@ -228,6 +250,7 @@ const empresaInput = document.getElementById("locacaoEmpresa");
 const saidaInput = document.getElementById("locacaoSaida");
 const retornoInput = document.getElementById("locacaoRetorno");
 const equipamentosInput = document.getElementById("locacaoEquipamentos");
+const quantidadeInput = document.getElementById("locacaoQuantidade");
 const resultadosBox = document.getElementById("locacaoResultados");
 const selecionadosBox = document.getElementById("locacaoSelecionados");
 const selecionadosVazio = document.getElementById("locacaoSelecionadosVazio");
@@ -282,6 +305,31 @@ function equipamentoPodeSerLocado(eq) {
   return eq.status === "disponivel";
 }
 
+function quantidadeLocacao() {
+  const valor = Number(quantidadeInput?.value || 1);
+  return Math.max(1, Math.floor(Number.isFinite(valor) ? valor : 1));
+}
+
+function chaveFamiliaLocacao(eq) {
+  const nome = GE.normalizar(eq?.nome || "")
+    .replace(/(?:\s|[-_])+(?:n[o\u00ba]?\.?|#)?\d+$/i, "")
+    .trim();
+  const categoria = GE.normalizar(eq?.categoria || "");
+  return nome + "|" + categoria;
+}
+
+function equipamentosDaFamiliaLocacao(eqBase) {
+  const chaveBase = chaveFamiliaLocacao(eqBase);
+  return (GE.dados().equipamentos || [])
+    .filter(equipamentoPodeSerLocado)
+    .filter((eq) => eq.codigo === eqBase.codigo || chaveFamiliaLocacao(eq) === chaveBase)
+    .sort((a, b) => {
+      if (a.codigo === eqBase.codigo) return -1;
+      if (b.codigo === eqBase.codigo) return 1;
+      return String(a.codigo || "").localeCompare(String(b.codigo || ""));
+    });
+}
+
 function renderSelecionados() {
   selecionadosVazio.style.display = equipamentosSelecionados.length ? "none" : "block";
   selecionadosBox.innerHTML = equipamentosSelecionados.map((codigo) => `
@@ -301,8 +349,24 @@ function removerSelecionadoLocacao(codigo) {
 window.removerSelecionadoLocacao = removerSelecionadoLocacao;
 
 function adicionarSelecionadoLocacao(codigo) {
-  if (!equipamentosSelecionados.includes(codigo)) equipamentosSelecionados.push(codigo);
+  const eqBase = (GE.dados().equipamentos || []).find((eq) => eq.codigo === codigo);
+  const total = quantidadeLocacao();
+  const novos = eqBase
+    ? equipamentosDaFamiliaLocacao(eqBase).slice(0, total).map((eq) => eq.codigo).filter((item) => !equipamentosSelecionados.includes(item))
+    : [];
+
+  if (!novos.length) {
+    GE.mensagem("Nenhum equipamento dispon\u00edvel desse tipo foi encontrado.", "warning");
+    return;
+  }
+
+  equipamentosSelecionados.push(...novos);
+  if (novos.length < total) {
+    GE.mensagem("Foram selecionados " + novos.length + " de " + total + " equipamentos dispon\u00edveis desse tipo.", "warning");
+  }
+
   equipamentosInput.value = "";
+  if (quantidadeInput) quantidadeInput.value = "1";
   resultadosBox.style.display = "none";
   renderSelecionados();
   equipamentosInput.focus();
