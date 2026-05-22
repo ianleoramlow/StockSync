@@ -987,7 +987,13 @@ const GE = (() => {
       if (equipamentos.includes(eq.codigo) && !antigos.includes(eq.codigo)) eq.status = "reservado";
     });
 
-    db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Editou Evento", tipo: "badge-purple", detalhes: `${id} - ${registro.nome}` });
+    const adicionados = equipamentos.filter((codigo) => !antigos.includes(codigo));
+    const removidos = antigos.filter((codigo) => !equipamentos.includes(codigo));
+    const movimentosEvento = [];
+    if (adicionados.length) movimentosEvento.push("adicionados: " + adicionados.join(", "));
+    if (removidos.length) movimentosEvento.push("removidos: " + removidos.join(", "));
+    const detalhesEdicaoEvento = id + " - " + registro.nome + (movimentosEvento.length ? " | " + movimentosEvento.join(" | ") : "");
+    db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Editou Evento", tipo: "badge-purple", detalhes: detalhesEdicaoEvento });
     salvar(db);
     return registro;
   }
@@ -1009,7 +1015,7 @@ const GE = (() => {
       usuario: usuarioAtual().nome,
       acao: "Atualizou Status do Evento",
       tipo: statusInfo[status].classe,
-      detalhes: `${evento.id} - ${statusInfo[status].texto} (${codigosNormalizados.length} item(ns))`
+      detalhes: `${evento.id} - ${statusInfo[status].texto} (${codigosNormalizados.length} item(ns)): ${codigosNormalizados.join(", ")}`
     });
     salvar(db);
     return true;
@@ -1036,7 +1042,7 @@ const GE = (() => {
       usuario: usuarioAtual().nome,
       acao: "Finalizou Evento",
       tipo: "badge-green",
-      detalhes: `${evento.id} - ${evento.nome}`
+      detalhes: `${evento.id} - ${evento.nome} | ${codigos.join(", ")}`
     });
 
     salvar(db);
