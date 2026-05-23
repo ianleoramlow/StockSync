@@ -887,7 +887,12 @@ function normalizarEquipamentoExterno(item) {
     empresa: (item.empresa || item.locadora || "").trim(),
     quantidade: Math.max(Number(item.quantidade) || 1, 1),
     observacao: (item.observacao || item.observacoes || "").trim(),
-    status: "locado_externo"
+    status: item.status || "locado_externo",
+    problemaManutencao: item.problemaManutencao || "",
+    prioridadeManutencao: item.prioridadeManutencao || "",
+    tecnicoManutencao: item.tecnicoManutencao || "",
+    observacoesManutencao: item.observacoesManutencao || "",
+    manutencaoEm: item.manutencaoEm || ""
   };
 }
 
@@ -937,6 +942,60 @@ function removerEquipamentoExternoEvento(index) {
   equipamentosExternosEvento.splice(index, 1);
   renderEquipamentosExternosEvento();
 }
+
+function abrirManutencaoExternaEvento(index) {
+  const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
+  if (!evento) return GE.mensagem("Selecione um evento antes de registrar manutenção.", "warning");
+  if (evento.status === "Finalizado") return GE.mensagem("Este evento já foi finalizado.", "warning");
+
+  const externos = (evento.equipamentosExternos || []).map(normalizarEquipamentoExterno);
+  const item = externos[index];
+  if (!item) return GE.mensagem("Equipamento locado n?o encontrado no evento.", "error");
+  if (item.status === "manutencao_externo") return GE.mensagem("Este equipamento locado já está em manutenção.", "info");
+
+  manutencaoEventoAtual = { tipo: "externo", index, nome: item.nome };
+  manutencaoEquipamentoEvento.value = item.nome + " (" + item.quantidade + " un.) - Locadora: " + item.empresa;
+  manutencaoCodigosEvento.innerHTML = '<div class="maintenance-code-option"><span>Equipamento locado de terceiros</span></div>';
+  manutencaoQuantidadeEvento.value = String(item.quantidade);
+  manutencaoQuantidadeEvento.disabled = true;
+  manutencaoSelecaoResumo.textContent = item.quantidade + " unidade(s) locada(s) de terceiros";
+  manutencaoPrioridadeEvento.value = "M?dia";
+  manutencaoTecnicoEvento.value = "";
+  manutencaoProblemaEvento.value = "";
+  manutencaoObservacoesEvento.value = "";
+  manutencaoEventoMensagem.style.display = "none";
+  manutencaoEventoMensagem.textContent = "";
+  modalManutencaoEvento.style.display = "flex";
+  manutencaoProblemaEvento.focus();
+}
+window.abrirManutencaoExternaEvento = abrirManutencaoExternaEvento;
+
+function removerEquipamentoExternoDoEvento(index) {
+  const db = GE.dados();
+  const evento = (db.eventos || []).find((item) => item.id === eventoSelecionadoId);
+  if (!evento) return GE.mensagem("Selecione um evento antes de remover o equipamento.", "warning");
+  if (evento.status === "Finalizado") return GE.mensagem("Este evento já foi finalizado.", "warning");
+
+  const externos = (evento.equipamentosExternos || []).map(normalizarEquipamentoExterno);
+  const item = externos[index];
+  if (!item) return GE.mensagem("Equipamento locado n?o encontrado no evento.", "error");
+
+  GE.confirmar("Remover " + item.nome + " do evento?", () => {
+    evento.equipamentosExternos = externos.filter((_, itemIndex) => itemIndex !== index);
+    db.logs.unshift({
+      data: new Date().toLocaleDateString("pt-BR"),
+      usuario: GE.usuarioAtual().nome,
+      acao: "Removeu Locado de Terceiros",
+      tipo: "badge-red",
+      detalhes: evento.id + " - " + item.nome + " | " + item.empresa
+    });
+    GE.salvar(db);
+    renderEventos(eventoSelecionadoId);
+    renderEvento();
+    GE.mensagem("Equipamento locado removido do evento.", "success");
+  }, { titulo: "Remover locado", confirmar: "Remover", perigo: true });
+}
+window.removerEquipamentoExternoDoEvento = removerEquipamentoExternoDoEvento;
 
 function abrirEditarEvento() {
   const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
@@ -1177,7 +1236,8 @@ function renderSelecaoManutencaoEvento(codigos) {
 
 function abrirManutencaoEvento(codigosTexto, nomeEquipamento) {
   const codigos = codigosTexto.split(",").filter(Boolean).sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
-  manutencaoEventoAtual = { codigos, nome: nomeEquipamento };
+  manutencaoEventoAtual = { tipo: "interno", codigos, nome: nomeEquipamento };
+  manutencaoQuantidadeEvento.disabled = false;
   manutencaoEquipamentoEvento.value = `${nomeEquipamento} (${codigos.length} un.) - ${resumoCodigos(codigos)}`;
   renderSelecaoManutencaoEvento(codigos);
   manutencaoPrioridadeEvento.value = "Média";
@@ -1201,6 +1261,53 @@ function registrarManutencaoDoEvento() {
   const observacoes = manutencaoObservacoesEvento.value.trim();
   const eventoAtual = (GE.dados().eventos || []).find((evento) => evento.id === eventoSelecionadoId);
   const origemEvento = `Evento: ${eventoAtual?.nome || eventoSelecionadoId}`;
+
+  if (manutencaoEventoAtual.tipo === "externo") {
+    if (!problema) {
+      manutencaoEventoMensagem.style.display = "block";
+      manutencaoEventoMensagem.style.color = "var(--red)";
+      manutencaoEventoMensagem.textContent = "Descreva o problema antes de registrar a manutenção.";
+      return;
+    }
+
+    const db = GE.dados();
+    const evento = (db.eventos || []).find((item) => item.id === eventoSelecionadoId);
+    const externos = (evento?.equipamentosExternos || []).map(normalizarEquipamentoExterno);
+    const item = externos[manutencaoEventoAtual.index];
+    if (!evento || !item) {
+      manutencaoEventoMensagem.style.display = "block";
+      manutencaoEventoMensagem.style.color = "var(--red)";
+      manutencaoEventoMensagem.textContent = "Equipamento locado n?o encontrado no evento.";
+      return;
+    }
+
+    externos[manutencaoEventoAtual.index] = {
+      ...item,
+      status: "manutencao_externo",
+      problemaManutencao: problema,
+      prioridadeManutencao: prioridade,
+      tecnicoManutencao: tecnico,
+      observacoesManutencao: observacoes,
+      manutencaoEm: new Date().toISOString().slice(0, 10)
+    };
+    evento.equipamentosExternos = externos;
+    db.logs.unshift({
+      data: new Date().toLocaleDateString("pt-BR"),
+      usuario: GE.usuarioAtual().nome,
+      acao: "Enviou Locado de Terceiros para Manutenção",
+      tipo: "badge-red",
+      detalhes: evento.id + " - " + item.nome + " | Locadora: " + item.empresa + " | " + problema
+    });
+    GE.salvar(db);
+    renderEventos(eventoSelecionadoId);
+    renderEvento();
+    manutencaoEventoMensagem.style.display = "block";
+    manutencaoEventoMensagem.style.color = "var(--green)";
+    manutencaoEventoMensagem.textContent = "Manutenção registrada com sucesso.";
+    setTimeout(fecharModalManutencaoEvento, 650);
+    return;
+  }
+
   const codigosSelecionados = codigosSelecionadosManutencaoEvento();
 
   if (!problema) {
@@ -1339,21 +1446,41 @@ function renderEvento() {
     </tr>`;
   }).join("");
 
-  const linhasExternas = externos.map((item) => `
+  const linhasExternas = externos.map((item, index) => {
+    const emManutencao = item.status === "manutencao_externo";
+    const badgeExterno = emManutencao ? GE.badge("manutencao") : GE.badge("locado_externo");
+    return `
     <tr>
       <td style="font-family:var(--mono);font-size:12px">TERCEIROS</td>
       <td style="color:var(--text);font-weight:500">
         ${textoSeguro(item.nome)}
-        <div class="external-row-detail">Locadora: ${textoSeguro(item.empresa)}${item.observacao ? ` | ${textoSeguro(item.observacao)}` : ""}</div>
+        <div class="external-row-detail">Locadora: ${textoSeguro(item.empresa)}${item.observacao ? ` | ${textoSeguro(item.observacao)}` : ""}${item.problemaManutencao ? ` | Manutenção: ${textoSeguro(item.problemaManutencao)}` : ""}</div>
       </td>
       <td style="color:var(--text2)">${textoSeguro(item.categoria || "Terceiros")}</td>
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${item.quantidade}</td>
-      <td>${GE.badge("locado_externo")}</td>
+      <td>${badgeExterno}</td>
       <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
       <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(atualizado.data)}</td>
-      <td style="color:var(--text3)">-</td>
+      <td>
+        <div class="event-equipment-actions">
+          <button class="maintenance-action" title="${emManutencao ? "Item já está em manutenção" : "Enviar para manutenção"}" aria-label="Enviar ${textoSeguro(item.nome)} para manutenção" onclick="abrirManutencaoExternaEvento(${index})" ${eventoFinalizado || emManutencao ? "disabled" : ""}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9l-3.8 3.8z" />
+            </svg>
+          </button>
+          <button class="remove-event-equipment" title="Remover do evento" aria-label="Remover ${textoSeguro(item.nome)} do evento" onclick="removerEquipamentoExternoDoEvento(${index})" ${eventoFinalizado ? "disabled" : ""}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18" />
+              <path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v5M14 11v5" />
+            </svg>
+          </button>
+        </div>
+      </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 
   detalheTabela.innerHTML = linhasInternas + linhasExternas || `<tr><td colspan="8" style="color:var(--text3);font-family:var(--font)">Nenhum equipamento separado.</td></tr>`;
 
