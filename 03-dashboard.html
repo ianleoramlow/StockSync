@@ -447,10 +447,28 @@ const moves = document.querySelector(".card:last-child");
 const antigos = moves.querySelectorAll(".move-item");
 antigos.forEach((item) => item.remove());
 document.querySelector(".bell").addEventListener("click", () => GE.mensagem("Nenhuma notificação nova.", "info"));
+function textoSeguroMovimentacao(valor) {
+  return String(valor || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function detalhesMovimentacaoDashboard(log) {
+  const detalhes = String(log.detalhes || "");
+  if (log.acao === "Atualizou Status do Evento") {
+    return detalhes.replace(/:\s*[^:]+$/, "");
+  }
+  return detalhes;
+}
+
 db.logs.slice(0, 4).forEach((log) => {
   const item = document.createElement("div");
   item.className = "move-item";
-  item.innerHTML = `<div class="move-time">${log.data}</div><div class="move-desc">${log.acao} - ${log.detalhes}</div>`;
+  const detalhes = detalhesMovimentacaoDashboard(log);
+  item.innerHTML = `<div class="move-time">${textoSeguroMovimentacao(log.data)}</div><div class="move-desc">${textoSeguroMovimentacao(log.acao)} - ${textoSeguroMovimentacao(detalhes)}</div>`;
   moves.appendChild(item);
 });</script>
 </body>
