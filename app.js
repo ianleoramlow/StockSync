@@ -256,6 +256,7 @@ const GE = (() => {
       { codigo: "EQP004", nome: "Microfone Shure SM58", categoria: "Som", status: "manutencao", descricao: "Microfone dinâmico vocal" },
       { codigo: "EQP005", nome: "Moving Head Beam 230", categoria: "Iluminação", status: "disponivel", descricao: "Moving beam para eventos" }
     ],
+    materiaisConsumo: estoqueInicialConsumo(),
     eventos: [
       { id: "EVT123", nome: "Show de Verão 2024", data: "2024-01-20", local: "Arena Anhembi", equipamentos: ["EQP002"], responsavel: "João Silva" }
     ],
@@ -286,35 +287,35 @@ const GE = (() => {
 
   function estoqueInicialEquipamentos() {
     const lista = [
-      { codigo: "SOM001", nome: "Mesa de Som Behringer X32", categoria: "Som", status: "disponivel", descricao: "Mesa digital de 32 canais para eventos de medio e grande porte" },
-      { codigo: "SOM002", nome: "Mesa de Som Yamaha MG16XU", categoria: "Som", status: "disponivel", descricao: "Mesa analogica de 16 canais com efeitos integrados" },
+      { codigo: "SOM001", nome: "Mesa de Som Behringer X32", categoria: "Som", status: "disponivel", descricao: "Mesa digital de 32 canais para eventos de médio e grande porte" },
+      { codigo: "SOM002", nome: "Mesa de Som Yamaha MG16XU", categoria: "Som", status: "disponivel", descricao: "Mesa analógica de 16 canais com efeitos integrados" },
       { codigo: "SOM003", nome: "Caixa Ativa JBL PRX 715", categoria: "Som", status: "disponivel", descricao: "Caixa ativa de 15 polegadas para PA" },
       { codigo: "SOM004", nome: "Caixa Ativa JBL PRX 715 02", categoria: "Som", status: "disponivel", descricao: "Caixa ativa de 15 polegadas para PA" },
       { codigo: "SOM005", nome: "Subwoofer JBL PRX 818XLFW", categoria: "Som", status: "disponivel", descricao: "Subwoofer ativo de 18 polegadas" },
       { codigo: "SOM006", nome: "Subwoofer JBL PRX 818XLFW 02", categoria: "Som", status: "disponivel", descricao: "Subwoofer ativo de 18 polegadas" },
       { codigo: "SOM007", nome: "Retorno de Palco Attack VRM 1230A", categoria: "Som", status: "disponivel", descricao: "Monitor ativo para retorno de palco" },
       { codigo: "SOM008", nome: "Retorno de Palco Attack VRM 1230A 02", categoria: "Som", status: "disponivel", descricao: "Monitor ativo para retorno de palco" },
-      { codigo: "LED001", nome: "Processadora NovaStar VX4S", categoria: "Painel de LED", status: "disponivel", descricao: "Processadora de video para painel de LED" },
+      { codigo: "LED001", nome: "Processadora NovaStar VX4S", categoria: "Painel de LED", status: "disponivel", descricao: "Processadora de vídeo para painel de LED" },
       { codigo: "LED002", nome: "Sender Box NovaStar MCTRL300", categoria: "Painel de LED", status: "disponivel", descricao: "Controladora para envio de sinal de LED" },
-      { codigo: "LUZ001", nome: "Mesa DMX Avolites Titan Mobile", categoria: "Iluminacao", status: "disponivel", descricao: "Controladora DMX para iluminacao profissional" },
-      { codigo: "LUZ002", nome: "Maquina de Fumaca 1500W", categoria: "Iluminacao", status: "disponivel", descricao: "Maquina de fumaca para efeitos de palco" },
-      { codigo: "EST001", nome: "Totem Box Truss Q30 2m", categoria: "Estrutura", status: "disponivel", descricao: "Totem de trelica Q30 para suporte de luz" },
-      { codigo: "EST002", nome: "Totem Box Truss Q30 2m 02", categoria: "Estrutura", status: "disponivel", descricao: "Totem de trelica Q30 para suporte de luz" },
+      { codigo: "LUZ001", nome: "Mesa DMX Avolites Titan Mobile", categoria: "Iluminação", status: "disponivel", descricao: "Controladora DMX para iluminação profissional" },
+      { codigo: "LUZ002", nome: "Máquina de Fumaça 1500W", categoria: "Iluminação", status: "disponivel", descricao: "Máquina de fumaça para efeitos de palco" },
+      { codigo: "EST001", nome: "Totem Box Truss Q30 2m", categoria: "Estrutura", status: "disponivel", descricao: "Totem de treliça Q30 para suporte de luz" },
+      { codigo: "EST002", nome: "Totem Box Truss Q30 2m 02", categoria: "Estrutura", status: "disponivel", descricao: "Totem de treliça Q30 para suporte de luz" },
       { codigo: "ENE001", nome: "Main Power 12 Canais", categoria: "Energia", status: "disponivel", descricao: "Distribuidor de energia para palco" },
       { codigo: "ENE002", nome: "Nobreak SMS 3200VA", categoria: "Energia", status: "disponivel", descricao: "Nobreak para mesa de som, processadoras e computadores" }
     ];
 
     const grupos = [
-      { prefixo: "MIC", total: 8, nome: "Microfone Shure SM58", categoria: "Som", descricao: "Microfone dinamico vocal com fio" },
+      { prefixo: "MIC", total: 8, nome: "Microfone Shure SM58", categoria: "Som", descricao: "Microfone dinâmico vocal com fio" },
       { prefixo: "MICF", total: 4, nome: "Microfone Sem Fio Kadosh K-502M", categoria: "Som", descricao: "Microfone sem fio duplo UHF" },
-      { prefixo: "XLR", total: 20, nome: "Cabo XLR 10m", categoria: "Cabos", descricao: "Cabo balanceado XLR para microfones e sinal de audio" },
-      { prefixo: "P10", total: 12, nome: "Cabo P10 5m", categoria: "Cabos", descricao: "Cabo P10 para instrumentos e conexoes de audio" },
-      { prefixo: "HDMI", total: 8, nome: "Cabo HDMI 15m", categoria: "Cabos", descricao: "Cabo HDMI para video e painel de LED" },
-      { prefixo: "ENER", total: 16, nome: "Extensao de Energia 20m", categoria: "Energia", descricao: "Extensao eletrica para distribuicao no evento" },
-      { prefixo: "LED", total: 24, nome: "Placa Painel de LED P3.91", categoria: "Painel de LED", descricao: "Modulo de painel de LED indoor/outdoor P3.91" },
-      { prefixo: "MOV", total: 8, nome: "Moving Head Beam 230", categoria: "Iluminacao", descricao: "Moving head beam para efeitos de palco" },
-      { prefixo: "PAR", total: 16, nome: "Par LED RGBW 18x12W", categoria: "Iluminacao", descricao: "Refletor PAR LED RGBW para palco e decoracao" },
-      { prefixo: "STB", total: 4, nome: "Strobo LED 1500W", categoria: "Iluminacao", descricao: "Strobo LED para efeitos de impacto" }
+      { prefixo: "XLR", total: 20, nome: "Cabo XLR 10m", categoria: "Cabos", descricao: "Cabo balanceado XLR para microfones e sinal de áudio" },
+      { prefixo: "P10", total: 12, nome: "Cabo P10 5m", categoria: "Cabos", descricao: "Cabo P10 para instrumentos e conexões de áudio" },
+      { prefixo: "HDMI", total: 8, nome: "Cabo HDMI 15m", categoria: "Cabos", descricao: "Cabo HDMI para vídeo e painel de LED" },
+      { prefixo: "ENER", total: 16, nome: "Extensão de Energia 20m", categoria: "Energia", descricao: "Extensão elétrica para distribuição no evento" },
+      { prefixo: "LED", total: 24, nome: "Placa Painel de LED P3.91", categoria: "Painel de LED", descricao: "Módulo de painel de LED indoor/outdoor P3.91" },
+      { prefixo: "MOV", total: 8, nome: "Moving Head Beam 230", categoria: "Iluminação", descricao: "Moving head beam para efeitos de palco" },
+      { prefixo: "PAR", total: 16, nome: "Par LED RGBW 18x12W", categoria: "Iluminação", descricao: "Refletor PAR LED RGBW para palco e decoração" },
+      { prefixo: "STB", total: 4, nome: "Strobo LED 1500W", categoria: "Iluminação", descricao: "Strobo LED para efeitos de impacto" }
     ];
 
     grupos.forEach((grupo) => {
@@ -330,6 +331,46 @@ const GE = (() => {
     });
 
     return lista;
+  }
+
+  function estoqueInicialConsumo() {
+    return [
+      { codigo: "CONS001", nome: "Fita Isolante Preta", categoria: "Consumo", quantidade: 20, unidade: "rolo", estoqueMinimo: 5, descricao: "Material descartável para acabamento e isolação em eventos" },
+      { codigo: "CONS002", nome: "Fita Gaffer Preta", categoria: "Consumo", quantidade: 12, unidade: "rolo", estoqueMinimo: 3, descricao: "Fita gaffer para palco, cabos e fixação temporária" },
+      { codigo: "CONS003", nome: "Fita Gaffer Branca", categoria: "Consumo", quantidade: 8, unidade: "rolo", estoqueMinimo: 2, descricao: "Fita gaffer branca para marcação e acabamento" },
+      { codigo: "CONS004", nome: "Abraçadeira Nylon 200mm", categoria: "Consumo", quantidade: 500, unidade: "unidade", estoqueMinimo: 100, descricao: "Abraçadeira plástica descartável para organização de cabos" },
+      { codigo: "CONS005", nome: "Pilha AA", categoria: "Consumo", quantidade: 80, unidade: "unidade", estoqueMinimo: 20, descricao: "Pilhas para microfones, controles e acessórios" },
+      { codigo: "CONS006", nome: "Pilha 9V", categoria: "Consumo", quantidade: 24, unidade: "unidade", estoqueMinimo: 8, descricao: "Pilhas 9V para equipamentos sem fio e instrumentos" },
+      { codigo: "CONS007", nome: "Lacre Plástico", categoria: "Consumo", quantidade: 300, unidade: "unidade", estoqueMinimo: 80, descricao: "Lacre de segurança para cases e organização" },
+      { codigo: "CONS008", nome: "Spray Limpa Contato", categoria: "Consumo", quantidade: 10, unidade: "frasco", estoqueMinimo: 3, descricao: "Produto de limpeza para conectores e contatos elétricos" }
+    ];
+  }
+
+  function normalizarMaterialConsumo(material = {}) {
+    const codigo = String(material.codigo || material.id || "").trim().toUpperCase();
+    const id = codigo || ("CONS-" + Date.now());
+    return {
+      id,
+      codigo: id,
+      nome: String(material.nome || "").trim(),
+      categoria: String(material.categoria || "Consumo").trim() || "Consumo",
+      quantidade: Math.max(Number(material.quantidade) || 0, 0),
+      unidade: String(material.unidade || "unidade").trim() || "unidade",
+      estoqueMinimo: Math.max(Number(material.estoqueMinimo ?? material.minimo) || 0, 0),
+      descricao: String(material.descricao || "").trim()
+    };
+  }
+
+  function normalizarConsumosEvento(consumos = []) {
+    return (Array.isArray(consumos) ? consumos : [])
+      .map((item) => ({
+        codigo: String(item.codigo || item.id || "").trim().toUpperCase(),
+        nome: String(item.nome || "").trim(),
+        categoria: String(item.categoria || "Consumo").trim() || "Consumo",
+        quantidade: Math.max(Number(item.quantidade) || 0, 0),
+        unidade: String(item.unidade || "unidade").trim() || "unidade"
+      }))
+      .filter((item) => item.quantidade > 0 && (item.codigo || item.nome));
   }
 
   function imagemEquipamento(equipamento = {}) {
@@ -426,6 +467,7 @@ const GE = (() => {
   
   return {
       equipamentos: estoqueInicialEquipamentos(),
+      materiaisConsumo: estoqueInicialConsumo(),
       eventos: [],
       locacoes: [],
       manutencoes: [],
@@ -495,6 +537,11 @@ const GE = (() => {
     });
     corrigido.funcionarios = corrigido.funcionarios.map((funcionario) => ({ ...funcionario, cargo: cargoSistema(funcionario.cargo) }));
     corrigido.solicitacoesFuncionarios = corrigido.solicitacoesFuncionarios.map((solicitacao) => ({ ...solicitacao, cargo: cargoSistema(solicitacao.cargo) }));
+    corrigido.materiaisConsumo = corrigido.materiaisConsumo.map(normalizarMaterialConsumo).filter((item) => item.nome);
+    corrigido.eventos = corrigido.eventos.map((evento) => ({
+      ...evento,
+      consumos: normalizarConsumosEvento(evento.consumos || evento.materiaisConsumo || [])
+    }));
     return corrigido;
   }
 
@@ -632,6 +679,23 @@ const GE = (() => {
 
     if (!db.estoqueInicialCriado && db.equipamentos.length > 0) {
       db.estoqueInicialCriado = true;
+      alterou = true;
+    }
+
+    if (!db.consumoInicialCriado) {
+      const codigosConsumoAtuais = new Set((db.materiaisConsumo || []).map((item) => item.codigo));
+      const novosConsumos = estoqueInicialConsumo().filter((item) => !codigosConsumoAtuais.has(item.codigo));
+      db.materiaisConsumo = [...(db.materiaisConsumo || []), ...novosConsumos];
+      if (novosConsumos.length) {
+        db.logs.unshift({
+          data: hojeCurto(),
+          usuario: "StockSync",
+          acao: "Criou Estoque de Consumo",
+          tipo: "badge-green",
+          detalhes: novosConsumos.length + " materiais descartáveis adicionados"
+        });
+      }
+      db.consumoInicialCriado = true;
       alterou = true;
     }
 
@@ -864,6 +928,68 @@ const GE = (() => {
     return criados;
   }
 
+  function getMaterialConsumo(codigo) {
+    const chave = String(codigo || "").trim().toUpperCase();
+    return (dados().materiaisConsumo || []).find((item) => item.codigo === chave || item.id === chave);
+  }
+
+  function salvarMaterialConsumo(material) {
+    const db = dados();
+    db.materiaisConsumo = db.materiaisConsumo || [];
+    const registro = normalizarMaterialConsumo(material);
+    if (!registro.codigo || !registro.nome || !registro.categoria) return null;
+
+    const indice = db.materiaisConsumo.findIndex((item) => item.codigo === registro.codigo || item.id === registro.codigo);
+    if (indice >= 0) {
+      db.materiaisConsumo[indice] = { ...db.materiaisConsumo[indice], ...registro };
+      db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Editou Material de Consumo", tipo: "badge-purple", detalhes: registro.codigo + " - " + registro.nome });
+    } else {
+      db.materiaisConsumo.push(registro);
+      db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Cadastrou Material de Consumo", tipo: "badge-green", detalhes: registro.codigo + " - " + registro.nome });
+    }
+
+    salvar(db);
+    return registro;
+  }
+
+  function removerMaterialConsumo(codigo) {
+    const db = dados();
+    const chave = String(codigo || "").trim().toUpperCase();
+    const material = (db.materiaisConsumo || []).find((item) => item.codigo === chave || item.id === chave);
+    if (!material) return false;
+
+    db.materiaisConsumo = (db.materiaisConsumo || []).filter((item) => item.codigo !== chave && item.id !== chave);
+    db.eventos.forEach((evento) => {
+      evento.consumos = normalizarConsumosEvento(evento.consumos).filter((item) => item.codigo !== chave);
+    });
+    db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Excluiu Material de Consumo", tipo: "badge-red", detalhes: material.codigo + " - " + material.nome });
+    salvar(db);
+    return true;
+  }
+
+  function mapaQuantidadeConsumo(consumos = []) {
+    const mapa = new Map();
+    normalizarConsumosEvento(consumos).forEach((item) => {
+      const chave = item.codigo || normalizar(item.nome);
+      mapa.set(chave, (mapa.get(chave) || 0) + item.quantidade);
+    });
+    return mapa;
+  }
+
+  function aplicarMovimentoConsumosEvento(db, consumosAntigos = [], consumosNovos = []) {
+    const antigos = mapaQuantidadeConsumo(consumosAntigos);
+    const novos = mapaQuantidadeConsumo(consumosNovos);
+    const chaves = new Set([...antigos.keys(), ...novos.keys()]);
+
+    chaves.forEach((codigo) => {
+      const delta = (novos.get(codigo) || 0) - (antigos.get(codigo) || 0);
+      if (!delta) return;
+      const material = (db.materiaisConsumo || []).find((item) => item.codigo === codigo || item.id === codigo);
+      if (!material) return;
+      material.quantidade = Math.max(0, (Number(material.quantidade) || 0) - delta);
+    });
+  }
+
   function removerEquipamento(codigo) {
     const db = dados();
     const eq = db.equipamentos.find((item) => item.codigo === codigo);
@@ -927,6 +1053,7 @@ const GE = (() => {
     const idBase = evento.id.trim().toUpperCase();
     const equipamentos = evento.equipamentos.map((codigo) => codigo.trim().toUpperCase()).filter(Boolean);
     const equipamentosExternos = evento.equipamentosExternos || [];
+    const consumos = normalizarConsumosEvento(evento.consumos || evento.materiaisConsumo || []);
     let id = idBase;
     let contador = 2;
 
@@ -935,8 +1062,9 @@ const GE = (() => {
       contador += 1;
     }
 
-    const registro = { ...evento, id, equipamentos, equipamentosExternos, responsavel: usuarioAtual().nome };
+    const registro = { ...evento, id, equipamentos, equipamentosExternos, consumos, responsavel: usuarioAtual().nome };
     db.eventos.unshift(registro);
+    aplicarMovimentoConsumosEvento(db, [], consumos);
     db.equipamentos.forEach((eq) => {
       if (equipamentos.includes(eq.codigo)) eq.status = "reservado";
     });
@@ -953,7 +1081,9 @@ const GE = (() => {
     const idBase = evento.id.trim().toUpperCase();
     const equipamentos = evento.equipamentos.map((codigo) => codigo.trim().toUpperCase()).filter(Boolean);
     const equipamentosExternos = evento.equipamentosExternos || [];
+    const consumos = normalizarConsumosEvento(evento.consumos || evento.materiaisConsumo || []);
     const antigos = db.eventos[indice].equipamentos || [];
+    const consumosAntigos = normalizarConsumosEvento(db.eventos[indice].consumos || db.eventos[indice].materiaisConsumo || []);
     let id = idBase;
     let contador = 2;
 
@@ -968,6 +1098,7 @@ const GE = (() => {
       id,
       equipamentos,
       equipamentosExternos,
+      consumos,
       responsavel: usuarioAtual().nome
     };
 
@@ -986,6 +1117,8 @@ const GE = (() => {
 
       if (equipamentos.includes(eq.codigo) && !antigos.includes(eq.codigo)) eq.status = "reservado";
     });
+
+    aplicarMovimentoConsumosEvento(db, consumosAntigos, consumos);
 
     const adicionados = equipamentos.filter((codigo) => !antigos.includes(codigo));
     const removidos = antigos.filter((codigo) => !equipamentos.includes(codigo));
@@ -1010,12 +1143,15 @@ const GE = (() => {
       }
     });
 
+    const itemTexto = codigosNormalizados.length === 1 ? "item" : "itens";
+
+
     db.logs.unshift({
       data: hojeCurto(),
       usuario: usuarioAtual().nome,
       acao: "Atualizou Status do Evento",
       tipo: statusInfo[status].classe,
-      detalhes: `${evento.id} - ${statusInfo[status].texto} (${codigosNormalizados.length} item(ns)): ${codigosNormalizados.join(", ")}`
+      detalhes: `${evento.id} - ${statusInfo[status].texto} (${codigosNormalizados.length} ${itemTexto}): ${codigosNormalizados.join(", ")}`
     });
     salvar(db);
     return true;
@@ -1366,7 +1502,7 @@ const GE = (() => {
       const badge = document.createElement("span");
       badge.className = "nav-notification-badge";
       badge.textContent = String(total);
-      badge.title = `${total} solicitação(ões) pendente(s)`;
+      badge.title = total === 1 ? "1 solicitação pendente" : `${total} solicitações pendentes`;
       navFuncionarios.appendChild(badge);
     }
 
@@ -1378,7 +1514,7 @@ const GE = (() => {
       badge.className = "notification-badge";
       badge.textContent = String(total);
       sino.appendChild(badge);
-      sino.title = `${total} funcionário(s) aguardando aprovação`;
+      sino.title = total === 1 ? "1 funcionário aguardando aprovação" : `${total} funcionários aguardando aprovação`;
 
       sino.addEventListener("click", (event) => {
         event.preventDefault();
@@ -1477,7 +1613,7 @@ const GE = (() => {
 
   return {
     dados, salvar, log, normalizar, badge, statusInfo, dataBR, mensagem, imagemEquipamento,
-    getEquipamento, salvarEquipamento, salvarEquipamentosEmLote, removerEquipamento, enviarManutencao, finalizarManutencao,
+    getEquipamento, salvarEquipamento, salvarEquipamentosEmLote, removerEquipamento, getMaterialConsumo, salvarMaterialConsumo, removerMaterialConsumo, enviarManutencao, finalizarManutencao,
     salvarEvento, editarEvento, atualizarStatusEvento, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
     empresas, empresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema
   };
