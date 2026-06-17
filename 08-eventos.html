@@ -78,6 +78,23 @@
       overflow-y: auto;
     }
 
+    .event-equipment-search {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .event-equipment-search .input {
+      width: 100%;
+      min-height: 42px;
+    }
+
+    .event-equipment-search-hint {
+      min-height: 18px;
+      color: var(--text3);
+      font-size: 12px;
+    }
+
     .event-equipment-table input {
       width: 78px;
       background: var(--surface2);
@@ -542,6 +559,11 @@
               <div class="section-subtitle" id="equipamentosEventoSubtitulo">Escolha a quantidade de cada item disponível para este evento</div>
             </div>
           </div>
+          <div class="event-equipment-search">
+            <label class="form-label" for="buscaEquipamentoEvento">Buscar equipamento</label>
+            <input class="input" id="buscaEquipamentoEvento" type="search" placeholder="Digite nome, categoria ou código">
+            <div class="event-equipment-search-hint" id="buscaEquipamentoEventoInfo"></div>
+          </div>
           <div class="table-wrap event-equipment-select-table mobile-card-table">
             <table class="event-equipment-table">
               <thead>
@@ -809,6 +831,8 @@ const modal = document.getElementById("modalEvento");
 const salvar = document.getElementById("salvarEventoBotao");
 const escolher = modal.querySelector(".upload-area .btn-secondary");
 const equipamentosEventoTabela = document.getElementById("equipamentosEventoTabela");
+const buscaEquipamentoEvento = document.getElementById("buscaEquipamentoEvento");
+const buscaEquipamentoEventoInfo = document.getElementById("buscaEquipamentoEventoInfo");
 const modalTitulo = document.getElementById("modalEventoTitulo");
 const modalSubtitulo = document.getElementById("modalEventoSubtitulo");
 const equipamentosSubtitulo = document.getElementById("equipamentosEventoSubtitulo");
@@ -842,6 +866,7 @@ const observacaoFinalEvento = document.getElementById("observacaoFinalEvento");
 const finalizarEventoMensagem = document.getElementById("finalizarEventoMensagem");
 const confirmarFinalizarEvento = document.getElementById("confirmarFinalizarEvento");
 let gruposEquipamentosEvento = [];
+let quantidadesEquipamentosEvento = new Map();
 let modoEvento = "novo";
 let eventoEditandoId = "";
 let manutencaoEventoAtual = { codigos: [], nome: "" };
@@ -874,6 +899,8 @@ function limparFormularioEvento() {
   externoObservacao.value = "";
   externoEventoMensagem.style.display = "none";
   externoEventoMensagem.textContent = "";
+  if (buscaEquipamentoEvento) buscaEquipamentoEvento.value = "";
+  quantidadesEquipamentosEvento.clear();
   equipamentosExternosEvento = [];
   renderEquipamentosExternosEvento();
 }
@@ -957,7 +984,7 @@ function abrirManutencaoExternaEvento(index) {
 
   const externos = (evento.equipamentosExternos || []).map(normalizarEquipamentoExterno);
   const item = externos[index];
-  if (!item) return GE.mensagem("Equipamento locado n?o encontrado no evento.", "error");
+  if (!item) return GE.mensagem("Equipamento locado não encontrado no evento.", "error");
   if (item.status === "manutencao_externo") return GE.mensagem("Este equipamento locado já está em manutenção.", "info");
 
   manutencaoEventoAtual = { tipo: "externo", index, nome: item.nome };
@@ -985,7 +1012,7 @@ function removerEquipamentoExternoDoEvento(index) {
 
   const externos = (evento.equipamentosExternos || []).map(normalizarEquipamentoExterno);
   const item = externos[index];
-  if (!item) return GE.mensagem("Equipamento locado n?o encontrado no evento.", "error");
+  if (!item) return GE.mensagem("Equipamento locado não encontrado no evento.", "error");
 
   GE.confirmar("Remover " + item.nome + " do evento?", () => {
     evento.equipamentosExternos = externos.filter((_, itemIndex) => itemIndex !== index);
@@ -1284,7 +1311,7 @@ function registrarManutencaoDoEvento() {
     if (!evento || !item) {
       manutencaoEventoMensagem.style.display = "block";
       manutencaoEventoMensagem.style.color = "var(--red)";
-      manutencaoEventoMensagem.textContent = "Equipamento locado n?o encontrado no evento.";
+      manutencaoEventoMensagem.textContent = "Equipamento locado não encontrado no evento.";
       return;
     }
 
@@ -1530,25 +1557,72 @@ function agruparDisponiveisParaEvento(evento = null) {
   }));
 }
 
-function renderEquipamentosParaEvento(evento = null) {
-  gruposEquipamentosEvento = agruparDisponiveisParaEvento(evento);
+function chaveGrupoEquipamentoEvento(grupo) {
+  return `${GE.normalizar(grupo.nome)}|${GE.normalizar(grupo.categoria)}`;
+}
 
-  equipamentosEventoTabela.innerHTML = gruposEquipamentosEvento.map((grupo, index) => `
-    <tr>
-      <td style="color:var(--text);font-weight:500">${grupo.nome}</td>
-      <td style="color:var(--text2)">${grupo.categoria}</td>
-      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.codigos.length}</td>
-      <td>
-        <input class="equipamento-evento-qtd" type="number" min="0" max="${grupo.codigos.length}" value="${grupo.quantidadeSelecionada || 0}" data-index="${index}">
-      </td>
-    </tr>
-  `).join("") || `<tr><td colspan="4"><div class="empty-selection">Nenhum equipamento disponível para seleção. Cadastre novos equipamentos ou retorne itens que estejam em evento, locação ou manutenção.</div></td></tr>`;
+function salvarQuantidadesVisiveisEvento() {
+  modal.querySelectorAll(".equipamento-evento-qtd").forEach((input) => {
+    const grupo = gruposEquipamentosEvento[Number(input.dataset.index)];
+    if (!grupo) return;
+    const quantidade = Math.max(0, Math.min(Number(input.value) || 0, grupo.codigos.length));
+    quantidadesEquipamentosEvento.set(chaveGrupoEquipamentoEvento(grupo), quantidade);
+  });
+}
+
+function prepararQuantidadesEquipamentosEvento() {
+  gruposEquipamentosEvento.forEach((grupo) => {
+    const chave = chaveGrupoEquipamentoEvento(grupo);
+    const quantidadeAtual = quantidadesEquipamentosEvento.has(chave)
+      ? quantidadesEquipamentosEvento.get(chave)
+      : grupo.quantidadeSelecionada || 0;
+    quantidadesEquipamentosEvento.set(chave, Math.max(0, Math.min(Number(quantidadeAtual) || 0, grupo.codigos.length)));
+  });
+}
+
+function grupoEquipamentoCorrespondeBusca(grupo, termo) {
+  if (!termo) return true;
+  const alvo = [grupo.nome, grupo.categoria, ...(grupo.codigos || [])]
+    .map((valor) => GE.normalizar(valor))
+    .join(" ");
+  return alvo.includes(termo);
+}
+
+function renderEquipamentosParaEvento(evento = null) {
+  salvarQuantidadesVisiveisEvento();
+  gruposEquipamentosEvento = agruparDisponiveisParaEvento(evento);
+  prepararQuantidadesEquipamentosEvento();
+
+  const termo = GE.normalizar(buscaEquipamentoEvento?.value || "");
+  const gruposFiltrados = gruposEquipamentosEvento
+    .map((grupo, index) => ({ grupo, index }))
+    .filter(({ grupo }) => grupoEquipamentoCorrespondeBusca(grupo, termo));
+
+  equipamentosEventoTabela.innerHTML = gruposFiltrados.map(({ grupo, index }) => {
+    const quantidade = quantidadesEquipamentosEvento.get(chaveGrupoEquipamentoEvento(grupo)) || 0;
+    return `
+      <tr>
+        <td style="color:var(--text);font-weight:500">${textoSeguro(grupo.nome)}</td>
+        <td style="color:var(--text2)">${textoSeguro(grupo.categoria)}</td>
+        <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.codigos.length}</td>
+        <td>
+          <input class="equipamento-evento-qtd" type="number" min="0" max="${grupo.codigos.length}" value="${quantidade}" data-index="${index}">
+        </td>
+      </tr>
+    `;
+  }).join("") || `<tr><td colspan="4"><div class="empty-selection">${termo ? "Nenhum equipamento encontrado para essa busca." : "Nenhum equipamento disponível para seleção. Cadastre novos equipamentos ou retorne itens que estejam em evento, locação ou manutenção."}</div></td></tr>`;
+
+  if (buscaEquipamentoEventoInfo) {
+    buscaEquipamentoEventoInfo.textContent = termo
+      ? `${gruposFiltrados.length} de ${gruposEquipamentosEvento.length} item(ns) encontrados`
+      : `${gruposEquipamentosEvento.length} item(ns) disponíveis para seleção`;
+  }
 }
 
 function equipamentosSelecionadosNoModal() {
-  return [...modal.querySelectorAll(".equipamento-evento-qtd")].flatMap((input) => {
-    const grupo = gruposEquipamentosEvento[Number(input.dataset.index)];
-    const quantidade = Math.min(Number(input.value) || 0, grupo.codigos.length);
+  salvarQuantidadesVisiveisEvento();
+  return gruposEquipamentosEvento.flatMap((grupo) => {
+    const quantidade = Math.min(Number(quantidadesEquipamentosEvento.get(chaveGrupoEquipamentoEvento(grupo))) || 0, grupo.codigos.length);
     return grupo.codigos.slice(0, quantidade);
   });
 }
@@ -1568,6 +1642,15 @@ escolher.addEventListener("click", () => {
 });
 
 adicionarExternoEvento.addEventListener("click", adicionarEquipamentoExternoEvento);
+
+if (buscaEquipamentoEvento) {
+  buscaEquipamentoEvento.addEventListener("input", () => {
+    const evento = modoEvento === "editar"
+      ? (GE.dados().eventos || []).find((item) => item.id === eventoEditandoId)
+      : null;
+    renderEquipamentosParaEvento(evento);
+  });
+}
 
 campoEventoData.addEventListener("change", () => {
   const evento = modoEvento === "editar"
