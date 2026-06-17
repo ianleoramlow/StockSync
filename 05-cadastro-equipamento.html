@@ -43,52 +43,70 @@
 <div class="modal-overlay">
   <div class="modal">
     <div class="modal-title">Novo Equipamento</div>
-    <div class="modal-sub">Preencha os dados do equipamento</div>
+    <div class="modal-sub">Preencha os dados do item de estoque</div>
 
     <div class="form-group">
-      <label class="form-label">Código</label>
-      <input class="form-input" id="codigoEquipamento" type="text" placeholder="Ex: EQP001">
+      <label class="form-label">Tipo de item</label>
+      <select class="form-select" id="tipoItemEstoque">
+        <option value="equipamento">Equipamento patrimonial</option>
+        <option value="consumo">Material de consumo / descart&aacute;vel</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" id="codigoItemLabel">C&oacute;digo</label>
+      <input class="form-input" id="codigoEquipamento" type="text" placeholder="Ex: EQP001 ou CONS001">
     </div>
     <div class="form-group" id="grupoQuantidade">
-      <label class="form-label">Quantidade</label>
+      <label class="form-label" id="quantidadeItemLabel">Quantidade</label>
       <input class="form-input" id="quantidadeEquipamento" type="number" min="1" value="1">
-      <div class="quantity-hint">Para cadastrar vários itens iguais, informe a quantidade. Ex: CAB001 com quantidade 5 cria CAB001 até CAB005.</div>
+      <div class="quantity-hint" id="quantidadeHint">Para cadastrar v&aacute;rios itens iguais, informe a quantidade. Ex: CAB001 com quantidade 5 cria CAB001 at&eacute; CAB005.</div>
+    </div>
+    <div class="form-group" id="grupoUnidadeConsumo" style="display:none;">
+      <label class="form-label">Unidade</label>
+      <input class="form-input" id="unidadeConsumo" type="text" placeholder="Ex: rolo, unidade, caixa, metro" value="unidade">
+    </div>
+    <div class="form-group" id="grupoEstoqueMinimo" style="display:none;">
+      <label class="form-label">Estoque m&iacute;nimo</label>
+      <input class="form-input" id="estoqueMinimoConsumo" type="number" min="0" value="0">
     </div>
     <div class="form-group">
       <label class="form-label">Nome</label>
-      <input class="form-input" id="nomeEquipamento" type="text" placeholder="Digite o nome do equipamento">
+      <input class="form-input" id="nomeEquipamento" type="text" placeholder="Digite o nome do item">
     </div>
     <div class="form-group">
       <label class="form-label">Categoria</label>
-      <select class="form-select">
+      <select class="form-select" id="categoriaEstoque">
         <option value="" disabled selected>Selecione</option>
         <option>Som</option>
-        <option>Iluminação</option>
+        <option>Ilumina&ccedil;&atilde;o</option>
         <option>Estrutura</option>
-        <option>Painel de Led</option>
-        <option>Cabeamento</option>
+        <option>Painel de LED</option>
+        <option>Cabos</option>
+        <option>Energia</option>
+        <option>Consumo</option>
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Descrição</label>
-      <textarea class="form-textarea" placeholder="Descrição de equipamento..."></textarea>
+      <label class="form-label">Descri&ccedil;&atilde;o</label>
+      <textarea class="form-textarea" placeholder="Descri&ccedil;&atilde;o do item..."></textarea>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="grupoFotoEquipamento">
       <label class="form-label">Foto do Equipamento</label>
       <div class="photo-picker">
         <div class="photo-preview"><img id="previewImagemEquipamento" src="assets/equipamentos/equipamento.svg?v=20260520" alt="Foto do equipamento"></div>
         <div class="photo-actions">
           <label class="btn btn-secondary" for="imagemEquipamento">Escolher Foto</label>
           <input id="imagemEquipamento" type="file" accept="image/*">
-          <button class="btn btn-ghost" id="removerImagemEquipamento" type="button">Usar imagem automática</button>
-          <div class="photo-hint">A foto será reduzida automaticamente para ficar leve no sistema.</div>
+          <button class="btn btn-ghost" id="removerImagemEquipamento" type="button">Usar imagem autom&aacute;tica</button>
+          <div class="photo-hint">A foto ser&aacute; reduzida automaticamente para ficar leve no sistema.</div>
         </div>
       </div>
     </div>
 
     <div class="modal-actions">
       <a class="btn btn-ghost" href="04-equipamentos.html">Cancelar</a>
-      <button class="btn btn-primary" id="salvarEquipamento">Salvar Equipamento</button>
+      <button class="btn btn-primary" id="salvarEquipamento">Salvar Item</button>
     </div>
   </div>
 </div>
@@ -96,13 +114,24 @@
 <script>
 const params = new URLSearchParams(window.location.search);
 const codigoEdicao = params.get("codigo");
+const codigoMaterialEdicao = params.get("material");
 const codigoInput = document.getElementById("codigoEquipamento");
+const tipoItem = document.getElementById("tipoItemEstoque");
+const codigoItemLabel = document.getElementById("codigoItemLabel");
+const quantidadeItemLabel = document.getElementById("quantidadeItemLabel");
 const nomeInput = document.getElementById("nomeEquipamento");
-const categoria = document.querySelector(".form-select");
+const categoria = document.getElementById("categoriaEstoque");
 const descricao = document.querySelector(".form-textarea");
 const titulo = document.querySelector(".modal-title");
+const subtitulo = document.querySelector(".modal-sub");
 const grupoQuantidade = document.getElementById("grupoQuantidade");
 const quantidade = document.getElementById("quantidadeEquipamento");
+const quantidadeHint = document.getElementById("quantidadeHint");
+const grupoUnidadeConsumo = document.getElementById("grupoUnidadeConsumo");
+const unidadeConsumo = document.getElementById("unidadeConsumo");
+const grupoEstoqueMinimo = document.getElementById("grupoEstoqueMinimo");
+const estoqueMinimoConsumo = document.getElementById("estoqueMinimoConsumo");
+const grupoFotoEquipamento = document.getElementById("grupoFotoEquipamento");
 const inputImagem = document.getElementById("imagemEquipamento");
 const previewImagem = document.getElementById("previewImagemEquipamento");
 const removerImagem = document.getElementById("removerImagemEquipamento");
@@ -112,26 +141,50 @@ function normalizarCadastro(texto) {
   return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+function modoConsumoAtivo() {
+  return tipoItem.value === "consumo" || Boolean(codigoMaterialEdicao);
+}
+
+function atualizarModoCadastro() {
+  const consumo = modoConsumoAtivo();
+  titulo.textContent = codigoEdicao || codigoMaterialEdicao
+    ? (consumo ? "Editar Material de Consumo" : "Editar Equipamento")
+    : (consumo ? "Novo Material de Consumo" : "Novo Equipamento");
+  subtitulo.textContent = consumo
+    ? "Controle materiais descartáveis por quantidade"
+    : "Preencha os dados do equipamento";
+  codigoItemLabel.textContent = consumo ? "Código do material" : "Código";
+  quantidadeItemLabel.textContent = consumo ? "Quantidade em estoque" : "Quantidade";
+  quantidadeHint.textContent = consumo
+    ? "Materiais de consumo são descartáveis: quando entram em um evento, dão baixa no estoque e não retornam automaticamente."
+    : "Para cadastrar vários itens iguais, informe a quantidade. Ex: CAB001 com quantidade 5 cria CAB001 até CAB005.";
+  grupoUnidadeConsumo.style.display = consumo ? "block" : "none";
+  grupoEstoqueMinimo.style.display = consumo ? "block" : "none";
+  grupoFotoEquipamento.style.display = consumo ? "none" : "block";
+  tipoItem.disabled = Boolean(codigoEdicao || codigoMaterialEdicao);
+  if (consumo && !categoria.value) categoria.value = "Consumo";
+}
+
 function imagemAutomaticaCadastro(equipamento = {}) {
   const nome = normalizarCadastro(equipamento.nome || nomeInput.value);
   const cat = normalizarCadastro(equipamento.categoria || categoria.value);
   const base = "assets/equipamentos";
 
-  if (nome.includes("microfone")) return `${base}/microfone.svg?v=20260520`;
-  if (nome.includes("mesa") && nome.includes("som")) return `${base}/mesa-som.svg?v=20260520`;
-  if (nome.includes("caixa") || nome.includes("subwoofer") || nome.includes("retorno")) return `${base}/caixa-som.svg?v=20260520`;
-  if (nome.includes("fumaca")) return `${base}/fumaca.svg?v=20260520`;
-  if (cat.includes("painel") || nome.includes("painel") || nome.includes("novastar") || nome.includes("sender")) return `${base}/painel-led.svg?v=20260520`;
-  if (cat.includes("cabo") || cat.includes("cabeamento") || nome.includes("cabo")) return `${base}/cabos.svg?v=20260520`;
-  if (cat.includes("energia") || nome.includes("power") || nome.includes("nobreak") || nome.includes("extensao")) return `${base}/energia.svg?v=20260520`;
-  if (cat.includes("estrutura") || nome.includes("truss") || nome.includes("totem")) return `${base}/estrutura.svg?v=20260520`;
-  if (cat.includes("iluminacao") || nome.includes("moving") || nome.includes("par led") || nome.includes("strobo") || nome.includes("refletor") || nome.includes("dmx")) return `${base}/iluminacao.svg?v=20260520`;
+  if (nome.includes("microfone")) return base + "/microfone.svg?v=20260520";
+  if (nome.includes("mesa") && nome.includes("som")) return base + "/mesa-som.svg?v=20260520";
+  if (nome.includes("caixa") || nome.includes("subwoofer") || nome.includes("retorno")) return base + "/caixa-som.svg?v=20260520";
+  if (nome.includes("fumaca")) return base + "/fumaca.svg?v=20260520";
+  if (cat.includes("painel") || nome.includes("painel") || nome.includes("novastar") || nome.includes("sender")) return base + "/painel-led.svg?v=20260520";
+  if (cat.includes("cabo") || cat.includes("cabeamento") || nome.includes("cabo")) return base + "/cabos.svg?v=20260520";
+  if (cat.includes("energia") || nome.includes("power") || nome.includes("nobreak") || nome.includes("extensao")) return base + "/energia.svg?v=20260520";
+  if (cat.includes("estrutura") || nome.includes("truss") || nome.includes("totem")) return base + "/estrutura.svg?v=20260520";
+  if (cat.includes("iluminacao") || nome.includes("moving") || nome.includes("par led") || nome.includes("strobo") || nome.includes("refletor") || nome.includes("dmx")) return base + "/iluminacao.svg?v=20260520";
 
-  return `${base}/equipamento.svg?v=20260520`;
+  return base + "/equipamento.svg?v=20260520";
 }
 
 function atualizarPreviewAutomatico() {
-  if (!imagemAtual) previewImagem.src = imagemAutomaticaCadastro();
+  if (!imagemAtual && !modoConsumoAtivo()) previewImagem.src = imagemAutomaticaCadastro();
 }
 
 function lerImagemReduzida(arquivo) {
@@ -160,7 +213,7 @@ function lerImagemReduzida(arquivo) {
 if (codigoEdicao) {
   const eq = GE.getEquipamento(codigoEdicao);
   if (eq) {
-    titulo.textContent = "Editar Equipamento";
+    tipoItem.value = "equipamento";
     grupoQuantidade.style.display = "none";
     codigoInput.value = eq.codigo;
     codigoInput.disabled = true;
@@ -172,9 +225,26 @@ if (codigoEdicao) {
   }
 }
 
+if (codigoMaterialEdicao) {
+  const material = GE.getMaterialConsumo(codigoMaterialEdicao);
+  if (material) {
+    tipoItem.value = "consumo";
+    codigoInput.value = material.codigo;
+    codigoInput.disabled = true;
+    nomeInput.value = material.nome;
+    categoria.value = material.categoria;
+    quantidade.value = material.quantidade;
+    unidadeConsumo.value = material.unidade || "unidade";
+    estoqueMinimoConsumo.value = material.estoqueMinimo || 0;
+    descricao.value = material.descricao || "";
+  }
+}
+
+atualizarModoCadastro();
+
 inputImagem.addEventListener("change", async () => {
   const arquivo = inputImagem.files[0];
-  if (!arquivo) return;
+  if (!arquivo || modoConsumoAtivo()) return;
 
   try {
     imagemAtual = await lerImagemReduzida(arquivo);
@@ -193,8 +263,36 @@ removerImagem.addEventListener("click", () => {
 
 nomeInput.addEventListener("input", atualizarPreviewAutomatico);
 categoria.addEventListener("change", atualizarPreviewAutomatico);
+tipoItem.addEventListener("change", atualizarModoCadastro);
 
 document.getElementById("salvarEquipamento").addEventListener("click", function () {
+  if (modoConsumoAtivo()) {
+    const material = {
+      codigo: codigoInput.value,
+      nome: nomeInput.value,
+      categoria: categoria.value || "Consumo",
+      quantidade: quantidade.value,
+      unidade: unidadeConsumo.value,
+      estoqueMinimo: estoqueMinimoConsumo.value,
+      descricao: descricao.value
+    };
+
+    if (!material.codigo || !material.nome || !material.categoria) {
+      GE.mensagem("Preencha código, nome e categoria.", "warning");
+      return;
+    }
+
+    const salvo = GE.salvarMaterialConsumo(material);
+    if (!salvo) {
+      GE.mensagem("Não foi possível salvar o material de consumo.", "error");
+      return;
+    }
+
+    GE.mensagem(codigoMaterialEdicao ? "Material de consumo atualizado." : "Material de consumo cadastrado.", "success", { tempo: 1200 });
+    setTimeout(() => window.location.href = "04-equipamentos.html", 650);
+    return;
+  }
+
   const equipamento = {
     codigo: codigoInput.value,
     nome: nomeInput.value,
@@ -218,7 +316,7 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
       GE.mensagem("Nenhum equipamento foi cadastrado. Verifique se os códigos gerados já existem.", "warning");
       return;
     }
-    GE.mensagem(criados.length === 1 ? "Equipamento cadastrado." : `${criados.length} equipamentos cadastrados.`, "success", { tempo: 1200 });
+    GE.mensagem(criados.length === 1 ? "Equipamento cadastrado." : criados.length + " equipamentos cadastrados.", "success", { tempo: 1200 });
   }
 
   setTimeout(() => window.location.href = "04-equipamentos.html", 650);
