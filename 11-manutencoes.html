@@ -3,8 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StockSync">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
 <title>StockSync – Manutenções em Andamento</title>
-<link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
+<link rel="stylesheet" href="styles.css?v=20260617-pwa">
 </head>
 <body>
 <aside class="sidebar">
@@ -90,6 +97,7 @@ function renderManutencoes() {
 }
 renderManutencoes();
 </script>
+  <script src="pwa.js?v=20260617-pwa" defer></script>
 </body>
 </html>
 
