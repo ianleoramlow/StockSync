@@ -3,8 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StockSync">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
 <title>StockSync - Dashboard</title>
-<link rel="stylesheet" href="styles.css?v=20260521-mobile-header-controls">
+<link rel="stylesheet" href="styles.css?v=20260617-pwa">
 <style>
 .donut-wrap { display: flex; align-items: center; gap: 24px; }
 .donut { width: 120px; height: 120px; flex-shrink: 0; }
@@ -471,6 +478,7 @@ db.logs.slice(0, 4).forEach((log) => {
   item.innerHTML = `<div class="move-time">${textoSeguroMovimentacao(log.data)}</div><div class="move-desc">${textoSeguroMovimentacao(log.acao)} - ${textoSeguroMovimentacao(detalhes)}</div>`;
   moves.appendChild(item);
 });</script>
+  <script src="pwa.js?v=20260617-pwa" defer></script>
 </body>
 </html>
 
