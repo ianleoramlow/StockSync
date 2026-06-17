@@ -92,6 +92,20 @@
   font-size: 11.5px;
   line-height: 1.35;
 }
+.category-row td {
+  background: var(--surface2);
+  color: var(--text);
+  font-weight: 800;
+  letter-spacing: 0;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.category-count { color: var(--text3); font-weight: 600; margin-left: 8px; font-size: 12px; }
+.consumption-badge { display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 9px;background:rgba(245,158,11,0.14);color:var(--yellow);font-size:12px;font-weight:700; }
+.stock-low { color: var(--red); font-size: 12px; display:block; margin-top:4px; }
+.stock-ok { color: var(--text3); font-size: 12px; display:block; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -129,7 +143,7 @@
   <div class="topbar">
     <div>
       <div class="page-title">Equipamentos</div>
-      <div class="page-subtitle">Gerencie seu estoque de equipamentos</div>
+      <div class="page-subtitle">Gerencie equipamentos e materiais de consumo</div>
     </div>
   </div>
 
@@ -137,11 +151,11 @@
     <div class="section-header">
       <div class="search-wrap" style="width:300px">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input class="search-input" type="text" placeholder="Buscar equipamento...">
+        <input class="search-input" type="text" placeholder="Buscar equipamento, material ou categoria...">
       </div>
       <button class="btn btn-primary"
 onclick="window.location.href='05-cadastro-equipamento.html'">
-  + Novo Equipamento
+  + Novo Item
 </button>
     </div>
 
@@ -416,6 +430,133 @@ function textoOrigemManutencao(origens = []) {
     : "";
 }
 
+const categoriasPreferidas = ["Som", "Iluminação", "Painel de LED", "Cabos", "Energia", "Estrutura", "Consumo"];
+
+function categoriaOrdemEstoque(categoria) {
+  const normalizada = GE.normalizar(categoria);
+  const indice = categoriasPreferidas.findIndex((item) => GE.normalizar(item) === normalizada);
+  return indice >= 0 ? indice : categoriasPreferidas.length;
+}
+
+function rotuloCategoriaEstoque(categoria) {
+  const texto = String(categoria || "").trim();
+  const mapa = {
+    iluminacao: "Iluminação",
+    cabos: "Cabos",
+    cabo: "Cabos",
+    "painel de led": "Painel de LED"
+  };
+  return mapa[GE.normalizar(texto)] || texto || "Sem categoria";
+}
+
+function unidadeComQuantidadeEstoque(quantidade, unidade = "unidade") {
+  const valor = Number(quantidade) || 0;
+  const base = String(unidade || "unidade").trim() || "unidade";
+  if (valor === 1) return base;
+  const plurais = {
+    unidade: "unidades",
+    rolo: "rolos",
+    frasco: "frascos",
+    caixa: "caixas",
+    pacote: "pacotes",
+    metro: "metros",
+    par: "pares",
+    case: "cases",
+    kit: "kits"
+  };
+  const normalizada = GE.normalizar(base);
+  if (plurais[normalizada]) return plurais[normalizada];
+  return base.toLowerCase().endsWith("s") ? base : base + "s";
+}
+
+function ordenarPorCategoriaENome(a, b) {
+  const ordem = categoriaOrdemEstoque(a.categoria) - categoriaOrdemEstoque(b.categoria);
+  if (ordem !== 0) return ordem;
+  return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
+}
+
+function iconeEditarHtml() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+}
+
+function iconeExcluirHtml() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
+}
+
+function iconeManutencaoHtml() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9l-3.8 3.8z" /></svg>`;
+}
+function linhaCategoriaEstoque(categoria, quantidade) {
+  const total = Number(quantidade) || 0;
+  const itemTexto = total === 1 ? "item" : "itens";
+  return `<tr class="category-row"><td colspan="6">${textoSeguro(rotuloCategoriaEstoque(categoria))}<span class="category-count">${total} ${itemTexto}</span></td></tr>`;
+}
+
+function estoqueMaterialTexto(material) {
+  const quantidade = Number(material.quantidade) || 0;
+  const minimo = Number(material.estoqueMinimo) || 0;
+  const unidade = material.unidade || "unidade";
+  const unidadeQuantidade = unidadeComQuantidadeEstoque(quantidade, unidade);
+  const unidadeMinimo = unidadeComQuantidadeEstoque(minimo, unidade);
+  const classe = minimo > 0 && quantidade <= minimo ? "stock-low" : "stock-ok";
+  const texto = minimo > 0 && quantidade <= minimo ? "Estoque baixo" : "Mínimo: " + minimo + " " + unidadeMinimo;
+  return `${quantidade} ${textoSeguro(unidadeQuantidade)}<span class="${classe}">${textoSeguro(texto)}</span>`;
+}
+
+function linhaEquipamentoEstoque(grupo) {
+  const nomeSeguro = textoSeguro(grupo.nome);
+  const codigosJson = textoSeguro(JSON.stringify(grupo.codigos));
+  return `
+    <tr data-status="${textoSeguro(grupo.status)}">
+      <td title="${textoSeguro(grupo.codigos.join(", "))}">${textoSeguro(resumoCodigos(grupo.codigos))}</td>
+      <td><a href="06-detalhe-equipamento.html?codigo=${encodeURIComponent(grupo.principal.codigo)}" style="color:var(--text);text-decoration:none;font-weight:500">${nomeSeguro}</a></td>
+      <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEstoque(grupo.categoria))}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.quantidade}</td>
+      <td>${conteudoStatusGrupo(grupo)}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="icon-btn" title="Editar primeiro item" aria-label="Editar ${nomeSeguro}" onclick="editarEquipamento('${grupo.principal.codigo}')">${iconeEditarHtml()}</button>
+          <button class="maintenance-action" title="Enviar primeira unidade para manutenção" aria-label="Enviar ${nomeSeguro} para manutenção" onclick="abrirModalManutencaoLista('${grupo.principal.codigo}')">${iconeManutencaoHtml()}</button>
+          <button class="icon-btn" title="Excluir grupo" aria-label="Excluir grupo ${nomeSeguro}" onclick='excluirGrupo(${codigosJson})'>${iconeExcluirHtml()}</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function linhaMaterialConsumo(material) {
+  const codigo = textoSeguro(material.codigo);
+  const nome = textoSeguro(material.nome);
+  return `
+    <tr data-status="consumo">
+      <td>${codigo}</td>
+      <td><a href="05-cadastro-equipamento.html?material=${encodeURIComponent(material.codigo)}" style="color:var(--text);text-decoration:none;font-weight:500">${nome}</a></td>
+      <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEstoque(material.categoria || "Consumo"))}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${estoqueMaterialTexto(material)}</td>
+      <td><span class="consumption-badge">Consumo</span></td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="icon-btn" title="Editar material" aria-label="Editar ${nome}" onclick="editarMaterialConsumo('${material.codigo}')">${iconeEditarHtml()}</button>
+          <button class="icon-btn" title="Excluir material" aria-label="Excluir ${nome}" onclick="excluirMaterialConsumo('${material.codigo}')">${iconeExcluirHtml()}</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function renderLinhasPorCategoria(itens) {
+  if (!itens.length) return "";
+  const categorias = new Map();
+  itens.sort(ordenarPorCategoriaENome).forEach((item) => {
+    const categoria = item.categoria || "Sem categoria";
+    if (!categorias.has(categoria)) categorias.set(categoria, []);
+    categorias.get(categoria).push(item);
+  });
+  return [...categorias.entries()].map(([categoria, linhas]) => {
+    return linhaCategoriaEstoque(categoria, linhas.length) + linhas.map((item) => item.tipo === "consumo" ? linhaMaterialConsumo(item) : linhaEquipamentoEstoque(item)).join("");
+  }).join("");
+}
+
 function renderEquipamentos() {
   const db = GE.dados();
   const termo = GE.normalizar(busca.value.trim());
@@ -426,36 +567,25 @@ function renderEquipamentos() {
       || eq.status === filtroAtual
       || (filtroAtual === "manutencao" && manutencaoPorCodigo.has(eq.codigo))
       || (filtroAtual === "evento" && statusFluxoEvento.includes(eq.status));
-    const combinaBusca = GE.normalizar(`${eq.codigo} ${eq.nome} ${eq.categoria}`).includes(termo);
+    const combinaBusca = GE.normalizar(eq.codigo + " " + eq.nome + " " + eq.categoria).includes(termo);
     return combinaStatus && combinaBusca;
   });
   const grupos = agruparEquipamentos(equipamentos, {
     eventoPorCodigo: mapaEventosPorCodigo(db.eventos || []),
     manutencaoPorCodigo
-  });
+  }).map((grupo) => ({ ...grupo, tipo: "equipamento" }));
 
-  tbody.innerHTML = grupos.map((grupo) => `
-    <tr data-status="${grupo.status}">
-      <td title="${grupo.codigos.join(", ")}">${resumoCodigos(grupo.codigos)}</td>
-      <td><a href="06-detalhe-equipamento.html?codigo=${grupo.principal.codigo}" style="color:var(--text);text-decoration:none;font-weight:500">${grupo.nome}</a></td>
-      <td style="color:var(--text2)">${grupo.categoria}</td>
-      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.quantidade}</td>
-      <td>${conteudoStatusGrupo(grupo)}</td>
-      <td>
-        <div style="display:flex;gap:6px">
-          <button class="icon-btn" title="Editar primeiro item" onclick="editarEquipamento('${grupo.principal.codigo}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-          <button class="maintenance-action" title="Enviar primeira unidade para manutenção" aria-label="Enviar ${grupo.nome} para manutenção" onclick="abrirModalManutencaoLista('${grupo.principal.codigo}')">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9l-3.8 3.8z" />
-            </svg>
-          </button>
-          <button class="icon-btn" title="Excluir grupo" onclick='excluirGrupo(${JSON.stringify(grupo.codigos)})'><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
-        </div>
-      </td>
-    </tr>
-  `).join("") || `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhum equipamento encontrado.</td></tr>`;
+  const mostrarConsumo = filtroAtual === "todos" || filtroAtual === "disponivel";
+  const materiais = mostrarConsumo
+    ? (db.materiaisConsumo || []).filter((material) => {
+        const combinaBusca = GE.normalizar(material.codigo + " " + material.nome + " " + material.categoria + " " + material.descricao).includes(termo);
+        return combinaBusca;
+      }).map((material) => ({ ...material, tipo: "consumo" }))
+    : [];
+
+  const linhas = renderLinhasPorCategoria([...grupos, ...materiais]);
+  tbody.innerHTML = linhas || `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhum item encontrado.</td></tr>`;
 }
-
 function nomeBase(nome) {
   return nome.replace(/\s+\d+$/, "").trim();
 }
@@ -518,13 +648,25 @@ function excluirEquipamento(codigo) {
 }
 
 function excluirGrupo(codigos) {
-  GE.confirmar(`Excluir ${codigos.length} equipamento(s) deste grupo?`, () => {
+  const textoQuantidade = codigos.length === 1 ? "1 equipamento" : codigos.length + " equipamentos";
+  GE.confirmar(`Excluir ${textoQuantidade} deste grupo?`, () => {
     codigos.forEach((codigo) => GE.removerEquipamento(codigo));
     renderEquipamentos();
     GE.mensagem("Grupo de equipamentos excluído.", "success");
   }, { titulo: "Excluir grupo", confirmar: "Excluir", perigo: true });
 }
 
+function editarMaterialConsumo(codigo) {
+  window.location.href = "05-cadastro-equipamento.html?material=" + encodeURIComponent(codigo);
+}
+
+function excluirMaterialConsumo(codigo) {
+  GE.confirmar("Excluir o material de consumo " + codigo + "?", () => {
+    GE.removerMaterialConsumo(codigo);
+    renderEquipamentos();
+    GE.mensagem("Material de consumo excluído.", "success");
+  }, { titulo: "Excluir material", confirmar: "Excluir", perigo: true });
+}
 function abrirModalManutencaoLista(codigo) {
   const eq = GE.getEquipamento(codigo);
   if (!eq) return;
