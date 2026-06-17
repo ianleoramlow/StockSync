@@ -582,6 +582,32 @@
         <div class="card">
           <div class="section-header" style="margin-bottom:12px">
             <div>
+              <div class="section-title">Materiais de Consumo</div>
+              <div class="section-subtitle">Separe itens descartáveis que serão consumidos no evento e darão baixa no estoque</div>
+            </div>
+          </div>
+          <div class="event-equipment-search">
+            <label class="form-label" for="buscaConsumoEvento">Buscar material de consumo</label>
+            <input class="input" id="buscaConsumoEvento" type="search" placeholder="Ex: fita, abraçadeira, pilha">
+            <div class="event-equipment-search-hint" id="buscaConsumoEventoInfo"></div>
+          </div>
+          <div class="table-wrap event-equipment-select-table mobile-card-table">
+            <table class="event-equipment-table">
+              <thead>
+                <tr>
+                  <th>Material</th>
+                  <th>Categoria</th>
+                  <th>Estoque</th>
+                  <th>Quantidade</th>
+                </tr>
+              </thead>
+              <tbody id="consumosEventoTabela"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-header" style="margin-bottom:12px">
+            <div>
               <div class="section-title">Locados de Terceiros</div>
               <div class="section-subtitle">Registre equipamentos alugados de outra empresa para este evento</div>
             </div>
@@ -747,6 +773,7 @@ function abrirModalEvento() {
   equipamentosSubtitulo.textContent = "Escolha a quantidade de cada item disponível para este evento";
   eventoJsonCard.style.display = "block";
   renderEquipamentosParaEvento();
+  renderMateriaisConsumoParaEvento();
   document.getElementById("modalEvento").style.display = "flex";
 }
 function fecharModalEvento() { document.getElementById("modalEvento").style.display = "none"; }
@@ -771,8 +798,11 @@ function quantidadeTotalEvento(evento) {
   const externos = (evento.equipamentosExternos || []).reduce((total, item) => {
     return total + Math.max(Number(item.quantidade) || 0, 0);
   }, 0);
+  const consumos = (evento.consumos || []).reduce((total, item) => {
+    return total + Math.max(Number(item.quantidade) || 0, 0);
+  }, 0);
 
-  return internos + externos;
+  return internos + externos + consumos;
 }
 
 function limparDetalheEventos() {
@@ -833,6 +863,9 @@ const escolher = modal.querySelector(".upload-area .btn-secondary");
 const equipamentosEventoTabela = document.getElementById("equipamentosEventoTabela");
 const buscaEquipamentoEvento = document.getElementById("buscaEquipamentoEvento");
 const buscaEquipamentoEventoInfo = document.getElementById("buscaEquipamentoEventoInfo");
+const consumosEventoTabela = document.getElementById("consumosEventoTabela");
+const buscaConsumoEvento = document.getElementById("buscaConsumoEvento");
+const buscaConsumoEventoInfo = document.getElementById("buscaConsumoEventoInfo");
 const modalTitulo = document.getElementById("modalEventoTitulo");
 const modalSubtitulo = document.getElementById("modalEventoSubtitulo");
 const equipamentosSubtitulo = document.getElementById("equipamentosEventoSubtitulo");
@@ -867,6 +900,7 @@ const finalizarEventoMensagem = document.getElementById("finalizarEventoMensagem
 const confirmarFinalizarEvento = document.getElementById("confirmarFinalizarEvento");
 let gruposEquipamentosEvento = [];
 let quantidadesEquipamentosEvento = new Map();
+let quantidadesConsumoEvento = new Map();
 let modoEvento = "novo";
 let eventoEditandoId = "";
 let manutencaoEventoAtual = { codigos: [], nome: "" };
@@ -901,6 +935,8 @@ function limparFormularioEvento() {
   externoEventoMensagem.textContent = "";
   if (buscaEquipamentoEvento) buscaEquipamentoEvento.value = "";
   quantidadesEquipamentosEvento.clear();
+  quantidadesConsumoEvento.clear();
+  if (buscaConsumoEvento) buscaConsumoEvento.value = "";
   equipamentosExternosEvento = [];
   renderEquipamentosExternosEvento();
 }
@@ -912,6 +948,46 @@ function textoSeguro(valor) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function rotuloCategoriaEvento(categoria) {
+  const texto = String(categoria || "").trim();
+  const mapa = {
+    iluminacao: "Iluminação",
+    cabos: "Cabos",
+    cabo: "Cabos",
+    "painel de led": "Painel de LED"
+  };
+  return mapa[GE.normalizar(texto)] || texto || "Sem categoria";
+}
+
+function pluralEvento(quantidade, singular, plural = singular + "s") {
+  return Number(quantidade) === 1 ? singular : plural;
+}
+
+function unidadeComQuantidadeEvento(quantidade, unidade = "unidade") {
+  const valor = Number(quantidade) || 0;
+  const base = String(unidade || "unidade").trim() || "unidade";
+  if (valor === 1) return base;
+  const plurais = {
+    unidade: "unidades",
+    rolo: "rolos",
+    frasco: "frascos",
+    caixa: "caixas",
+    pacote: "pacotes",
+    metro: "metros",
+    par: "pares",
+    case: "cases",
+    kit: "kits"
+  };
+  const normalizada = GE.normalizar(base);
+  if (plurais[normalizada]) return plurais[normalizada];
+  return base.toLowerCase().endsWith("s") ? base : base + "s";
+}
+
+function textoQuantidadeEvento(quantidade, unidade = "unidade") {
+  const valor = Number(quantidade) || 0;
+  return valor + " " + unidadeComQuantidadeEvento(valor, unidade);
 }
 
 function normalizarEquipamentoExterno(item) {
@@ -937,7 +1013,7 @@ function renderEquipamentosExternosEvento() {
         ${textoSeguro(item.nome)}
         ${item.observacao ? `<div class="external-row-detail">${textoSeguro(item.observacao)}</div>` : ""}
       </td>
-      <td style="color:var(--text2)">${textoSeguro(item.categoria || "Terceiros")}</td>
+      <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEvento(item.categoria || "Terceiros"))}</td>
       <td style="color:var(--text2)">${textoSeguro(item.empresa)}</td>
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${item.quantidade}</td>
       <td><button class="remove-external-btn" type="button" title="Remover locado" onclick="removerEquipamentoExternoEvento(${index})">×</button></td>
@@ -988,12 +1064,12 @@ function abrirManutencaoExternaEvento(index) {
   if (item.status === "manutencao_externo") return GE.mensagem("Este equipamento locado já está em manutenção.", "info");
 
   manutencaoEventoAtual = { tipo: "externo", index, nome: item.nome };
-  manutencaoEquipamentoEvento.value = item.nome + " (" + item.quantidade + " un.) - Locadora: " + item.empresa;
+  manutencaoEquipamentoEvento.value = item.nome + " (" + textoQuantidadeEvento(item.quantidade) + ") - Locadora: " + item.empresa;
   manutencaoCodigosEvento.innerHTML = '<div class="maintenance-code-option"><span>Equipamento locado de terceiros</span></div>';
   manutencaoQuantidadeEvento.value = String(item.quantidade);
   manutencaoQuantidadeEvento.disabled = true;
-  manutencaoSelecaoResumo.textContent = item.quantidade + " unidade(s) locada(s) de terceiros";
-  manutencaoPrioridadeEvento.value = "M?dia";
+  manutencaoSelecaoResumo.textContent = textoQuantidadeEvento(item.quantidade) + " " + pluralEvento(item.quantidade, "locada", "locadas") + " de terceiros";
+  manutencaoPrioridadeEvento.value = "Média";
   manutencaoTecnicoEvento.value = "";
   manutencaoProblemaEvento.value = "";
   manutencaoObservacoesEvento.value = "";
@@ -1058,6 +1134,7 @@ function abrirEditarEvento() {
   equipamentosExternosEvento = (evento.equipamentosExternos || []).map(normalizarEquipamentoExterno);
   renderEquipamentosExternosEvento();
   renderEquipamentosParaEvento(evento);
+  renderMateriaisConsumoParaEvento(evento);
   modal.style.display = "flex";
 }
 
@@ -1237,9 +1314,10 @@ function codigosSelecionadosManutencaoEvento() {
 
 function atualizarResumoManutencaoEvento() {
   const selecionados = codigosSelecionadosManutencaoEvento();
+  const total = manutencaoEventoAtual.codigos.length;
   manutencaoQuantidadeEvento.value = String(selecionados.length);
   manutencaoSelecaoResumo.textContent = selecionados.length
-    ? `${selecionados.length} de ${manutencaoEventoAtual.codigos.length} unidade(s) selecionada(s): ${selecionados.join(", ")}`
+    ? `${selecionados.length} de ${total} ${unidadeComQuantidadeEvento(total)} ${pluralEvento(selecionados.length, "selecionada", "selecionadas")}: ${selecionados.join(", ")}`
     : "Nenhuma unidade selecionada.";
 }
 
@@ -1272,7 +1350,7 @@ function abrirManutencaoEvento(codigosTexto, nomeEquipamento) {
   const codigos = codigosTexto.split(",").filter(Boolean).sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
   manutencaoEventoAtual = { tipo: "interno", codigos, nome: nomeEquipamento };
   manutencaoQuantidadeEvento.disabled = false;
-  manutencaoEquipamentoEvento.value = `${nomeEquipamento} (${codigos.length} un.) - ${resumoCodigos(codigos)}`;
+  manutencaoEquipamentoEvento.value = `${nomeEquipamento} (${textoQuantidadeEvento(codigos.length)}) - ${resumoCodigos(codigos)}`;
   renderSelecaoManutencaoEvento(codigos);
   manutencaoPrioridadeEvento.value = "Média";
   manutencaoTecnicoEvento.value = "";
@@ -1358,9 +1436,10 @@ function registrarManutencaoDoEvento() {
     return;
   }
 
+  const textoCodigos = codigosSelecionados.length === 1 ? "Código" : "Códigos";
   const detalhes = [
     problema,
-    `Código(s): ${codigosSelecionados.join(", ")}`,
+    `${textoCodigos}: ${codigosSelecionados.join(", ")}`,
     `Prioridade: ${prioridade}`,
     tecnico ? `Técnico: ${tecnico}` : "",
     observacoes ? `Observações: ${observacoes}` : "",
@@ -1444,6 +1523,7 @@ function renderEvento() {
 
   const grupos = agruparEquipamentosDoEvento(atualizado.equipamentos || []);
   const externos = (atualizado.equipamentosExternos || []).map(normalizarEquipamentoExterno);
+  const consumosEventoDetalhe = (atualizado.consumos || []).map(normalizarConsumoEvento);
   const linhasInternas = grupos.map((grupo) => {
     const emManutencao = grupo.status === "manutencao";
     const acaoDesabilitada = eventoFinalizado || emManutencao;
@@ -1455,7 +1535,7 @@ function renderEvento() {
     <tr>
       <td style="font-family:var(--mono);font-size:12px" title="${grupo.codigos.join(", ")}">${resumoCodigos(grupo.codigos)}</td>
       <td style="color:var(--text);font-weight:500">${nomeSeguro}</td>
-      <td style="color:var(--text2)">${textoSeguro(grupo.categoria)}</td>
+      <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEvento(grupo.categoria))}</td>
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.quantidade}</td>
       <td>${controleStatusGrupoHtml(grupo, eventoFinalizado)}</td>
       <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
@@ -1490,7 +1570,7 @@ function renderEvento() {
         ${textoSeguro(item.nome)}
         <div class="external-row-detail">Locadora: ${textoSeguro(item.empresa)}${item.observacao ? ` | ${textoSeguro(item.observacao)}` : ""}${item.problemaManutencao ? ` | Manutenção: ${textoSeguro(item.problemaManutencao)}` : ""}</div>
       </td>
-      <td style="color:var(--text2)">${textoSeguro(item.categoria || "Terceiros")}</td>
+      <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEvento(item.categoria || "Terceiros"))}</td>
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${item.quantidade}</td>
       <td>${badgeExterno}</td>
       <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
@@ -1516,7 +1596,23 @@ function renderEvento() {
   `;
   }).join("");
 
-  detalheTabela.innerHTML = linhasInternas + linhasExternas || `<tr><td colspan="8" style="color:var(--text3);font-family:var(--font)">Nenhum equipamento separado.</td></tr>`;
+  const linhasConsumo = consumosEventoDetalhe.map((item) => `
+    <tr class="external-equipment-row">
+      <td style="font-family:var(--mono);font-weight:700;color:var(--yellow)">CONSUMO</td>
+      <td>
+        <div style="color:var(--text);font-weight:600">${textoSeguro(item.nome)}</div>
+        <div class="external-row-detail">Material descartável - baixa no estoque</div>
+      </td>
+      <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEvento(item.categoria || "Consumo"))}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${textoQuantidadeEvento(item.quantidade, item.unidade || "unidade")}</td>
+      <td><span class="badge badge-yellow">Consumido</span></td>
+      <td style="color:var(--text3)">-</td>
+      <td style="color:var(--text3)">-</td>
+      <td style="color:var(--text3)">-</td>
+    </tr>
+  `).join("");
+
+  detalheTabela.innerHTML = linhasInternas + linhasExternas + linhasConsumo || `<tr><td colspan="8" style="color:var(--text3);font-family:var(--font)">Nenhum equipamento separado.</td></tr>`;
 
   if (eventoFinalizado) {
     detalheTabela.insertAdjacentHTML("beforeend", `<tr><td colspan="8"><div class="event-finalized-note">Evento finalizado em ${GE.dataBR(atualizado.finalizadoEm)}. Equipamentos retornaram para disponível, exceto itens em manutenção.</div></td></tr>`);
@@ -1603,7 +1699,7 @@ function renderEquipamentosParaEvento(evento = null) {
     return `
       <tr>
         <td style="color:var(--text);font-weight:500">${textoSeguro(grupo.nome)}</td>
-        <td style="color:var(--text2)">${textoSeguro(grupo.categoria)}</td>
+        <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEvento(grupo.categoria))}</td>
         <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.codigos.length}</td>
         <td>
           <input class="equipamento-evento-qtd" type="number" min="0" max="${grupo.codigos.length}" value="${quantidade}" data-index="${index}">
@@ -1613,9 +1709,11 @@ function renderEquipamentosParaEvento(evento = null) {
   }).join("") || `<tr><td colspan="4"><div class="empty-selection">${termo ? "Nenhum equipamento encontrado para essa busca." : "Nenhum equipamento disponível para seleção. Cadastre novos equipamentos ou retorne itens que estejam em evento, locação ou manutenção."}</div></td></tr>`;
 
   if (buscaEquipamentoEventoInfo) {
+    const totalTexto = pluralEvento(gruposEquipamentosEvento.length, "item", "itens");
+    const encontradosTexto = pluralEvento(gruposFiltrados.length, "encontrado", "encontrados");
     buscaEquipamentoEventoInfo.textContent = termo
-      ? `${gruposFiltrados.length} de ${gruposEquipamentosEvento.length} item(ns) encontrados`
-      : `${gruposEquipamentosEvento.length} item(ns) disponíveis para seleção`;
+      ? `${gruposFiltrados.length} de ${gruposEquipamentosEvento.length} ${totalTexto} ${encontradosTexto}`
+      : `${gruposEquipamentosEvento.length} ${totalTexto} disponíveis para seleção`;
   }
 }
 
@@ -1627,6 +1725,89 @@ function equipamentosSelecionadosNoModal() {
   });
 }
 
+function normalizarConsumoEvento(item = {}) {
+  return {
+    codigo: String(item.codigo || item.id || "").trim().toUpperCase(),
+    nome: String(item.nome || "").trim(),
+    categoria: String(item.categoria || "Consumo").trim() || "Consumo",
+    quantidade: Math.max(Number(item.quantidade) || 0, 0),
+    unidade: String(item.unidade || "unidade").trim() || "unidade"
+  };
+}
+
+function chaveConsumoEvento(item) {
+  return String(item.codigo || item.id || item.nome || "").trim().toUpperCase();
+}
+
+function salvarQuantidadesConsumoVisiveisEvento() {
+  modal.querySelectorAll(".consumo-evento-qtd").forEach((input) => {
+    const codigo = input.dataset.codigo;
+    const maximo = Number(input.max) || 0;
+    const quantidade = Math.max(0, Math.min(Number(input.value) || 0, maximo));
+    quantidadesConsumoEvento.set(codigo, quantidade);
+  });
+}
+
+function quantidadeConsumoSelecionadaEvento(evento, codigo) {
+  const item = (evento?.consumos || []).map(normalizarConsumoEvento).find((consumo) => consumo.codigo === codigo);
+  return item ? item.quantidade : 0;
+}
+
+function renderMateriaisConsumoParaEvento(evento = null) {
+  salvarQuantidadesConsumoVisiveisEvento();
+  const termo = GE.normalizar(buscaConsumoEvento?.value || "");
+  const materiais = (GE.dados().materiaisConsumo || [])
+    .map((material) => {
+      const codigo = chaveConsumoEvento(material);
+      const selecionada = quantidadesConsumoEvento.has(codigo)
+        ? quantidadesConsumoEvento.get(codigo)
+        : quantidadeConsumoSelecionadaEvento(evento, codigo);
+      const disponivel = Math.max(Number(material.quantidade) || 0, 0) + selecionada;
+      quantidadesConsumoEvento.set(codigo, Math.max(0, Math.min(Number(selecionada) || 0, disponivel)));
+      return { ...material, codigo, disponivel };
+    })
+    .filter((material) => {
+      const alvo = GE.normalizar([material.codigo, material.nome, material.categoria, material.descricao].join(" "));
+      return !termo || alvo.includes(termo);
+    });
+
+  consumosEventoTabela.innerHTML = materiais.map((material) => {
+    const quantidade = quantidadesConsumoEvento.get(material.codigo) || 0;
+    return `
+      <tr>
+        <td style="color:var(--text);font-weight:500">${textoSeguro(material.nome)}</td>
+        <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEvento(material.categoria || "Consumo"))}</td>
+        <td style="color:var(--text);font-family:var(--mono);font-weight:700">${textoQuantidadeEvento(material.disponivel, material.unidade || "unidade")}</td>
+        <td>
+          <input class="consumo-evento-qtd" type="number" min="0" max="${material.disponivel}" value="${quantidade}" data-codigo="${textoSeguro(material.codigo)}">
+        </td>
+      </tr>
+    `;
+  }).join("") || `<tr><td colspan="4"><div class="empty-selection">${termo ? "Nenhum material de consumo encontrado." : "Nenhum material de consumo cadastrado."}</div></td></tr>`;
+
+  if (buscaConsumoEventoInfo) {
+    const materialTexto = pluralEvento(materiais.length, "material", "materiais");
+    const encontradoTexto = pluralEvento(materiais.length, "encontrado", "encontrados");
+    buscaConsumoEventoInfo.textContent = termo
+      ? `${materiais.length} ${materialTexto} ${encontradoTexto}`
+      : `${materiais.length} ${materialTexto} de consumo disponíveis`;
+  }
+}
+
+function consumosSelecionadosNoModal() {
+  salvarQuantidadesConsumoVisiveisEvento();
+  return (GE.dados().materiaisConsumo || []).map((material) => {
+    const codigo = chaveConsumoEvento(material);
+    const quantidade = Number(quantidadesConsumoEvento.get(codigo)) || 0;
+    return {
+      codigo,
+      nome: material.nome,
+      categoria: material.categoria || "Consumo",
+      quantidade,
+      unidade: material.unidade || "unidade"
+    };
+  }).filter((item) => item.quantidade > 0);
+}
 escolher.addEventListener("click", () => {
   const input = document.createElement("input");
   input.type = "file";
@@ -1649,6 +1830,15 @@ if (buscaEquipamentoEvento) {
       ? (GE.dados().eventos || []).find((item) => item.id === eventoEditandoId)
       : null;
     renderEquipamentosParaEvento(evento);
+  });
+}
+
+if (buscaConsumoEvento) {
+  buscaConsumoEvento.addEventListener("input", () => {
+    const evento = modoEvento === "editar"
+      ? (GE.dados().eventos || []).find((item) => item.id === eventoEditandoId)
+      : null;
+    renderMateriaisConsumoParaEvento(evento);
   });
 }
 
@@ -1690,7 +1880,8 @@ salvar.addEventListener("click", () => {
       data: campoEventoData.value,
       local: campoEventoLocal.value,
       equipamentos: equipamentosSelecionadosNoModal(),
-      equipamentosExternos: equipamentosExternosEvento
+      equipamentosExternos: equipamentosExternosEvento,
+      consumos: consumosSelecionadosNoModal()
     };
   } else if (modoEvento === "novo" && textoJson) {
     try {
@@ -1701,7 +1892,8 @@ salvar.addEventListener("click", () => {
         data: parsed.data,
         local: parsed.local || "Local não informado",
         equipamentos: parsed.equipamentos || [],
-        equipamentosExternos: (parsed.equipamentos_externos || parsed.equipamentosExternos || []).map(normalizarEquipamentoExterno)
+        equipamentosExternos: (parsed.equipamentos_externos || parsed.equipamentosExternos || []).map(normalizarEquipamentoExterno),
+        consumos: (parsed.consumos || parsed.materiaisConsumo || parsed.materiais_consumo || []).map(normalizarConsumoEvento)
       };
     } catch (error) {
       GE.mensagem("JSON inválido.", "error");
@@ -1714,8 +1906,8 @@ salvar.addEventListener("click", () => {
     return;
   }
 
-  if (modoEvento === "novo" && !evento.equipamentos.length && !evento.equipamentosExternos.length) {
-    GE.mensagem("Selecione pelo menos um equipamento do estoque ou adicione um locado de terceiros.", "warning");
+  if (modoEvento === "novo" && !evento.equipamentos.length && !evento.equipamentosExternos.length && !evento.consumos.length) {
+    GE.mensagem("Selecione pelo menos um equipamento, material de consumo ou locado de terceiros.", "warning");
     return;
   }
 
