@@ -182,6 +182,60 @@
       background: rgba(124, 58, 237, 0.15);
     }
 
+    .event-list-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .event-list-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text2);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+
+    .event-list-tab span {
+      min-width: 22px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.14);
+      color: var(--accent2);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .event-list-tab.active {
+      border-color: rgba(124, 58, 237, 0.55);
+      background: rgba(124, 58, 237, 0.14);
+      color: var(--text);
+    }
+
+    @media (max-width: 720px) {
+      .event-list-controls {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .event-list-tab {
+        flex: 1 1 140px;
+        justify-content: center;
+      }
+    }
+
     .event-actions {
       display: flex;
       align-items: center;
@@ -481,8 +535,12 @@
     <div class="card" style="margin-bottom:20px;">
       <div class="section-header">
         <div>
-          <div class="section-title">Eventos Cadastrados</div>
-          <div class="section-subtitle">Clique em um evento para ver os equipamentos separados</div>
+          <div class="section-title" id="eventosListaTitulo">Eventos em andamento</div>
+          <div class="section-subtitle" id="eventosListaSubtitulo">Clique em um evento em andamento para ver os equipamentos separados</div>
+        </div>
+        <div class="event-list-controls" role="tablist" aria-label="Filtro de eventos">
+          <button class="event-list-tab active" type="button" data-event-filter="andamento">Em andamento <span id="eventosAndamentoTotal">0</span></button>
+          <button class="event-list-tab" type="button" data-event-filter="finalizados">Finalizados <span id="eventosFinalizadosTotal">0</span></button>
         </div>
       </div>
       <div class="table-wrap event-list-table mobile-card-table">
@@ -523,6 +581,7 @@
           <button class="btn btn-secondary" id="aplicarStatusEventoGeral" onclick="aplicarStatusEventoInteiro()">Aplicar</button>
         </div>
         <button class="btn btn-primary" id="finalizarEventoBotao" onclick="abrirFinalizarEvento()">Finalizar Evento</button>
+        <button class="btn btn-danger" id="excluirEventoFinalizadoBotao" onclick="excluirEventoFinalizadoSelecionado()" style="display:none">Excluir Finalizado</button>
       </div>
     </div>
     <div class="card">
@@ -802,10 +861,18 @@ const eventInfo = document.querySelector(".event-header [style*='font-size:12.5p
 const breadcrumbId = document.querySelector(".breadcrumb span");
 const eventosTabela = document.getElementById("eventosTabela");
 const detalheTabela = document.getElementById("eventoDetalheTabela");
+const eventosListaTitulo = document.getElementById("eventosListaTitulo");
+const eventosListaSubtitulo = document.getElementById("eventosListaSubtitulo");
+const filtrosEventosBotoes = document.querySelectorAll("[data-event-filter]");
 const finalizarEventoBotao = document.getElementById("finalizarEventoBotao");
+const excluirEventoFinalizadoBotao = document.getElementById("excluirEventoFinalizadoBotao");
 const statusEventoGeral = document.getElementById("statusEventoGeral");
 const aplicarStatusEventoGeral = document.getElementById("aplicarStatusEventoGeral");
-let eventoSelecionadoId = params.get("evento") || (GE.dados().eventos[0] ? GE.dados().eventos[0].id : "");
+const eventoInicialParam = params.get("evento");
+const eventosIniciais = GE.dados().eventos || [];
+let filtroEventos = params.get("status") === "finalizados" ? "finalizados" : "andamento";
+if (eventoInicialParam && eventosIniciais.some((evento) => evento.id === eventoInicialParam && evento.status === "Finalizado")) filtroEventos = "finalizados";
+let eventoSelecionadoId = eventoInicialParam || "";
 
 function nomeBaseEquipamento(nome) {
   return nome.replace(/\s+\d+$/, "").trim();
@@ -813,6 +880,36 @@ function nomeBaseEquipamento(nome) {
 
 function dataSaidaEvento(evento = {}) {
   return evento.dataSaida || evento.data_saida || evento.saida || evento.data || "";
+}
+
+function eventoEstaFinalizado(evento = {}) {
+  return evento.status === "Finalizado";
+}
+
+function eventosPorFiltro(eventos) {
+  return eventos.filter((evento) => filtroEventos === "finalizados" ? eventoEstaFinalizado(evento) : !eventoEstaFinalizado(evento));
+}
+
+function atualizarCabecalhoListaEventos(todosEventos) {
+  const andamento = todosEventos.filter((evento) => !eventoEstaFinalizado(evento)).length;
+  const finalizados = todosEventos.filter(eventoEstaFinalizado).length;
+
+  document.getElementById("eventosAndamentoTotal").textContent = String(andamento);
+  document.getElementById("eventosFinalizadosTotal").textContent = String(finalizados);
+
+  filtrosEventosBotoes.forEach((botao) => {
+    const ativo = botao.dataset.eventFilter === filtroEventos;
+    botao.classList.toggle("active", ativo);
+    botao.setAttribute("aria-selected", ativo ? "true" : "false");
+  });
+
+  if (filtroEventos === "finalizados") {
+    eventosListaTitulo.textContent = "Eventos finalizados";
+    eventosListaSubtitulo.textContent = "Consulte eventos encerrados e os equipamentos que foram usados";
+  } else {
+    eventosListaTitulo.textContent = "Eventos em andamento";
+    eventosListaSubtitulo.textContent = "Clique em um evento em andamento para ver os equipamentos separados";
+  }
 }
 
 function quantidadeTotalEvento(evento) {
@@ -828,9 +925,15 @@ function quantidadeTotalEvento(evento) {
 }
 
 function limparDetalheEventos() {
-  eventTitle.textContent = "Nenhum evento cadastrado";
-  eventInfo.textContent = "Crie um novo evento para separar equipamentos";
+  const abaFinalizados = filtroEventos === "finalizados";
+  eventTitle.textContent = abaFinalizados ? "Nenhum evento finalizado" : "Nenhum evento em andamento";
+  eventInfo.textContent = abaFinalizados ? "Eventos finalizados ficarão disponíveis para consulta" : "Crie ou selecione um evento em andamento";
   breadcrumbId.textContent = "-";
+  finalizarEventoBotao.disabled = true;
+  excluirEventoFinalizadoBotao.style.display = "none";
+  excluirEventoFinalizadoBotao.disabled = true;
+  statusEventoGeral.disabled = true;
+  aplicarStatusEventoGeral.disabled = true;
   detalheTabela.innerHTML = `<tr><td colspan="8" style="color:var(--text3);font-family:var(--font)">Nenhum evento selecionado.</td></tr>`;
 }
 
@@ -846,12 +949,28 @@ function configurarCliquesEventos() {
   });
 }
 
+function configurarFiltroEventos() {
+  filtrosEventosBotoes.forEach((botao) => {
+    botao.addEventListener("click", () => {
+      const novoFiltro = botao.dataset.eventFilter;
+      if (!novoFiltro || novoFiltro === filtroEventos) return;
+      filtroEventos = novoFiltro;
+      eventoSelecionadoId = "";
+      renderEventos("");
+      renderEvento();
+    });
+  });
+}
+
 function renderEventos(idParaSelecionar = eventoSelecionadoId) {
-  const eventos = GE.dados().eventos || [];
+  const todosEventos = GE.dados().eventos || [];
+  const eventos = eventosPorFiltro(todosEventos);
+  atualizarCabecalhoListaEventos(todosEventos);
 
   if (!eventos.length) {
     eventoSelecionadoId = "";
-    eventosTabela.innerHTML = `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhum evento cadastrado.</td></tr>`;
+    const mensagemVazia = filtroEventos === "finalizados" ? "Nenhum evento finalizado." : "Nenhum evento em andamento.";
+    eventosTabela.innerHTML = `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">${mensagemVazia}</td></tr>`;
     limparDetalheEventos();
     return;
   }
@@ -868,7 +987,7 @@ function renderEventos(idParaSelecionar = eventoSelecionadoId) {
       <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(evento.data)}</td>
       <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(dataSaidaEvento(evento))}</td>
       <td style="color:var(--text2)">${evento.local || "Local não informado"}</td>
-      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${quantidadeTotalEvento(evento)}${evento.status === "Finalizado" ? " | Finalizado" : ""}</td>
+      <td style="color:var(--text);font-family:var(--mono);font-weight:700">${quantidadeTotalEvento(evento)}${eventoEstaFinalizado(evento) ? " | Finalizado" : ""}</td>
     </tr>
   `).join("");
 
@@ -1537,6 +1656,27 @@ function registrarManutencaoDoEvento() {
   setTimeout(fecharModalManutencaoEvento, 650);
 }
 
+function excluirEventoFinalizadoSelecionado() {
+  const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
+  if (!evento) return GE.mensagem("Selecione um evento finalizado para excluir.", "warning");
+  if (!eventoEstaFinalizado(evento)) return GE.mensagem("Apenas eventos finalizados podem ser excluídos por aqui.", "warning");
+
+  GE.confirmar(
+    `Excluir o evento finalizado ${evento.id} - ${evento.nome}? Esta ação remove o evento do histórico, mas não altera o estoque atual.`,
+    () => {
+      const ok = GE.excluirEventoFinalizado(evento.id);
+      if (!ok) return GE.mensagem("Não foi possível excluir este evento.", "error");
+
+      GE.mensagem("Evento finalizado excluído.", "success");
+      eventoSelecionadoId = "";
+      filtroEventos = "finalizados";
+      renderEventos("");
+      renderEvento();
+    },
+    { titulo: "Excluir evento finalizado", confirmar: "Excluir", perigo: true }
+  );
+}
+
 function abrirFinalizarEvento() {
   const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
   if (!evento) {
@@ -1573,6 +1713,7 @@ function confirmarFinalizacaoEvento() {
   finalizarEventoMensagem.style.display = "block";
   finalizarEventoMensagem.style.color = "var(--green)";
   finalizarEventoMensagem.textContent = "Evento finalizado com sucesso.";
+  filtroEventos = "finalizados";
   renderEventos(eventoSelecionadoId);
   renderEvento();
   setTimeout(fecharModalFinalizarEvento, 650);
@@ -1591,6 +1732,8 @@ function renderEvento() {
   breadcrumbId.textContent = atualizado.id;
   const eventoFinalizado = atualizado.status === "Finalizado";
   finalizarEventoBotao.disabled = eventoFinalizado;
+  excluirEventoFinalizadoBotao.style.display = eventoFinalizado ? "inline-flex" : "none";
+  excluirEventoFinalizadoBotao.disabled = !eventoFinalizado;
   statusEventoGeral.disabled = eventoFinalizado;
   aplicarStatusEventoGeral.disabled = eventoFinalizado;
 
@@ -2014,11 +2157,13 @@ salvar.addEventListener("click", () => {
   }
 
   fecharModalEvento();
+  filtroEventos = eventoEstaFinalizado(eventoSalvo) ? "finalizados" : "andamento";
   renderEventos(eventoSalvo.id);
   renderEvento();
   GE.mensagem(modoEvento === "editar" ? "Evento atualizado com sucesso." : "Evento salvo. Materiais ficaram pendentes para separação.", "success");
 });
 
+configurarFiltroEventos();
 renderEventos();
 renderEvento();
 </script>
