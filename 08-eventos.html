@@ -269,7 +269,8 @@
     }
 
     .maintenance-action,
-    .remove-event-equipment {
+    .remove-event-equipment,
+    .edit-event-consumption {
       width: 34px;
       height: 34px;
       border-radius: 8px;
@@ -292,6 +293,12 @@
       color: var(--text3);
     }
 
+    .edit-event-consumption {
+      border: 1px solid rgba(124, 58, 237, 0.35);
+      background: rgba(124, 58, 237, 0.12);
+      color: var(--accent);
+    }
+
     .maintenance-action:hover {
       background: rgba(239, 68, 68, 0.2);
       border-color: rgba(239, 68, 68, 0.7);
@@ -305,14 +312,22 @@
       transform: translateY(-1px);
     }
 
+    .edit-event-consumption:hover {
+      background: rgba(124, 58, 237, 0.2);
+      border-color: rgba(124, 58, 237, 0.65);
+      transform: translateY(-1px);
+    }
+
     .maintenance-action svg,
-    .remove-event-equipment svg {
+    .remove-event-equipment svg,
+    .edit-event-consumption svg {
       width: 16px;
       height: 16px;
     }
 
     .maintenance-action:disabled,
     .remove-event-equipment:disabled,
+    .edit-event-consumption:disabled,
     .status-select:disabled,
     .status-pill-control.is-disabled {
       opacity: 0.5;
@@ -1107,6 +1122,53 @@ function removerEquipamentoExternoDoEvento(index) {
 }
 window.removerEquipamentoExternoDoEvento = removerEquipamentoExternoDoEvento;
 
+function editarConsumoDoEvento(index) {
+  const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
+  if (!evento) return GE.mensagem("Selecione um evento antes de editar o material de consumo.", "warning");
+  if (evento.status === "Finalizado") return GE.mensagem("Este evento já foi finalizado.", "warning");
+
+  const consumos = (evento.consumos || []).map(normalizarConsumoEvento);
+  const item = consumos[index];
+  abrirEditarEvento();
+
+  if (item && buscaConsumoEvento) {
+    buscaConsumoEvento.value = item.nome || item.codigo || "";
+    renderMateriaisConsumoParaEvento(evento);
+    setTimeout(() => buscaConsumoEvento.focus(), 0);
+  }
+}
+window.editarConsumoDoEvento = editarConsumoDoEvento;
+
+function removerConsumoDoEvento(index) {
+  const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
+  if (!evento) return GE.mensagem("Selecione um evento antes de remover o material de consumo.", "warning");
+  if (evento.status === "Finalizado") return GE.mensagem("Este evento já foi finalizado.", "warning");
+
+  const consumos = (evento.consumos || []).map(normalizarConsumoEvento);
+  const item = consumos[index];
+  if (!item) return GE.mensagem("Material de consumo não encontrado no evento.", "error");
+
+  GE.confirmar("Remover " + item.nome + " (" + textoQuantidadeEvento(item.quantidade, item.unidade || "unidade") + ") deste evento?", () => {
+    const atualizado = {
+      ...evento,
+      consumos: consumos.filter((_, itemIndex) => itemIndex !== index),
+      equipamentosExternos: evento.equipamentosExternos || []
+    };
+
+    const salvo = GE.editarEvento(evento.id, atualizado);
+    if (!salvo) {
+      GE.mensagem("Não foi possível remover o material de consumo do evento.", "error");
+      return;
+    }
+
+    GE.log("Removeu Material de Consumo do Evento", salvo.id + " - " + item.nome + " | " + textoQuantidadeEvento(item.quantidade, item.unidade || "unidade"), "badge-red");
+    renderEventos(salvo.id);
+    renderEvento();
+    GE.mensagem("Material de consumo removido do evento.", "success");
+  }, { titulo: "Remover material de consumo", confirmar: "Remover", perigo: true });
+}
+window.removerConsumoDoEvento = removerConsumoDoEvento;
+
 function abrirEditarEvento() {
   const evento = (GE.dados().eventos || []).find((item) => item.id === eventoSelecionadoId);
 
@@ -1596,7 +1658,7 @@ function renderEvento() {
   `;
   }).join("");
 
-  const linhasConsumo = consumosEventoDetalhe.map((item) => `
+  const linhasConsumo = consumosEventoDetalhe.map((item, index) => `
     <tr class="external-equipment-row">
       <td style="font-family:var(--mono);font-weight:700;color:var(--yellow)">CONSUMO</td>
       <td>
@@ -1606,9 +1668,26 @@ function renderEvento() {
       <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEvento(item.categoria || "Consumo"))}</td>
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${textoQuantidadeEvento(item.quantidade, item.unidade || "unidade")}</td>
       <td><span class="badge badge-yellow">Consumido</span></td>
-      <td style="color:var(--text3)">-</td>
-      <td style="color:var(--text3)">-</td>
-      <td style="color:var(--text3)">-</td>
+      <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(atualizado.data)}</td>
+      <td>
+        <div class="event-equipment-actions">
+          <button class="edit-event-consumption" title="Editar material no evento" aria-label="Editar ${textoSeguro(item.nome)} no evento" onclick="editarConsumoDoEvento(${index})" ${eventoFinalizado ? "disabled" : ""}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="remove-event-equipment" title="Remover material do evento" aria-label="Remover ${textoSeguro(item.nome)} do evento" onclick="removerConsumoDoEvento(${index})" ${eventoFinalizado ? "disabled" : ""}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18" />
+              <path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v5M14 11v5" />
+            </svg>
+          </button>
+        </div>
+      </td>
     </tr>
   `).join("");
 
