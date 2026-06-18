@@ -235,6 +235,21 @@ const GE = (() => {
 
   aplicarTema(temaSalvo());
 
+  const categoriasEstoquePadrao = ["Som", "Iluminação", "Painel de LED", "Cabos", "Energia", "Estrutura", "Consumo"];
+
+  function listaUnicaTexto(lista) {
+    const vistos = new Set();
+    return (Array.isArray(lista) ? lista : [])
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .filter((item) => {
+        const chave = normalizar(item);
+        if (vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      });
+  }
+
   const statusInfo = {
     disponivel: { texto: "Disponível", classe: "badge-green" },
     reservado: { texto: "Reservado p/ Evento", classe: "badge-purple" },
@@ -468,6 +483,7 @@ const GE = (() => {
   return {
       equipamentos: estoqueInicialEquipamentos(),
       materiaisConsumo: estoqueInicialConsumo(),
+      categoriasEstoque: [],
       eventos: [],
       locacoes: [],
       manutencoes: [],
@@ -538,6 +554,8 @@ const GE = (() => {
     corrigido.funcionarios = corrigido.funcionarios.map((funcionario) => ({ ...funcionario, cargo: cargoSistema(funcionario.cargo) }));
     corrigido.solicitacoesFuncionarios = corrigido.solicitacoesFuncionarios.map((solicitacao) => ({ ...solicitacao, cargo: cargoSistema(solicitacao.cargo) }));
     corrigido.materiaisConsumo = corrigido.materiaisConsumo.map(normalizarMaterialConsumo).filter((item) => item.nome);
+    corrigido.categoriasEstoque = listaUnicaTexto(corrigido.categoriasEstoque);
+    corrigido.preferencias = corrigido.preferencias && typeof corrigido.preferencias === "object" ? corrigido.preferencias : {};
     corrigido.eventos = corrigido.eventos.map((evento) => ({
       ...evento,
       consumos: normalizarConsumosEvento(evento.consumos || evento.materiaisConsumo || [])
@@ -718,6 +736,70 @@ const GE = (() => {
     const db = garantirEstrutura(dadosAtualizados);
     aplicarImagensEquipamentos(db);
     salvarJSON(chaveEmpresa(id), db);
+  }
+
+  function categoriasEstoque() {
+    const db = dados();
+    return listaUnicaTexto([...categoriasEstoquePadrao, ...(db.categoriasEstoque || [])]);
+  }
+
+  function salvarCategoriasEstoque(lista) {
+    const db = dados();
+    db.categoriasEstoque = listaUnicaTexto(lista);
+    db.logs.unshift({
+      data: hojeCurto(),
+      usuario: usuarioAtual().nome,
+      acao: "Atualizou Categorias",
+      tipo: "badge-purple",
+      detalhes: db.categoriasEstoque.join(", ") || "Categorias padrão"
+    });
+    salvar(db);
+    return categoriasEstoque();
+  }
+
+  function salvarEmpresaAtual(dadosEmpresa = {}) {
+    const atual = empresaAtual();
+    if (!atual) return null;
+
+    const nome = String(dadosEmpresa.nome || atual.nome || "").trim();
+    if (!nome) return { erro: "Informe o nome da empresa." };
+
+    const atualizada = {
+      ...atual,
+      nome,
+      telefone: String(dadosEmpresa.telefone || "").trim(),
+      email: String(dadosEmpresa.email || "").trim(),
+      endereco: String(dadosEmpresa.endereco || "").trim(),
+      observacoes: String(dadosEmpresa.observacoes || "").trim(),
+      atualizadaEm: new Date().toISOString()
+    };
+
+    const lista = empresas().map((empresa) => empresa.id === atual.id ? atualizada : empresa);
+    salvarEmpresas(lista);
+
+    const db = dados();
+    db.funcionarios = (db.funcionarios || []).map((funcionario) => ({
+      ...funcionario,
+      empresaNome: atualizada.nome,
+      empresaCodigo: atualizada.codigo || atualizada.id
+    }));
+    db.logs.unshift({
+      data: hojeCurto(),
+      usuario: usuarioAtual().nome,
+      acao: "Atualizou Empresa",
+      tipo: "badge-purple",
+      detalhes: atualizada.nome
+    });
+    salvar(db);
+
+    [USUARIO_KEY, SESSAO_KEY].forEach((chave) => {
+      const usuario = lerJSON(chave, null);
+      if (usuario?.empresaId === atual.id) {
+        salvarJSON(chave, { ...usuario, empresaNome: atualizada.nome, empresaCodigo: atualizada.codigo || atualizada.id });
+      }
+    });
+
+    return atualizada;
   }
 
   function emailExisteEmOutraEmpresa(email, empresaIgnorada = "") {
@@ -1615,7 +1697,7 @@ const GE = (() => {
     dados, salvar, log, normalizar, badge, statusInfo, dataBR, mensagem, imagemEquipamento,
     getEquipamento, salvarEquipamento, salvarEquipamentosEmLote, removerEquipamento, getMaterialConsumo, salvarMaterialConsumo, removerMaterialConsumo, enviarManutencao, finalizarManutencao,
     salvarEvento, editarEvento, atualizarStatusEvento, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
-    empresas, empresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema
+    empresas, empresaAtual, salvarEmpresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema, aplicarTema, categoriasEstoque, salvarCategoriasEstoque
   };
 })();
 
