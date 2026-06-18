@@ -491,7 +491,8 @@
             <tr>
               <th>ID</th>
               <th>Evento</th>
-              <th>Data</th>
+              <th>Data do Evento</th>
+              <th>Data de Saída</th>
               <th>Local</th>
               <th>Qtd. Equip.</th>
             </tr>
@@ -562,7 +563,8 @@
                 placeholder="Ex: EVT123"> </div>
             <div class="form-group"> <label class="form-label">Nome do Evento</label> <input class="input" id="eventoNome"
                 placeholder="Ex: Show de Verão 2024"> </div>
-            <div class="form-group"> <label class="form-label">Data</label> <input type="date" class="input" id="eventoData"> </div>
+            <div class="form-group"> <label class="form-label">Data do Evento</label> <input type="date" class="input" id="eventoData"> </div>
+            <div class="form-group"> <label class="form-label">Data de Saída do Depósito</label> <input type="date" class="input" id="eventoDataSaida"> </div>
             <div class="form-group"> <label class="form-label">Local</label> <input class="input" id="eventoLocal"
                 placeholder="Ex: Arena Anhembi"> </div>
           </div>
@@ -678,7 +680,7 @@
           <div style="margin-top:16px;">
             <div style="font-size:12px;color:var(--text3);margin-bottom:6px;"> Ou cole o JSON: </div> <textarea
               class="input"
-              placeholder='{ "evento_id": "EVT123", "nome": "Show de Verão 2024", "data": "2024-01-28", "equipamentos": ["EQP001", "EQP002"] }'
+              placeholder='{ "evento_id": "EVT123", "nome": "Show de Verão 2024", "data": "2024-01-28", "data_saida": "2024-01-26", "equipamentos": ["EQP001", "EQP002"] }'
               style="height:120px;font-family:var(--mono);font-size:12px;"></textarea>
           </div>
         </div> <!-- BOTÕES -->
@@ -809,6 +811,10 @@ function nomeBaseEquipamento(nome) {
   return nome.replace(/\s+\d+$/, "").trim();
 }
 
+function dataSaidaEvento(evento = {}) {
+  return evento.dataSaida || evento.data_saida || evento.saida || evento.data || "";
+}
+
 function quantidadeTotalEvento(evento) {
   const internos = (evento.equipamentos || []).length;
   const externos = (evento.equipamentosExternos || []).reduce((total, item) => {
@@ -845,7 +851,7 @@ function renderEventos(idParaSelecionar = eventoSelecionadoId) {
 
   if (!eventos.length) {
     eventoSelecionadoId = "";
-    eventosTabela.innerHTML = `<tr><td colspan="5" style="color:var(--text3);font-family:var(--font)">Nenhum evento cadastrado.</td></tr>`;
+    eventosTabela.innerHTML = `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhum evento cadastrado.</td></tr>`;
     limparDetalheEventos();
     return;
   }
@@ -860,6 +866,7 @@ function renderEventos(idParaSelecionar = eventoSelecionadoId) {
       <td style="font-family:var(--mono);font-weight:700">${evento.id}</td>
       <td style="color:var(--text);font-weight:600">${evento.nome}</td>
       <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(evento.data)}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(dataSaidaEvento(evento))}</td>
       <td style="color:var(--text2)">${evento.local || "Local não informado"}</td>
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${quantidadeTotalEvento(evento)}${evento.status === "Finalizado" ? " | Finalizado" : ""}</td>
     </tr>
@@ -889,6 +896,7 @@ const eventoJsonCard = document.getElementById("eventoJsonCard");
 const campoEventoId = document.getElementById("eventoId");
 const campoEventoNome = document.getElementById("eventoNome");
 const campoEventoData = document.getElementById("eventoData");
+const campoEventoDataSaida = document.getElementById("eventoDataSaida");
 const campoEventoLocal = document.getElementById("eventoLocal");
 const externoNome = document.getElementById("externoNome");
 const externoCategoria = document.getElementById("externoCategoria");
@@ -940,6 +948,7 @@ function limparFormularioEvento() {
   campoEventoId.value = "";
   campoEventoNome.value = "";
   campoEventoData.value = "";
+  campoEventoDataSaida.value = "";
   campoEventoLocal.value = "";
   modal.querySelector("textarea").value = "";
   externoNome.value = "";
@@ -1188,6 +1197,7 @@ function abrirEditarEvento() {
   campoEventoId.value = evento.id;
   campoEventoNome.value = evento.nome;
   campoEventoData.value = evento.data;
+  campoEventoDataSaida.value = dataSaidaEvento(evento);
   campoEventoLocal.value = evento.local || "";
   modal.querySelector("textarea").value = "";
   modalTitulo.textContent = "Editar Evento";
@@ -1577,7 +1587,7 @@ function renderEvento() {
   }
 
   eventTitle.textContent = atualizado.nome;
-  eventInfo.textContent = `${GE.dataBR(atualizado.data)} - ${atualizado.local || "Local não informado"}`;
+  eventInfo.textContent = `Evento: ${GE.dataBR(atualizado.data)} | Saída: ${GE.dataBR(dataSaidaEvento(atualizado))} | Local: ${atualizado.local || "Local não informado"}`;
   breadcrumbId.textContent = atualizado.id;
   const eventoFinalizado = atualizado.status === "Finalizado";
   finalizarEventoBotao.disabled = eventoFinalizado;
@@ -1602,7 +1612,7 @@ function renderEvento() {
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${grupo.quantidade}</td>
       <td>${controleStatusGrupoHtml(grupo, eventoFinalizado)}</td>
       <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
-      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(atualizado.data)}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(dataSaidaEvento(atualizado))}</td>
       <td>
         <div class="event-equipment-actions">
         <button class="maintenance-action" title="${emManutencao ? "Item j\u00e1 est\u00e1 em manuten\u00e7\u00e3o" : "Enviar para manuten\u00e7\u00e3o"}" aria-label="Enviar ${nomeSeguro} para manuten\u00e7\u00e3o" onclick="abrirManutencaoEvento('${codigosTexto}', '${nomeAcao}')" ${acaoDesabilitada ? "disabled" : ""}>
@@ -1637,7 +1647,7 @@ function renderEvento() {
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${item.quantidade}</td>
       <td>${badgeExterno}</td>
       <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
-      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(atualizado.data)}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(dataSaidaEvento(atualizado))}</td>
       <td>
         <div class="event-equipment-actions">
           <button class="maintenance-action" title="${emManutencao ? "Item já está em manutenção" : "Enviar para manutenção"}" aria-label="Enviar ${textoSeguro(item.nome)} para manutenção" onclick="abrirManutencaoExternaEvento(${index})" ${eventoFinalizado || emManutencao ? "disabled" : ""}>
@@ -1670,7 +1680,7 @@ function renderEvento() {
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${textoQuantidadeEvento(item.quantidade, item.unidade || "unidade")}</td>
       <td><span class="badge badge-yellow">Consumido</span></td>
       <td style="color:var(--text2)">${atualizado.responsavel || "Freelancer"}</td>
-      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(atualizado.data)}</td>
+      <td style="color:var(--text2);font-family:var(--mono);font-size:12px">${GE.dataBR(dataSaidaEvento(atualizado))}</td>
       <td>
         <div class="event-equipment-actions">
           <button class="edit-event-consumption" title="Editar material no evento" aria-label="Editar ${textoSeguro(item.nome)} no evento" onclick="editarConsumoDoEvento(${index})" ${eventoFinalizado ? "disabled" : ""}>
@@ -1923,6 +1933,7 @@ if (buscaConsumoEvento) {
 }
 
 campoEventoData.addEventListener("change", () => {
+  if (!campoEventoDataSaida.value) campoEventoDataSaida.value = campoEventoData.value;
   const evento = modoEvento === "editar"
     ? (GE.dados().eventos || []).find((item) => item.id === eventoEditandoId)
     : null;
@@ -1958,6 +1969,7 @@ salvar.addEventListener("click", () => {
       id: campoEventoId.value,
       nome: campoEventoNome.value,
       data: campoEventoData.value,
+      dataSaida: campoEventoDataSaida.value || campoEventoData.value,
       local: campoEventoLocal.value,
       equipamentos: equipamentosSelecionadosNoModal(),
       equipamentosExternos: equipamentosExternosEvento,
@@ -1970,6 +1982,7 @@ salvar.addEventListener("click", () => {
         id: parsed.evento_id || parsed.id,
         nome: parsed.nome,
         data: parsed.data,
+        dataSaida: parsed.dataSaida || parsed.data_saida || parsed.saida || parsed.data,
         local: parsed.local || "Local não informado",
         equipamentos: parsed.equipamentos || [],
         equipamentosExternos: (parsed.equipamentos_externos || parsed.equipamentosExternos || []).map(normalizarEquipamentoExterno),
