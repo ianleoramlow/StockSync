@@ -1241,6 +1241,27 @@ const GE = (() => {
     return true;
   }
 
+  function excluirEventoFinalizado(eventoId) {
+    const db = dados();
+    const indice = db.eventos.findIndex((item) => item.id === eventoId);
+    if (indice < 0) return false;
+
+    const evento = db.eventos[indice];
+    if (evento.status !== "Finalizado") return false;
+
+    db.eventos.splice(indice, 1);
+    db.logs.unshift({
+      data: hojeCurto(),
+      usuario: usuarioAtual().nome,
+      acao: "Excluiu Evento Finalizado",
+      tipo: "badge-red",
+      detalhes: `${evento.id} - ${evento.nome}`
+    });
+
+    salvar(db);
+    return true;
+  }
+
   function finalizarEvento(eventoId, observacao = "") {
     const db = dados();
     const evento = db.eventos.find((item) => item.id === eventoId);
@@ -1698,7 +1719,7 @@ const GE = (() => {
   return {
     dados, salvar, log, normalizar, badge, statusInfo, dataBR, mensagem, imagemEquipamento,
     getEquipamento, salvarEquipamento, salvarEquipamentosEmLote, removerEquipamento, getMaterialConsumo, salvarMaterialConsumo, removerMaterialConsumo, enviarManutencao, finalizarManutencao,
-    salvarEvento, editarEvento, atualizarStatusEvento, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
+    salvarEvento, editarEvento, atualizarStatusEvento, excluirEventoFinalizado, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
     empresas, empresaAtual, salvarEmpresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema, aplicarTema, categoriasEstoque, salvarCategoriasEstoque
   };
 })();
