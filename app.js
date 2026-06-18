@@ -273,7 +273,7 @@ const GE = (() => {
     ],
     materiaisConsumo: estoqueInicialConsumo(),
     eventos: [
-      { id: "EVT123", nome: "Show de Verão 2024", data: "2024-01-20", local: "Arena Anhembi", equipamentos: ["EQP002"], responsavel: "João Silva" }
+      { id: "EVT123", nome: "Show de Verão 2024", data: "2024-01-20", dataSaida: "2024-01-18", local: "Arena Anhembi", equipamentos: ["EQP002"], responsavel: "João Silva" }
     ],
     locacoes: [
       { empresa: "TechSom Eventos", saida: "2024-01-15", retorno: "2024-01-25", equipamentos: ["EQP003"], status: "Em Andamento" },
@@ -558,6 +558,7 @@ const GE = (() => {
     corrigido.preferencias = corrigido.preferencias && typeof corrigido.preferencias === "object" ? corrigido.preferencias : {};
     corrigido.eventos = corrigido.eventos.map((evento) => ({
       ...evento,
+      dataSaida: evento.dataSaida || evento.data_saida || evento.saida || evento.data || "",
       consumos: normalizarConsumosEvento(evento.consumos || evento.materiaisConsumo || [])
     }));
     return corrigido;
@@ -1144,7 +1145,7 @@ const GE = (() => {
       contador += 1;
     }
 
-    const registro = { ...evento, id, equipamentos, equipamentosExternos, consumos, responsavel: usuarioAtual().nome };
+    const registro = { ...evento, id, dataSaida: evento.dataSaida || evento.data_saida || evento.saida || evento.data, equipamentos, equipamentosExternos, consumos, responsavel: usuarioAtual().nome };
     db.eventos.unshift(registro);
     aplicarMovimentoConsumosEvento(db, [], consumos);
     db.equipamentos.forEach((eq) => {
@@ -1178,6 +1179,7 @@ const GE = (() => {
       ...db.eventos[indice],
       ...evento,
       id,
+      dataSaida: evento.dataSaida || evento.data_saida || evento.saida || evento.data || db.eventos[indice].dataSaida || db.eventos[indice].data || "",
       equipamentos,
       equipamentosExternos,
       consumos,
