@@ -1705,6 +1705,7 @@ const GE = (() => {
 
   function configurarMobileCardsResumidos() {
     if (!document.body.classList.contains('mobile-shell-ready')) return;
+    document.body.classList.remove('mobile-summary-ready');
   
     const textoCelula = (celula) => String(celula?.textContent || '').replace(/\s+/g, ' ').trim();
     const rotuloLimpo = (texto) => normalizar(texto || '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -1964,6 +1965,7 @@ const GE = (() => {
         linha.prepend(summary);
         linha.appendChild(botao);
       });
+      document.body.classList.add('mobile-summary-ready');
     };
   
     if (!document.body.dataset.mobileSummaryObserver) {
