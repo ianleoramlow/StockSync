@@ -1567,6 +1567,425 @@ const GE = (() => {
     });
   }
 
+  function mobileIcone(nome) {
+    const atributos = 'xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+    const icones = {
+      menu: '<svg ' + atributos + '><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+      dashboard: '<svg ' + atributos + '><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>',
+      equipamentos: '<svg ' + atributos + '><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
+      eventos: '<svg ' + atributos + '><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+      locacoes: '<svg ' + atributos + '><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+      manutencao: '<svg ' + atributos + '><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.4-3.4a6 6 0 0 1-7.8 7.8l-6.4 6.4a2 2 0 1 1-2.8-2.8l6.4-6.4a6 6 0 0 1 7.8-7.8Z"/></svg>',
+      funcionarios: '<svg ' + atributos + '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      logs: '<svg ' + atributos + '><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
+      configuracoes: '<svg ' + atributos + '><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.86l.04.04a2 2 0 1 1-2.83 2.83l-.04-.04a1.7 1.7 0 0 0-1.86-.34 1.7 1.7 0 0 0-1.05 1.57V22a2 2 0 0 1-4 0v-.08a1.7 1.7 0 0 0-1.05-1.57 1.7 1.7 0 0 0-1.86.34l-.04.04a2 2 0 1 1-2.83-2.83l.04-.04A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.57-1.05H3a2 2 0 0 1 0-4h.08A1.7 1.7 0 0 0 4.6 8.4a1.7 1.7 0 0 0-.34-1.86l-.04-.04a2 2 0 1 1 2.83-2.83l.04.04A1.7 1.7 0 0 0 8.95 4.05 1.7 1.7 0 0 0 10 2.48V2a2 2 0 0 1 4 0v.48a1.7 1.7 0 0 0 1.05 1.57 1.7 1.7 0 0 0 1.86-.34l.04-.04a2 2 0 1 1 2.83 2.83l-.04.04A1.7 1.7 0 0 0 19.4 8.4a1.7 1.7 0 0 0 1.57 1.55H21a2 2 0 0 1 0 4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></svg>',
+      bell: '<svg ' + atributos + '><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+      close: '<svg ' + atributos + '><path d="M18 6 6 18M6 6l12 12"/></svg>',
+      mais: '<svg ' + atributos + '><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+      tema: '<svg ' + atributos + '><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+      sair: '<svg ' + atributos + '><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>'
+    };
+    return icones[nome] || icones.dashboard;
+  }
+
+  function configurarMobileShell() {
+    if (!document.querySelector('.sidebar') || !document.querySelector('.main')) return;
+    if (/01-login\.html$/i.test(location.pathname)) return;
+  
+    const parametrosPagina = new URLSearchParams(location.search);
+    const cadastroPublico = /02-cadastro-funcionario\.html$/i.test(location.pathname) && parametrosPagina.has('novo');
+    if (cadastroPublico) return;
+  
+    document.body.classList.add('mobile-shell-ready');
+    document.querySelectorAll('.mobile-appbar, .mobile-bottom-nav, .mobile-more-backdrop, .mobile-more-sheet').forEach((item) => item.remove());
+  
+    const usuario = usuarioAtual();
+    const empresa = empresaAtual();
+    const avatarFoto = usuario.foto ? ' style="background-image:url(&quot;' + textoInterfaceSeguro(usuario.foto) + '&quot;)"' : '';
+    const avatarTexto = usuario.foto ? '' : textoInterfaceSeguro(iniciaisUsuario(usuario.nome));
+  
+    const appbar = document.createElement('header');
+    appbar.className = 'mobile-appbar';
+    appbar.innerHTML = `
+      <button class="mobile-icon-button mobile-menu-open" type="button" aria-label="Abrir menu">${mobileIcone('menu')}</button>
+      <a class="mobile-brand" href="03-dashboard.html" aria-label="StockSync">
+        <img src="assets/logo-stocksync-icon.png" alt="StockSync">
+        <span>StockSync</span>
+      </a>
+      <button class="mobile-icon-button bell mobile-bell" type="button" aria-label="Notifica\u00e7\u00f5es">${mobileIcone('bell')}</button>
+      <button class="mobile-profile-chip" type="button" aria-label="Abrir perfil">
+        <span class="mobile-profile-avatar"${avatarFoto}>${avatarTexto}</span>
+      </button>
+    `;
+  
+    const linksPrincipais = [
+      { href: '03-dashboard.html', label: 'Dashboard', icone: 'dashboard', teste: /03-dashboard\.html$/i },
+      { href: '04-equipamentos.html', label: 'Equipamentos', icone: 'equipamentos', teste: /04-equipamentos\.html|05-cadastro-equipamento\.html|06-detalhe-equipamento\.html/i },
+      { href: '08-eventos.html', label: 'Eventos', icone: 'eventos', teste: /08-eventos\.html/i }
+    ];
+  
+    const paginaAtual = location.pathname.split('/').pop() || '';
+    const maisAtivo = !linksPrincipais.some((item) => item.teste.test(paginaAtual));
+    const bottom = document.createElement('nav');
+    bottom.className = 'mobile-bottom-nav';
+    bottom.innerHTML = linksPrincipais.map((item) => `
+      <a class="mobile-bottom-link ${item.teste.test(paginaAtual) ? 'active' : ''}" href="${item.href}">
+        ${mobileIcone(item.icone)}
+        <span>${item.label}</span>
+      </a>
+    `).join('') + `
+      <button class="mobile-bottom-link mobile-bottom-more ${maisAtivo ? 'active' : ''}" type="button">
+        ${mobileIcone('mais')}
+        <span>Mais</span>
+      </button>
+    `;
+  
+    const backdrop = document.createElement('div');
+    backdrop.className = 'mobile-more-backdrop';
+  
+    const sheet = document.createElement('aside');
+    sheet.className = 'mobile-more-sheet';
+    sheet.innerHTML = `
+      <div class="mobile-more-handle"></div>
+      <div class="mobile-more-head">
+        <div class="mobile-more-user">
+          <span class="mobile-more-avatar"${avatarFoto}>${avatarTexto}</span>
+          <div>
+            <strong>${textoInterfaceSeguro(usuario.nome || 'Usu\u00e1rio')}</strong>
+            <span>${textoInterfaceSeguro(usuario.cargo || 'Freelancer')} \u00b7 C\u00f3digo: ${textoInterfaceSeguro(codigoAcessoEmpresa(empresa))}</span>
+          </div>
+        </div>
+        <button class="mobile-icon-button mobile-more-close" type="button" aria-label="Fechar menu">${mobileIcone('close')}</button>
+      </div>
+      <div class="mobile-more-list">
+        <a href="09-locacoes.html">${mobileIcone('locacoes')}<span>Loca\u00e7\u00f5es</span></a>
+        <a href="10-manutencao-registrar.html">${mobileIcone('manutencao')}<span>Manuten\u00e7\u00e3o</span></a>
+        <a href="02-cadastro-funcionario.html">${mobileIcone('funcionarios')}<span>Funcion\u00e1rios</span></a>
+        <a href="12-logs.html">${mobileIcone('logs')}<span>Logs do Sistema</span></a>
+        <a href="13-configuracoes.html">${mobileIcone('configuracoes')}<span>Configura\u00e7\u00f5es</span></a>
+        <button class="mobile-more-theme" type="button">${mobileIcone('tema')}<span>Alternar tema</span></button>
+        <button class="mobile-more-logout" type="button">${mobileIcone('sair')}<span>Sair</span></button>
+      </div>
+    `;
+  
+    document.body.append(appbar, bottom, backdrop, sheet);
+  
+    const abrirMenu = () => {
+      backdrop.classList.add('is-open');
+      sheet.classList.add('is-open');
+      document.body.classList.add('mobile-more-open');
+    };
+    const fecharMenu = () => {
+      backdrop.classList.remove('is-open');
+      sheet.classList.remove('is-open');
+      document.body.classList.remove('mobile-more-open');
+    };
+    const alternarTema = () => aplicarTema(document.documentElement.dataset.theme === 'light' ? 'escuro' : 'claro');
+  
+    appbar.querySelector('.mobile-menu-open')?.addEventListener('click', abrirMenu);
+    bottom.querySelector('.mobile-bottom-more')?.addEventListener('click', abrirMenu);
+    backdrop.addEventListener('click', fecharMenu);
+    sheet.querySelector('.mobile-more-close')?.addEventListener('click', fecharMenu);
+    sheet.querySelector('.mobile-more-theme')?.addEventListener('click', alternarTema);
+    sheet.querySelector('.mobile-more-logout')?.addEventListener('click', () => {
+      localStorage.removeItem(SESSAO_KEY);
+      localStorage.removeItem(EMPRESA_ATUAL_KEY);
+      window.location.href = '01-login.html';
+    });
+    appbar.querySelector('.mobile-bell')?.addEventListener('click', () => mensagem('Nenhuma notifica\u00e7\u00e3o nova.', 'info'));
+    appbar.querySelector('.mobile-profile-chip')?.addEventListener('click', () => {
+      const abrirPerfil = document.getElementById('abrirPerfil');
+      if (abrirPerfil && /03-dashboard\.html$/i.test(location.pathname)) {
+        abrirPerfil.click();
+        return;
+      }
+      window.location.href = '03-dashboard.html';
+    });
+  }
+
+  function configurarMobileCardsResumidos() {
+    if (!document.body.classList.contains('mobile-shell-ready')) return;
+  
+    const textoCelula = (celula) => String(celula?.textContent || '').replace(/\s+/g, ' ').trim();
+    const rotuloLimpo = (texto) => normalizar(texto || '').replace(/[^a-z0-9]+/g, ' ').trim();
+    const textoCurto = (texto, limite = 72) => {
+      const limpo = String(texto || '').replace(/\s+/g, ' ').trim();
+      return limpo.length > limite ? limpo.slice(0, limite - 3).trimEnd() + '...' : limpo;
+    };
+  
+    const primeiroCodigo = (texto) => {
+      const limpo = String(texto || '').replace(/\s+/g, ' ').trim();
+      const candidato = limpo.split(/[,;|]/)[0]?.trim() || limpo.split(/\s+/)[0] || '';
+      return candidato.replace(/[^a-zA-Z0-9_-]/g, '');
+    };
+    const htmlStatusResumo = (celula) => {
+      if (!celula) return '';
+      const controle = celula.querySelector('.status-pill-control');
+      if (controle) {
+        const select = controle.querySelector('select');
+        const texto = (select ? select.options[select.selectedIndex]?.textContent : controle.textContent || '').trim();
+        const classes = Array.from(controle.classList)
+          .filter((classe) => classe !== 'status-pill-control' && classe !== 'is-disabled')
+          .join(' ');
+        return '<span class="status-pill-control ' + textoInterfaceSeguro(classes) + ' is-static"><span>' + textoInterfaceSeguro(texto || 'Status') + '</span></span>';
+      }
+  
+      const badge = celula.querySelector('.badge, .event-name-badge, .consumption-badge');
+      if (badge) return badge.outerHTML;
+  
+      const texto = textoCelula(celula);
+      return texto ? '<span class="mobile-row-status-text">' + textoInterfaceSeguro(textoCurto(texto, 28)) + '</span>' : '';
+    };
+  
+  
+    const rotulosTabela = (tabela, celulas) => {
+      const cabecalhos = Array.from(tabela.querySelectorAll('thead th')).map((th) => th.textContent.trim());
+      return celulas.map((celula, index) => celula.dataset.label || cabecalhos[index] || `Campo ${index + 1}`);
+    };
+  
+    const indicePorRotulo = (rotulos, termos) => {
+      const normalizados = termos.map(rotuloLimpo);
+      return rotulos.findIndex((rotulo) => {
+        const atual = rotuloLimpo(rotulo);
+        return normalizados.some((termo) => atual === termo || atual.includes(termo));
+      });
+    };
+  
+    const resumoParaLinha = (linha, celulas, rotulos) => {
+      const envoltorio = linha.closest('.table-wrap, .mobile-card-table, .maintenance-table');
+      const pagina = location.pathname.split('/').pop() || '';
+      const tabelaLogs = Boolean(envoltorio?.classList.contains('logs-table'));
+      const tabelaEventos = Boolean(envoltorio?.classList.contains('event-list-table'));
+      const tabelaDetalheEvento = Boolean(envoltorio?.classList.contains('event-detail-table'));
+      const tabelaLocacoes = Boolean(envoltorio?.classList.contains('locacoes-table'));
+      const tabelaManutencao = Boolean(envoltorio?.classList.contains('maintenance-table'));
+      const tabelaFuncionarios = linha.parentElement?.id === 'funcionariosTabela' || linha.parentElement?.id === 'solicitacoesTabela';
+      const tabelaEquipamentos = /04-equipamentos\.html$/i.test(pagina);
+  
+      const idx = {
+        codigo: indicePorRotulo(rotulos, ['codigo', 'codigos', 'id']),
+        nome: indicePorRotulo(rotulos, ['nome', 'equipamento', 'evento', 'empresa', 'material']),
+        categoria: indicePorRotulo(rotulos, ['categoria']),
+        quantidade: indicePorRotulo(rotulos, ['quantidade', 'qtd', 'qtd equip', 'estoque']),
+        status: indicePorRotulo(rotulos, ['status', 'situacao']),
+        cargo: indicePorRotulo(rotulos, ['cargo']),
+        email: indicePorRotulo(rotulos, ['email', 'e mail']),
+        telefone: indicePorRotulo(rotulos, ['telefone']),
+        data: indicePorRotulo(rotulos, ['data do evento', 'data saida', 'data envio', 'data hora', 'data', 'saida', 'retorno']),
+        local: indicePorRotulo(rotulos, ['local']),
+        usuario: indicePorRotulo(rotulos, ['usuario', 'responsavel']),
+        acao: indicePorRotulo(rotulos, ['acao', 'acoes']),
+        problema: indicePorRotulo(rotulos, ['problema', 'detalhes'])
+      };
+  
+      let tituloIndice = idx.nome >= 0 ? idx.nome : 0;
+      let statusIndice = idx.status >= 0 ? idx.status : -1;
+      let metaIndices = [];
+  
+      if (tabelaLogs) {
+        tituloIndice = idx.acao >= 0 ? idx.acao : 2;
+        statusIndice = -1;
+        metaIndices = [idx.data, idx.usuario];
+      } else if (tabelaEventos) {
+        tituloIndice = idx.nome >= 0 ? idx.nome : 1;
+        statusIndice = -1;
+        metaIndices = [idx.data, idx.local, idx.quantidade];
+      } else if (tabelaFuncionarios) {
+        tituloIndice = idx.nome >= 0 ? idx.nome : 0;
+        statusIndice = idx.status >= 0 ? idx.status : idx.cargo;
+        metaIndices = [idx.email, idx.telefone, idx.cargo];
+      } else if (tabelaLocacoes) {
+        tituloIndice = idx.nome >= 0 ? idx.nome : 0;
+        statusIndice = idx.status;
+        metaIndices = [idx.data, idx.quantidade];
+      } else if (tabelaManutencao) {
+        tituloIndice = idx.nome >= 0 ? idx.nome : 1;
+        statusIndice = idx.status;
+        metaIndices = [idx.codigo, idx.problema, idx.data];
+      } else if (tabelaDetalheEvento) {
+        tituloIndice = idx.nome >= 0 ? idx.nome : 1;
+        statusIndice = idx.status;
+        metaIndices = [idx.codigo, idx.categoria, idx.quantidade, idx.usuario];
+      } else if (tabelaEquipamentos) {
+        tituloIndice = idx.nome >= 0 ? idx.nome : 1;
+        statusIndice = idx.status;
+        metaIndices = [idx.codigo, idx.categoria, idx.quantidade];
+      } else {
+        statusIndice = idx.status >= 0 ? idx.status : -1;
+        metaIndices = [idx.codigo, idx.categoria, idx.data, idx.local, idx.quantidade, idx.email];
+      }
+  
+      const tituloCelula = celulas[tituloIndice] || celulas[0];
+      const statusCelula = statusIndice >= 0 && statusIndice !== tituloIndice ? celulas[statusIndice] : null;
+      const meta = metaIndices
+        .filter((indice, pos, lista) => indice >= 0 && indice !== tituloIndice && indice !== statusIndice && lista.indexOf(indice) === pos)
+        .map((indice) => textoCurto(textoCelula(celulas[indice]), 34))
+        .filter(Boolean)
+        .slice(0, 2);
+      const codigoTexto = idx.codigo >= 0 ? primeiroCodigo(textoCelula(celulas[idx.codigo])) : '';
+      const categoriaTexto = idx.categoria >= 0 ? textoCelula(celulas[idx.categoria]) : '';
+      let imagem = '';
+      if ((tabelaEquipamentos || tabelaDetalheEvento || tabelaManutencao) && codigoTexto) {
+        const equipamento = getEquipamento(codigoTexto);
+        if (equipamento) imagem = equipamento.imagem || imagemEquipamento(equipamento) || '';
+      }
+  
+      const titulo = textoCurto(textoCelula(tituloCelula), 54) || 'Registro';
+      if ((tabelaEquipamentos || tabelaDetalheEvento || tabelaManutencao) && !imagem) {
+        imagem = imagemEquipamento({ nome: titulo, categoria: categoriaTexto });
+      }
+      return {
+        titulo,
+        meta,
+        statusHtml: htmlStatusResumo(statusCelula),
+        imagem
+      };
+    };
+  
+    const garantirGaveta = () => {
+      let backdrop = document.querySelector('.mobile-row-detail-backdrop');
+      let sheet = document.querySelector('.mobile-row-detail-sheet');
+      if (backdrop && sheet) return { backdrop, sheet };
+  
+      backdrop = document.createElement('div');
+      backdrop.className = 'mobile-row-detail-backdrop';
+      sheet = document.createElement('aside');
+      sheet.className = 'mobile-row-detail-sheet';
+      sheet.innerHTML = `
+        <div class="mobile-row-detail-handle"></div>
+        <div class="mobile-row-detail-head">
+          <div class="mobile-row-detail-title-wrap">
+            <strong class="mobile-row-detail-title">Detalhes</strong>
+            <span class="mobile-row-detail-subtitle"></span>
+          </div>
+          <button class="mobile-row-detail-close" type="button" aria-label="Fechar detalhes">&times;</button>
+        </div>
+        <div class="mobile-row-detail-status"></div>
+        <div class="mobile-row-detail-list"></div>
+      `;
+  
+      const fechar = () => {
+        backdrop.classList.remove('is-open');
+        sheet.classList.remove('is-open');
+        document.body.classList.remove('mobile-row-detail-open');
+      };
+      backdrop.addEventListener('click', fechar);
+      sheet.querySelector('.mobile-row-detail-close')?.addEventListener('click', fechar);
+      document.body.append(backdrop, sheet);
+      return { backdrop, sheet };
+    };
+  
+    const abrirDetalhesLinha = (linha, resumo, celulas, rotulos) => {
+      const { backdrop, sheet } = garantirGaveta();
+      const titulo = sheet.querySelector('.mobile-row-detail-title');
+      const subtitulo = sheet.querySelector('.mobile-row-detail-subtitle');
+      const status = sheet.querySelector('.mobile-row-detail-status');
+      const lista = sheet.querySelector('.mobile-row-detail-list');
+  
+      if (titulo) titulo.textContent = resumo.titulo || 'Detalhes';
+      if (subtitulo) subtitulo.textContent = resumo.meta.join(' | ');
+      if (status) status.innerHTML = resumo.statusHtml || '';
+      if (lista) {
+        lista.innerHTML = '';
+        celulas.forEach((celula, index) => {
+          const rotulo = rotulos[index] || `Campo ${index + 1}`;
+          const conteudoTexto = textoCelula(celula);
+          if (!conteudoTexto && !celula.children.length) return;
+  
+          const item = document.createElement('div');
+          item.className = 'mobile-row-detail-item';
+          const label = document.createElement('span');
+          label.className = 'mobile-row-detail-label';
+          label.textContent = rotulo;
+          const valor = document.createElement('div');
+          valor.className = 'mobile-row-detail-value';
+          Array.from(celula.childNodes).forEach((node) => valor.appendChild(node.cloneNode(true)));
+          if (!valor.textContent.trim() && !valor.children.length) valor.textContent = '-';
+          item.append(label, valor);
+          lista.appendChild(item);
+        });
+      }
+  
+      backdrop.classList.add('is-open');
+      sheet.classList.add('is-open');
+      document.body.classList.add('mobile-row-detail-open');
+    };
+  
+    const aplicarResumo = () => {
+      if (!document.body.classList.contains('mobile-shell-ready')) return;
+  
+      document.querySelectorAll('.table-wrap tbody tr, .mobile-card-table tbody tr, .maintenance-table tbody tr').forEach((linha) => {
+        if (linha.closest('.modal, .modal-content, .modal-overlay, .mobile-row-detail-sheet')) return;
+        if (linha.classList.contains('category-row')) return;
+  
+        const celulas = Array.from(linha.children).filter((filho) => filho.tagName === 'TD');
+        if (celulas.length < 3 || celulas.some((celula) => Number(celula.getAttribute('colspan') || 1) > 1)) return;
+  
+        const tabela = linha.closest('table');
+        if (!tabela) return;
+  
+        const rotulos = rotulosTabela(tabela, celulas);
+        const hash = celulas.map((celula) => textoCelula(celula)).join('|');
+        linha.classList.remove('is-expanded');
+        celulas.forEach((celula) => celula.classList.add('mobile-row-hidden-cell'));
+        if (linha.dataset.mobileSummaryHash === hash && linha.querySelector('.mobile-row-summary')) return;
+  
+        linha.dataset.mobileSummaryHash = hash;
+        linha.classList.add('mobile-summary-row');
+        linha.querySelector('.mobile-row-summary')?.remove();
+        linha.querySelector('.mobile-row-toggle')?.remove();
+  
+        const resumo = resumoParaLinha(linha, celulas, rotulos);
+        const temImagem = Boolean(resumo.imagem);
+        const summary = document.createElement('div');
+        summary.className = `mobile-row-summary ${temImagem ? 'has-thumb' : ''}`;
+        summary.innerHTML = `
+          <div class="mobile-row-summary-main">
+            ${temImagem ? `<span class="mobile-row-thumb"><img src="${textoInterfaceSeguro(resumo.imagem)}" alt="" onerror="this.onerror=null;this.src='assets/equipamentos/equipamento.svg';"></span>` : ''}
+            <div class="mobile-row-summary-copy">
+              <strong>${textoInterfaceSeguro(resumo.titulo)}</strong>
+              ${resumo.meta.length ? `<span>${resumo.meta.map(textoInterfaceSeguro).join(' | ')}</span>` : ''}
+            </div>
+          </div>
+          ${resumo.statusHtml ? `<div class="mobile-row-summary-status">${resumo.statusHtml}</div>` : ''}
+        `;
+  
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'mobile-row-toggle';
+        botao.setAttribute('aria-label', 'Ver detalhes');
+        botao.innerHTML = '<span aria-hidden="true">&#8942;</span>';
+        botao.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          abrirDetalhesLinha(linha, resumo, celulas, rotulos);
+        });
+  
+        linha.prepend(summary);
+        linha.appendChild(botao);
+      });
+    };
+  
+    if (!document.body.dataset.mobileSummaryObserver) {
+      document.body.dataset.mobileSummaryObserver = 'true';
+      let agendado = false;
+      const agendar = () => {
+        if (agendado) return;
+        agendado = true;
+        requestAnimationFrame(() => {
+          agendado = false;
+          aplicarResumo();
+        });
+      };
+      if (typeof MutationObserver !== 'undefined') {
+        new MutationObserver(agendar).observe(document.body, { childList: true, subtree: true });
+      }
+      window.addEventListener('resize', agendar);
+    }
+  
+    aplicarResumo();
+  }
+
   function configurarTema() {
     if (!document.querySelector(".theme-toggle")) {
       const sidebarFooter = document.querySelector(".sidebar-footer");
@@ -1611,24 +2030,23 @@ const GE = (() => {
       navFuncionarios.appendChild(badge);
     }
 
-    const sino = document.querySelector(".bell");
-    if (!sino) return;
+    document.querySelectorAll(".bell").forEach((sino) => {
+      if (total > 0) {
+        const badge = document.createElement("span");
+        badge.className = "notification-badge";
+        badge.textContent = String(total);
+        sino.appendChild(badge);
+        sino.title = total === 1 ? "1 funcion\u00e1rio aguardando aprova\u00e7\u00e3o" : total + " funcion\u00e1rios aguardando aprova\u00e7\u00e3o";
 
-    if (total > 0) {
-      const badge = document.createElement("span");
-      badge.className = "notification-badge";
-      badge.textContent = String(total);
-      sino.appendChild(badge);
-      sino.title = total === 1 ? "1 funcionário aguardando aprovação" : `${total} funcionários aguardando aprovação`;
-
-      sino.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        window.location.href = "02-cadastro-funcionario.html";
-      }, true);
-    } else {
-      sino.title = "Nenhuma solicitação pendente";
-    }
+        sino.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          window.location.href = "02-cadastro-funcionario.html";
+        }, true);
+      } else {
+        sino.title = "Nenhuma solicita\u00e7\u00e3o pendente";
+      }
+    });
   }
 
   function tipoMensagem(tipo) {
@@ -1710,6 +2128,8 @@ const GE = (() => {
   document.addEventListener("DOMContentLoaded", () => {
     configurarTema();
     configurarCabecalhoUsuarioGlobal();
+    configurarMobileShell();
+    configurarMobileCardsResumidos();
     configurarNotificacoesAdmin();
     configurarLogout();
     iniciarSincronizacaoBackend();
