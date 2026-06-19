@@ -8,7 +8,7 @@
 
   if (isHttp && "serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/service-worker.js").catch(() => null);
+      navigator.serviceWorker.register("/service-worker.js?v=20260619-mobile-cards-v2").catch(() => null);
     });
   }
 
