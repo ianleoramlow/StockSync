@@ -2755,3 +2755,18 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
     text-overflow: ellipsis;
   }
 }
+
+/* Mobile anti flash while cards render - StockSync */
+@media (max-width: 820px) {
+  body:not(.mobile-summary-ready) .main > .card .table-wrap tbody tr:not(.category-row):not(:has(td[colspan])),
+  body.mobile-shell-ready:not(.mobile-summary-ready) .main > .card .mobile-card-table tbody tr:not(.category-row):not(:has(td[colspan])),
+  body.mobile-shell-ready:not(.mobile-summary-ready) .main > .card .maintenance-table tbody tr:not(.category-row):not(:has(td[colspan])) {
+    opacity: 0 !important;
+  }
+
+  body.mobile-summary-ready .main > .card .table-wrap tbody tr,
+  body.mobile-summary-ready .main > .card .mobile-card-table tbody tr,
+  body.mobile-summary-ready .main > .card .maintenance-table tbody tr {
+    opacity: 1;
+  }
+}
