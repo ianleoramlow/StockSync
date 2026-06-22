@@ -1,9 +1,9 @@
-const STOCKSYNC_CACHE = "stocksync-pwa-20260619-mobile-cards-v2";
+const STOCKSYNC_CACHE = "stocksync-pwa-20260621-ajustes-finais";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
-  "/pwa.js?v=20260619-mobile-cards-v2",
-  "/styles.css?v=20260619-mobile-cards-v2",
-  "/app.js?v=20260619-mobile-cards-v2",
+  "/pwa.js?v=20260621-ajustes-finais",
+  "/styles.css?v=20260621-ajustes-finais",
+  "/app.js?v=20260621-ajustes-finais",
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/logo-stocksync-icon.png",
