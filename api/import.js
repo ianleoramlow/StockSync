@@ -1,9 +1,10 @@
-const { cors, json, chaveValida, setStorageValue } = require("./_supabase");
+const { cors, json, chaveValida, setStorageValue, requireAdminRequest } = require("./_supabase");
 
 module.exports = async function handler(req, res) {
-  cors(res);
+  cors(req, res);
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return json(res, 405, { ok: false, erro: "Método não permitido." });
+  if (!requireAdminRequest(req, res)) return;
 
   try {
     const storage = req.body?.storage;
