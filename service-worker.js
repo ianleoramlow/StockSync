@@ -1,4 +1,4 @@
-const STOCKSYNC_CACHE = "stocksync-pwa-20260621-ajustes-finais";
+const STOCKSYNC_CACHE = "stocksync-pwa-20260622-seguranca-piloto";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
   "/pwa.js?v=20260621-ajustes-finais",
