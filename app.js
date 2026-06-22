@@ -237,13 +237,50 @@ const GE = (() => {
 
   const categoriasEstoquePadrao = ["Som", "Iluminação", "Painel de LED", "Cabos", "Energia", "Estrutura", "Consumo"];
 
+  function chaveCategoriaEstoque(categoria) {
+    return normalizar(categoria).replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  function categoriaEstoqueCanonica(categoria, fallback = "Sem categoria") {
+    const texto = String(categoria || "").trim().replace(/\s+/g, " ");
+    const chave = chaveCategoriaEstoque(texto);
+    if (!chave) return fallback;
+
+    const mapa = {
+      som: "Som",
+      audio: "Som",
+      iluminacao: "Iluminação",
+      luz: "Iluminação",
+      luzes: "Iluminação",
+      painel: "Painel de LED",
+      led: "Painel de LED",
+      "painel led": "Painel de LED",
+      "painel de led": "Painel de LED",
+      cabo: "Cabos",
+      cabos: "Cabos",
+      cabeamento: "Cabos",
+      energia: "Energia",
+      eletrica: "Energia",
+      estrutura: "Estrutura",
+      estruturas: "Estrutura",
+      consumo: "Consumo",
+      consumivel: "Consumo",
+      descartavel: "Consumo",
+      descartaveis: "Consumo"
+    };
+
+    if (mapa[chave]) return mapa[chave];
+    const padrao = categoriasEstoquePadrao.find((item) => chaveCategoriaEstoque(item) === chave);
+    return padrao || texto || fallback;
+  }
+
   function listaUnicaTexto(lista) {
     const vistos = new Set();
     return (Array.isArray(lista) ? lista : [])
-      .map((item) => String(item || "").trim())
+      .map((item) => categoriaEstoqueCanonica(item, ""))
       .filter(Boolean)
       .filter((item) => {
-        const chave = normalizar(item);
+        const chave = chaveCategoriaEstoque(item);
         if (vistos.has(chave)) return false;
         vistos.add(chave);
         return true;
@@ -368,7 +405,7 @@ const GE = (() => {
       id,
       codigo: id,
       nome: String(material.nome || "").trim(),
-      categoria: String(material.categoria || "Consumo").trim() || "Consumo",
+      categoria: categoriaEstoqueCanonica(material.categoria || "Consumo", "Consumo"),
       quantidade: Math.max(Number(material.quantidade) || 0, 0),
       unidade: String(material.unidade || "unidade").trim() || "unidade",
       estoqueMinimo: Math.max(Number(material.estoqueMinimo ?? material.minimo) || 0, 0),
@@ -381,7 +418,7 @@ const GE = (() => {
       .map((item) => ({
         codigo: String(item.codigo || item.id || "").trim().toUpperCase(),
         nome: String(item.nome || "").trim(),
-        categoria: String(item.categoria || "Consumo").trim() || "Consumo",
+        categoria: categoriaEstoqueCanonica(item.categoria || "Consumo", "Consumo"),
         quantidade: Math.max(Number(item.quantidade) || 0, 0),
         unidade: String(item.unidade || "unidade").trim() || "unidade"
       }))
@@ -479,10 +516,9 @@ const GE = (() => {
   }
 
   function dadosVazios() {
-  
-  return {
-      equipamentos: estoqueInicialEquipamentos(),
-      materiaisConsumo: estoqueInicialConsumo(),
+    return {
+      equipamentos: [],
+      materiaisConsumo: [],
       categoriasEstoque: [],
       eventos: [],
       locacoes: [],
@@ -553,6 +589,10 @@ const GE = (() => {
     });
     corrigido.funcionarios = corrigido.funcionarios.map((funcionario) => ({ ...funcionario, cargo: cargoSistema(funcionario.cargo) }));
     corrigido.solicitacoesFuncionarios = corrigido.solicitacoesFuncionarios.map((solicitacao) => ({ ...solicitacao, cargo: cargoSistema(solicitacao.cargo) }));
+    corrigido.equipamentos = corrigido.equipamentos.map((equipamento) => ({
+      ...equipamento,
+      categoria: categoriaEstoqueCanonica(equipamento.categoria, "Sem categoria")
+    }));
     corrigido.materiaisConsumo = corrigido.materiaisConsumo.map(normalizarMaterialConsumo).filter((item) => item.nome);
     corrigido.categoriasEstoque = listaUnicaTexto(corrigido.categoriasEstoque);
     corrigido.preferencias = corrigido.preferencias && typeof corrigido.preferencias === "object" ? corrigido.preferencias : {};
@@ -667,53 +707,17 @@ const GE = (() => {
     const db = garantirEstrutura(lerJSON(chaveEmpresa(id), dadosVazios()));
     let alterou = false;
 
-    if (!db.estoqueInicialCriado && db.equipamentos.length === 0) {
-      db.equipamentos = estoqueInicialEquipamentos();
-      db.logs.unshift({
-        data: hojeCurto(),
-        usuario: "StockSync",
-        acao: "Carregou Estoque Inicial",
-        tipo: "badge-green",
-        detalhes: `${db.equipamentos.length} equipamentos de exemplo`
-      });
-      alterou = true;
-    }
-
-    if (!db.estoqueGeralCriado) {
-      const codigosAtuais = new Set(db.equipamentos.map((eq) => eq.codigo));
-      const novosEquipamentos = estoqueInicialEquipamentos().filter((eq) => !codigosAtuais.has(eq.codigo));
-      db.equipamentos.push(...novosEquipamentos);
-      if (novosEquipamentos.length) {
-        db.logs.unshift({
-          data: hojeCurto(),
-          usuario: "StockSync",
-          acao: "Atualizou Estoque Inicial",
-          tipo: "badge-green",
-          detalhes: `${novosEquipamentos.length} equipamentos adicionados`
-        });
-      }
-      db.estoqueGeralCriado = true;
-      alterou = true;
-    }
-
-    if (!db.estoqueInicialCriado && db.equipamentos.length > 0) {
+    if (!db.estoqueInicialCriado) {
       db.estoqueInicialCriado = true;
       alterou = true;
     }
 
+    if (!db.estoqueGeralCriado) {
+      db.estoqueGeralCriado = true;
+      alterou = true;
+    }
+
     if (!db.consumoInicialCriado) {
-      const codigosConsumoAtuais = new Set((db.materiaisConsumo || []).map((item) => item.codigo));
-      const novosConsumos = estoqueInicialConsumo().filter((item) => !codigosConsumoAtuais.has(item.codigo));
-      db.materiaisConsumo = [...(db.materiaisConsumo || []), ...novosConsumos];
-      if (novosConsumos.length) {
-        db.logs.unshift({
-          data: hojeCurto(),
-          usuario: "StockSync",
-          acao: "Criou Estoque de Consumo",
-          tipo: "badge-green",
-          detalhes: novosConsumos.length + " materiais descartáveis adicionados"
-        });
-      }
       db.consumoInicialCriado = true;
       alterou = true;
     }
@@ -833,6 +837,9 @@ const GE = (() => {
     salvarEmpresas(lista);
     salvarJSON(chaveEmpresa(id), {
       ...dadosVazios(),
+      estoqueInicialCriado: true,
+      estoqueGeralCriado: true,
+      consumoInicialCriado: true,
       funcionarios: [admin],
       logs: [{ data: hojeCurto(), usuario: admin.nome, acao: "Criou Empresa", tipo: "badge-green", detalhes: registroEmpresa.nome }]
     });
@@ -956,7 +963,7 @@ const GE = (() => {
     const db = dados();
     const codigo = equipamento.codigo.trim().toUpperCase();
     const existente = db.equipamentos.findIndex((eq) => eq.codigo === codigo);
-    const registroBase = { ...equipamento, codigo, status: equipamento.status || "disponivel" };
+    const registroBase = { ...equipamento, codigo, categoria: categoriaEstoqueCanonica(equipamento.categoria, "Sem categoria"), status: equipamento.status || "disponivel" };
     const registro = {
       ...registroBase,
       imagem: equipamento.imagem || db.equipamentos[existente]?.imagem || imagemEquipamento(registroBase)
@@ -977,6 +984,8 @@ const GE = (() => {
     const total = Math.max(1, Number(quantidade) || 1);
     const db = dados();
     const codigoBase = equipamento.codigo.trim().toUpperCase();
+    const categoriaCanonica = categoriaEstoqueCanonica(equipamento.categoria, "Sem categoria");
+    const equipamentoBase = { ...equipamento, categoria: categoriaCanonica };
     const match = codigoBase.match(/^(.*?)(\d+)$/);
     const criados = [];
 
@@ -988,11 +997,11 @@ const GE = (() => {
       if (db.equipamentos.some((eq) => eq.codigo === codigo)) continue;
 
       db.equipamentos.push({
-        ...equipamento,
+        ...equipamentoBase,
         codigo,
         nome: total > 1 ? `${equipamento.nome} ${String(i + 1).padStart(2, "0")}` : equipamento.nome,
         status: equipamento.status || "disponivel",
-        imagem: equipamento.imagem || imagemEquipamento(equipamento)
+        imagem: equipamento.imagem || imagemEquipamento(equipamentoBase)
       });
       criados.push(codigo);
     }
@@ -1567,6 +1576,23 @@ const GE = (() => {
     });
   }
 
+  function viewportMobileAtivo() {
+    return typeof window !== "undefined" && window.matchMedia("(max-width: 820px)").matches;
+  }
+
+  function limparMobileShellDesktop() {
+    document.body.classList.remove("mobile-shell-ready", "mobile-more-open", "mobile-row-detail-open", "mobile-summary-ready");
+    document.querySelectorAll(".mobile-appbar, .mobile-bottom-nav, .mobile-more-backdrop, .mobile-more-sheet, .mobile-row-detail-backdrop, .mobile-row-detail-sheet").forEach((item) => item.remove());
+    document.querySelectorAll(".mobile-summary-row").forEach((linha) => {
+      linha.classList.remove("mobile-summary-row", "is-expanded");
+      linha.removeAttribute("data-mobile-summary-hash");
+      delete linha.dataset.mobileSummaryHash;
+      linha.querySelector(".mobile-row-summary")?.remove();
+      linha.querySelector(".mobile-row-toggle")?.remove();
+      linha.querySelectorAll("td.mobile-row-hidden-cell").forEach((celula) => celula.classList.remove("mobile-row-hidden-cell"));
+    });
+  }
+
   function mobileIcone(nome) {
     const atributos = 'xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
     const icones = {
@@ -1589,12 +1615,21 @@ const GE = (() => {
   }
 
   function configurarMobileShell() {
-    if (!document.querySelector('.sidebar') || !document.querySelector('.main')) return;
-    if (/01-login\.html$/i.test(location.pathname)) return;
+    if (!document.querySelector('.sidebar') || !document.querySelector('.main')) {
+      limparMobileShellDesktop();
+      return;
+    }
+    if (/01-login\.html$/i.test(location.pathname)) {
+      limparMobileShellDesktop();
+      return;
+    }
   
     const parametrosPagina = new URLSearchParams(location.search);
     const cadastroPublico = /02-cadastro-funcionario\.html$/i.test(location.pathname) && parametrosPagina.has('novo');
-    if (cadastroPublico) return;
+    if (cadastroPublico || !viewportMobileAtivo()) {
+      limparMobileShellDesktop();
+      return;
+    }
   
     document.body.classList.add('mobile-shell-ready');
     document.querySelectorAll('.mobile-appbar, .mobile-bottom-nav, .mobile-more-backdrop, .mobile-more-sheet').forEach((item) => item.remove());
@@ -1704,7 +1739,10 @@ const GE = (() => {
   }
 
   function configurarMobileCardsResumidos() {
-    if (!document.body.classList.contains('mobile-shell-ready')) return;
+    if (!viewportMobileAtivo() || !document.body.classList.contains('mobile-shell-ready')) {
+      limparMobileShellDesktop();
+      return;
+    }
     document.body.classList.remove('mobile-summary-ready');
   
     const textoCelula = (celula) => String(celula?.textContent || '').replace(/\s+/g, ' ').trim();
@@ -2130,8 +2168,16 @@ const GE = (() => {
   document.addEventListener("DOMContentLoaded", () => {
     configurarTema();
     configurarCabecalhoUsuarioGlobal();
-    configurarMobileShell();
-    configurarMobileCardsResumidos();
+    const atualizarMobileResponsivo = () => {
+      configurarMobileShell();
+      configurarMobileCardsResumidos();
+    };
+    atualizarMobileResponsivo();
+    let mobileResizeTimer;
+    window.addEventListener("resize", () => {
+      clearTimeout(mobileResizeTimer);
+      mobileResizeTimer = setTimeout(atualizarMobileResponsivo, 120);
+    });
     configurarNotificacoesAdmin();
     configurarLogout();
     iniciarSincronizacaoBackend();
@@ -2142,7 +2188,7 @@ const GE = (() => {
     dados, salvar, log, normalizar, badge, statusInfo, dataBR, mensagem, imagemEquipamento,
     getEquipamento, salvarEquipamento, salvarEquipamentosEmLote, removerEquipamento, getMaterialConsumo, salvarMaterialConsumo, removerMaterialConsumo, enviarManutencao, finalizarManutencao,
     salvarEvento, editarEvento, atualizarStatusEvento, excluirEventoFinalizado, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
-    empresas, empresaAtual, salvarEmpresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema, aplicarTema, categoriasEstoque, salvarCategoriasEstoque
+    empresas, empresaAtual, salvarEmpresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema, aplicarTema, categoriasEstoque, salvarCategoriasEstoque, categoriaEstoqueCanonica
   };
 })();
 
