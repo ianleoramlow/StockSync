@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
 <title>StockSync – Novo Equipamento</title>
-<link rel="stylesheet" href="styles.css?v=20260619-mobile-cards-v2">
+<link rel="stylesheet" href="styles.css?v=20260621-ajustes-finais">
 <style>
 .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200; }
 .modal { background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:520px;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg); }
@@ -111,7 +111,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260619-mobile-cards-v2"></script>
+<script src="app.js?v=20260621-ajustes-finais"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const codigoEdicao = params.get("codigo");
@@ -151,12 +151,24 @@ function textoSeguroCadastro(valor) {
     .replace(/'/g, "&#039;");
 }
 
+function categoriaCanonicaCadastro(valor, fallback = "Sem categoria") {
+  return GE.categoriaEstoqueCanonica ? GE.categoriaEstoqueCanonica(valor, fallback) : (String(valor || "").trim() || fallback);
+}
+
 function renderCategoriasCadastro(valorAtual = "") {
-  const categorias = GE.categoriasEstoque ? GE.categoriasEstoque() : ["Som", "Iluminação", "Estrutura", "Painel de LED", "Cabos", "Energia", "Consumo"];
-  const existeAtual = categorias.some((item) => normalizarCadastro(item) === normalizarCadastro(valorAtual));
-  if (valorAtual && !existeAtual) categorias.push(valorAtual);
+  const valorCanonico = valorAtual ? categoriaCanonicaCadastro(valorAtual, "") : "";
+  const baseCategorias = GE.categoriasEstoque ? GE.categoriasEstoque() : ["Som", "Iluminação", "Estrutura", "Painel de LED", "Cabos", "Energia", "Consumo"];
+  const categorias = [];
+  const vistos = new Set();
+  [...baseCategorias, valorCanonico].forEach((item) => {
+    const categoriaFinal = categoriaCanonicaCadastro(item, "");
+    const chave = normalizarCadastro(categoriaFinal);
+    if (!categoriaFinal || vistos.has(chave)) return;
+    vistos.add(chave);
+    categorias.push(categoriaFinal);
+  });
   categoria.innerHTML = '<option value="" disabled>Selecione</option>' + categorias.map((item) => '<option value="' + textoSeguroCadastro(item) + '">' + textoSeguroCadastro(item) + '</option>').join("");
-  categoria.value = valorAtual || "";
+  categoria.value = valorCanonico || "";
 }
 
 function modoConsumoAtivo() {
@@ -239,7 +251,7 @@ if (codigoEdicao) {
     codigoInput.disabled = true;
     nomeInput.value = eq.nome;
     renderCategoriasCadastro(eq.categoria);
-    categoria.value = eq.categoria;
+    categoria.value = categoriaCanonicaCadastro(eq.categoria, "Sem categoria");
     descricao.value = eq.descricao || "";
     imagemAtual = eq.imagem || "";
     previewImagem.src = imagemAtual || imagemAutomaticaCadastro(eq);
@@ -254,7 +266,7 @@ if (codigoMaterialEdicao) {
     codigoInput.disabled = true;
     nomeInput.value = material.nome;
     renderCategoriasCadastro(material.categoria);
-    categoria.value = material.categoria;
+    categoria.value = categoriaCanonicaCadastro(material.categoria, "Consumo");
     quantidade.value = material.quantidade;
     unidadeConsumo.value = material.unidade || "unidade";
     estoqueMinimoConsumo.value = material.estoqueMinimo || 0;
@@ -292,7 +304,7 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
     const material = {
       codigo: codigoInput.value,
       nome: nomeInput.value,
-      categoria: categoria.value || "Consumo",
+      categoria: categoriaCanonicaCadastro(categoria.value || "Consumo", "Consumo"),
       quantidade: quantidade.value,
       unidade: unidadeConsumo.value,
       estoqueMinimo: estoqueMinimoConsumo.value,
@@ -318,7 +330,7 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
   const equipamento = {
     codigo: codigoInput.value,
     nome: nomeInput.value,
-    categoria: categoria.value,
+    categoria: categoriaCanonicaCadastro(categoria.value, "Sem categoria"),
     descricao: descricao.value,
     imagem: imagemAtual,
     status: codigoEdicao ? GE.getEquipamento(codigoEdicao)?.status : "disponivel"
@@ -344,7 +356,7 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
   setTimeout(() => window.location.href = "04-equipamentos.html", 650);
 });
 </script>
-  <script src="pwa.js?v=20260619-mobile-cards-v2" defer></script>
+  <script src="pwa.js?v=20260621-ajustes-finais" defer></script>
 </body>
 </html>
 
