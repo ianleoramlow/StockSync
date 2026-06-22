@@ -6,6 +6,7 @@ const GE = (() => {
   const SESSAO_KEY = "usuarioLogado";
   const TEMA_KEY = "stocksyncTema";
   const SOLICITACOES_KEY = "ge_solicitacoes_funcionarios";
+  const API_CLIENT_HEADER = "stocksync-web";
   const BACKEND_MISSING = Symbol("backend_missing");
   const backendCache = new Map();
   const backendWriteTimers = new Map();
@@ -29,6 +30,7 @@ const GE = (() => {
       const xhr = new XMLHttpRequest();
       xhr.open(metodo, caminho, false);
       xhr.setRequestHeader("Accept", "application/json");
+      xhr.setRequestHeader("X-StockSync-Client", API_CLIENT_HEADER);
       if (corpo !== null) xhr.setRequestHeader("Content-Type", "application/json");
       xhr.send(corpo !== null ? JSON.stringify(corpo) : null);
 
@@ -40,17 +42,18 @@ const GE = (() => {
     }
   }
 
-  function requisicaoBackendAsync(metodo, caminho, corpo = null) {
+  function requisicaoBackendAsync(metodo, caminho, corpo = null, opcoes = {}) {
     if (!location.protocol.startsWith("http") || typeof fetch !== "function") return Promise.resolve(null);
 
     return fetch(caminho, {
       method: metodo,
       headers: {
         "Accept": "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-StockSync-Client": API_CLIENT_HEADER
       },
       body: corpo !== null ? JSON.stringify(corpo) : undefined,
-      keepalive: false
+      keepalive: Boolean(opcoes.keepalive)
     }).then((response) => {
       backendDisponivel = response.ok;
       return response.ok ? response : null;
@@ -108,6 +111,27 @@ const GE = (() => {
     return chavesAlteradas.some((chave) => chaveCompartilhada(chave));
   }
 
+  function chavesSincronizacaoBackend() {
+    const chaves = [EMPRESAS_KEY, SOLICITACOES_KEY];
+    const empresaId = empresaAtualId();
+    if (empresaId) chaves.push(chaveEmpresa(empresaId));
+    return [...new Set(chaves)];
+  }
+
+  async function lerBackendAsync(chave) {
+    const response = await fetch(`/api/storage/${encodeURIComponent(chave)}`, {
+      headers: {
+        "Accept": "application/json",
+        "X-StockSync-Client": API_CLIENT_HEADER
+      },
+      cache: "no-store"
+    });
+
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload?.exists ? payload.value : null;
+  }
+
   async function sincronizarBackend(remotoObrigatorio = false) {
     if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
     if (sincronizacaoEmAndamento) return;
@@ -117,12 +141,15 @@ const GE = (() => {
 
     sincronizacaoEmAndamento = true;
     try {
-      const response = await fetch("/api/export", { headers: { "Accept": "application/json" }, cache: "no-store" });
-      backendDisponivel = response.ok;
-      if (!response.ok) return;
+      const storage = {};
+      const chaves = chavesSincronizacaoBackend();
 
-      const payload = await response.json();
-      const storage = payload?.storage || {};
+      await Promise.all(chaves.map(async (chave) => {
+        const valor = await lerBackendAsync(chave);
+        if (valor !== null) storage[chave] = valor;
+      }));
+
+      backendDisponivel = true;
       const assinatura = assinaturaStorage(storage);
       if (assinatura && assinatura === ultimaAssinaturaRemota) return;
       ultimaAssinaturaRemota = assinatura;
@@ -168,14 +195,7 @@ const GE = (() => {
       backendWriteTimers.delete(chave);
 
       const caminho = `/api/storage/${encodeURIComponent(chave)}`;
-      const payload = JSON.stringify({ value });
-      const enviadoPorBeacon = typeof navigator !== "undefined"
-        && typeof navigator.sendBeacon === "function"
-        && navigator.sendBeacon(caminho, new Blob([payload], { type: "application/json" }));
-
-      if (!enviadoPorBeacon) {
-        requisicaoBackendAsync("POST", caminho, { value });
-      }
+      requisicaoBackendAsync("POST", caminho, { value }, { keepalive: true });
     });
 
     backendWriteQueue.clear();
