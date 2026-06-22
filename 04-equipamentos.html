@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
 <title>StockSync – Equipamentos</title>
-<link rel="stylesheet" href="styles.css?v=20260619-mobile-cards-v2">
+<link rel="stylesheet" href="styles.css?v=20260621-ajustes-finais">
 <style>
 .maintenance-action {
   width: 34px;
@@ -296,7 +296,7 @@ onclick="window.location.href='05-cadastro-equipamento.html'">
     </div>
   </div>
 </div>
-<script src="app.js?v=20260619-mobile-cards-v2"></script>
+<script src="app.js?v=20260621-ajustes-finais"></script>
 <script>
 const filtros = {
   todos: { titulo: "Equipamentos", subtitulo: "Todos os equipamentos cadastrados no sistema" },
@@ -433,21 +433,22 @@ function textoOrigemManutencao(origens = []) {
 
 const categoriasPreferidas = ["Som", "Iluminação", "Painel de LED", "Cabos", "Energia", "Estrutura", "Consumo"];
 
+function categoriaCanonicaEstoque(categoria) {
+  return GE.categoriaEstoqueCanonica ? GE.categoriaEstoqueCanonica(categoria, "Sem categoria") : (String(categoria || "").trim() || "Sem categoria");
+}
+
+function chaveCategoriaEstoque(categoria) {
+  return GE.normalizar(categoriaCanonicaEstoque(categoria)).replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function categoriaOrdemEstoque(categoria) {
-  const normalizada = GE.normalizar(categoria);
-  const indice = categoriasPreferidas.findIndex((item) => GE.normalizar(item) === normalizada);
+  const normalizada = chaveCategoriaEstoque(categoria);
+  const indice = categoriasPreferidas.findIndex((item) => chaveCategoriaEstoque(item) === normalizada);
   return indice >= 0 ? indice : categoriasPreferidas.length;
 }
 
 function rotuloCategoriaEstoque(categoria) {
-  const texto = String(categoria || "").trim();
-  const mapa = {
-    iluminacao: "Iluminação",
-    cabos: "Cabos",
-    cabo: "Cabos",
-    "painel de led": "Painel de LED"
-  };
-  return mapa[GE.normalizar(texto)] || texto || "Sem categoria";
+  return categoriaCanonicaEstoque(categoria);
 }
 
 function unidadeComQuantidadeEstoque(quantidade, unidade = "unidade") {
@@ -526,11 +527,10 @@ function linhaEquipamentoEstoque(grupo) {
 }
 
 function linhaMaterialConsumo(material) {
-  const codigo = textoSeguro(material.codigo);
   const nome = textoSeguro(material.nome);
   return `
     <tr data-status="consumo">
-      <td>${codigo}</td>
+      <td style="font-family:var(--mono);font-weight:700;color:var(--yellow)">CONSUMO</td>
       <td><a href="05-cadastro-equipamento.html?material=${encodeURIComponent(material.codigo)}" style="color:var(--text);text-decoration:none;font-weight:500">${nome}</a></td>
       <td style="color:var(--text2)">${textoSeguro(rotuloCategoriaEstoque(material.categoria || "Consumo"))}</td>
       <td style="color:var(--text);font-family:var(--mono);font-weight:700">${estoqueMaterialTexto(material)}</td>
@@ -549,11 +549,12 @@ function renderLinhasPorCategoria(itens) {
   if (!itens.length) return "";
   const categorias = new Map();
   itens.sort(ordenarPorCategoriaENome).forEach((item) => {
-    const categoria = item.categoria || "Sem categoria";
-    if (!categorias.has(categoria)) categorias.set(categoria, []);
-    categorias.get(categoria).push(item);
+    const categoria = categoriaCanonicaEstoque(item.categoria || "Sem categoria");
+    const chave = chaveCategoriaEstoque(categoria);
+    if (!categorias.has(chave)) categorias.set(chave, { categoria, linhas: [] });
+    categorias.get(chave).linhas.push({ ...item, categoria });
   });
-  return [...categorias.entries()].map(([categoria, linhas]) => {
+  return [...categorias.values()].map(({ categoria, linhas }) => {
     return linhaCategoriaEstoque(categoria, linhas.length) + linhas.map((item) => item.tipo === "consumo" ? linhaMaterialConsumo(item) : linhaEquipamentoEstoque(item)).join("");
   }).join("");
 }
@@ -604,11 +605,12 @@ function agruparEquipamentos(equipamentos, contexto) {
     const chaveEvento = filtroAtual === "evento" && visualizacaoEvento === "evento"
       ? `|${GE.normalizar(eventoNome)}`
       : "";
-    const chave = `${GE.normalizar(nomeBase(eq.nome))}|${GE.normalizar(eq.categoria)}|${statusGrupo}${chaveEvento}`;
+    const categoriaGrupo = categoriaCanonicaEstoque(eq.categoria);
+    const chave = `${GE.normalizar(nomeBase(eq.nome))}|${chaveCategoriaEstoque(categoriaGrupo)}|${statusGrupo}${chaveEvento}`;
     if (!mapa.has(chave)) {
       mapa.set(chave, {
         nome: nomeBase(eq.nome),
-        categoria: eq.categoria,
+        categoria: categoriaGrupo,
         status: statusGrupo,
         eventoNome,
         origensManutencao: [],
@@ -735,7 +737,7 @@ document.querySelectorAll(".page-btn").forEach((botao) => {
 configurarCabecalhoStatus();
 renderEquipamentos();
 </script>
-  <script src="pwa.js?v=20260619-mobile-cards-v2" defer></script>
+  <script src="pwa.js?v=20260621-ajustes-finais" defer></script>
 </body>
 </html>
 
