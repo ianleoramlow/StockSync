@@ -1,8 +1,9 @@
-const { cors, json, chaveValida, getStorageValue, setStorageValue } = require("../_supabase");
+const { cors, json, chaveValida, getStorageValue, setStorageValue, requireAppRequest } = require("../_supabase");
 
 module.exports = async function handler(req, res) {
-  cors(res);
+  cors(req, res);
   if (req.method === "OPTIONS") return res.status(204).end();
+  if (!requireAppRequest(req, res)) return;
 
   const key = req.query.key;
   if (!key || !chaveValida(key)) {
