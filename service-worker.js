@@ -1,4 +1,4 @@
-const STOCKSYNC_CACHE = "stocksync-pwa-20260622-icone-pwa-escuro";
+const STOCKSYNC_CACHE = "stocksync-pwa-20260622-ordem-pdf-cnpj";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
   "/pwa.js?v=20260621-ajustes-finais",
@@ -7,7 +7,8 @@ const CORE_ASSETS = [
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/logo-stocksync-icon.png",
-  "/assets/logo-stocksync-login.png"
+  "/assets/logo-stocksync-login.png",
+  "/assets/logo-avila-eventos.png"
 ];
 
 self.addEventListener("install", (event) => {
