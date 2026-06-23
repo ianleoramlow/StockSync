@@ -248,7 +248,6 @@ if (codigoEdicao) {
     tipoItem.value = "equipamento";
     grupoQuantidade.style.display = "none";
     codigoInput.value = eq.codigo;
-    codigoInput.disabled = true;
     nomeInput.value = eq.nome;
     renderCategoriasCadastro(eq.categoria);
     categoria.value = categoriaCanonicaCadastro(eq.categoria, "Sem categoria");
@@ -263,7 +262,6 @@ if (codigoMaterialEdicao) {
   if (material) {
     tipoItem.value = "consumo";
     codigoInput.value = material.codigo;
-    codigoInput.disabled = true;
     nomeInput.value = material.nome;
     renderCategoriasCadastro(material.categoria);
     categoria.value = categoriaCanonicaCadastro(material.categoria, "Consumo");
@@ -316,9 +314,9 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
       return;
     }
 
-    const salvo = GE.salvarMaterialConsumo(material);
-    if (!salvo) {
-      GE.mensagem("Não foi possível salvar o material de consumo.", "error");
+    const salvo = GE.salvarMaterialConsumo(material, codigoMaterialEdicao || material.codigo);
+    if (!salvo || salvo.erro) {
+      GE.mensagem(salvo?.erro || "Não foi possível salvar o material de consumo.", "error");
       return;
     }
 
@@ -342,7 +340,11 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
   }
 
   if (codigoEdicao) {
-    GE.salvarEquipamento(equipamento);
+    const salvo = GE.salvarEquipamento(equipamento, codigoEdicao);
+    if (!salvo || salvo.erro) {
+      GE.mensagem(salvo?.erro || "Não foi possível salvar o equipamento.", "error");
+      return;
+    }
     GE.mensagem("Equipamento atualizado.", "success", { tempo: 1200 });
   } else {
     const criados = GE.salvarEquipamentosEmLote(equipamento, quantidade.value);
