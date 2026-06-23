@@ -266,6 +266,11 @@ onclick="window.location.href='05-cadastro-equipamento.html'">
       <label class="form-label">Equipamento</label>
       <input class="form-input" id="manutencaoListaEquipamento" readonly>
     </div>
+    <div class="form-group" id="manutencaoListaCodigoGrupo" style="display:none">
+      <label class="form-label">Código que vai para manutenção</label>
+      <select class="form-select" id="manutencaoListaCodigoSelect"></select>
+      <div style="color:var(--text3);font-size:12px;margin-top:6px">Escolha a unidade exata do grupo.</div>
+    </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Prioridade</label>
@@ -317,6 +322,8 @@ const statusFluxoEvento = ["reservado", "separacao", "caminhao", "evento", "reto
 let visualizacaoEvento = localStorage.getItem("equipamentosEventoVisualizacao") || "status";
 const modalManutencaoLista = document.getElementById("modalManutencaoLista");
 const manutencaoListaEquipamento = document.getElementById("manutencaoListaEquipamento");
+const manutencaoListaCodigoGrupo = document.getElementById("manutencaoListaCodigoGrupo");
+const manutencaoListaCodigoSelect = document.getElementById("manutencaoListaCodigoSelect");
 const manutencaoListaPrioridade = document.getElementById("manutencaoListaPrioridade");
 const manutencaoListaTecnico = document.getElementById("manutencaoListaTecnico");
 const manutencaoListaProblema = document.getElementById("manutencaoListaProblema");
@@ -518,7 +525,7 @@ function linhaEquipamentoEstoque(grupo) {
       <td>
         <div style="display:flex;gap:6px">
           <button class="icon-btn" title="Editar primeiro item" aria-label="Editar ${nomeSeguro}" onclick="editarEquipamento('${grupo.principal.codigo}')">${iconeEditarHtml()}</button>
-          <button class="maintenance-action" title="Enviar primeira unidade para manutenção" aria-label="Enviar ${nomeSeguro} para manutenção" onclick="abrirModalManutencaoLista('${grupo.principal.codigo}')">${iconeManutencaoHtml()}</button>
+          <button class="maintenance-action" title="Enviar unidade para manutenção" aria-label="Enviar ${nomeSeguro} para manutenção" onclick='abrirModalManutencaoLista(${codigosJson})'>${iconeManutencaoHtml()}</button>
           <button class="icon-btn" title="Excluir grupo" aria-label="Excluir grupo ${nomeSeguro}" onclick='excluirGrupo(${codigosJson})'>${iconeExcluirHtml()}</button>
         </div>
       </td>
@@ -670,12 +677,32 @@ function excluirMaterialConsumo(codigo) {
     GE.mensagem("Material de consumo excluído.", "success");
   }, { titulo: "Excluir material", confirmar: "Excluir", perigo: true });
 }
-function abrirModalManutencaoLista(codigo) {
-  const eq = GE.getEquipamento(codigo);
+function codigosManutencaoLista(entrada) {
+  const codigos = Array.isArray(entrada) ? entrada : [entrada];
+  return [...new Set(codigos.map((codigo) => String(codigo || "").trim().toUpperCase()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+}
+
+function atualizarCodigoManutencaoLista() {
+  manutencaoListaCodigo = manutencaoListaCodigoSelect.value || manutencaoListaCodigo;
+}
+
+function abrirModalManutencaoLista(entrada) {
+  const codigos = codigosManutencaoLista(entrada);
+  const eq = GE.getEquipamento(codigos[0]);
   if (!eq) return;
 
-  manutencaoListaCodigo = codigo;
-  manutencaoListaEquipamento.value = `${eq.codigo} - ${eq.nome}`;
+  manutencaoListaCodigo = codigos[0];
+  manutencaoListaEquipamento.value = codigos.length > 1
+    ? `${eq.nome} (${codigos.length} unidades)`
+    : `${eq.codigo} - ${eq.nome}`;
+  manutencaoListaCodigoGrupo.style.display = codigos.length > 1 ? "block" : "none";
+  manutencaoListaCodigoSelect.innerHTML = codigos.map((codigo) => {
+    const item = GE.getEquipamento(codigo);
+    const rotulo = item ? `${codigo} - ${item.nome}` : codigo;
+    return `<option value="${textoSeguro(codigo)}">${textoSeguro(rotulo)}</option>`;
+  }).join("");
+  manutencaoListaCodigoSelect.value = manutencaoListaCodigo;
   manutencaoListaPrioridade.value = "Média";
   manutencaoListaTecnico.value = "";
   manutencaoListaProblema.value = "";
@@ -691,6 +718,7 @@ function fecharModalManutencaoLista() {
 }
 
 function salvarManutencaoLista() {
+  atualizarCodigoManutencaoLista();
   const eq = GE.getEquipamento(manutencaoListaCodigo);
   const problema = manutencaoListaProblema.value.trim();
   const prioridade = manutencaoListaPrioridade.value;
@@ -727,6 +755,7 @@ function salvarManutencaoLista() {
 }
 
 busca.addEventListener("input", renderEquipamentos);
+manutencaoListaCodigoSelect.addEventListener("change", atualizarCodigoManutencaoLista);
 document.getElementById("salvarManutencaoLista").addEventListener("click", salvarManutencaoLista);
 modalManutencaoLista.addEventListener("click", (event) => {
   if (event.target === modalManutencaoLista) fecharModalManutencaoLista();
