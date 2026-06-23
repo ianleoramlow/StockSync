@@ -304,6 +304,407 @@ function resumoEquipamentos(codigos) {
   return codigos.slice(0, 2).map(nomeEquipamento).join(", ") + (codigos.length > 2 ? ` +${codigos.length - 2}` : "");
 }
 
+function resumoCodigosOrdem(codigos) {
+  const lista = [...codigos].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  if (!lista.length) return "";
+  if (lista.length === 1) return lista[0];
+  return `${lista[0]} - ${lista[lista.length - 1]}`;
+}
+
+function nomeBaseOrdem(nome) {
+  return String(nome || "").replace(/\s+\d+$/, "").trim();
+}
+
+function agruparEquipamentosOrdem(codigos) {
+  const mapa = new Map();
+  (codigos || []).forEach((codigo) => {
+    const eq = equipamentoPorCodigo(codigo) || { codigo, nome: codigo, categoria: "" };
+    const nomeBase = nomeBaseOrdem(eq.nome || codigo);
+    const chave = GE.normalizar(`${nomeBase}|${eq.categoria || ""}`);
+    if (!mapa.has(chave)) {
+      mapa.set(chave, {
+        nome: nomeBase,
+        categoria: eq.categoria || "",
+        codigos: []
+      });
+    }
+    mapa.get(chave).codigos.push(codigo);
+  });
+  return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+function linhasOrdemLocacao(locacao) {
+  const grupos = agruparEquipamentosOrdem(locacao.equipamentos || []);
+  const linhasMinimas = Math.max(15, grupos.length);
+  return Array.from({ length: linhasMinimas }, (_, index) => {
+    const grupo = grupos[index];
+    return `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${grupo ? textoSeguro(grupo.nome) : ""}</td>
+        <td>${grupo ? grupo.codigos.length : ""}</td>
+        <td></td>
+        <td></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function iniciaisEmpresaLocacao(nome) {
+  const partes = String(nome || "StockSync").trim().split(/\s+/).filter(Boolean);
+  return partes.slice(0, 2).map((parte) => parte[0]).join("").toUpperCase() || "SS";
+}
+
+function textoPdf(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x20-\x7E]/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
+function textoPdfCurto(valor, limite) {
+  const texto = String(valor || "").trim();
+  if (texto.length <= limite) return texto;
+  return texto.slice(0, Math.max(0, limite - 3)).trim() + "...";
+}
+
+function criarPdfOrdemLocacao(locacao, marcaLocacao) {
+  const grupos = agruparEquipamentosOrdem(locacao.equipamentos || []);
+  const totalItens = (locacao.equipamentos || []).length;
+  const pageW = 595.28;
+  const pageH = 841.89;
+  const comandos = [];
+  const y = (top) => (pageH - top).toFixed(2);
+  const n = (valor) => Number(valor).toFixed(2);
+
+  function cor(hex) {
+    const limpo = hex.replace("#", "");
+    const r = parseInt(limpo.slice(0, 2), 16) / 255;
+    const g = parseInt(limpo.slice(2, 4), 16) / 255;
+    const b = parseInt(limpo.slice(4, 6), 16) / 255;
+    comandos.push(`${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} rg ${r.toFixed(3)} ${g.toFixed(3)} ${b.toFixed(3)} RG`);
+  }
+
+  function texto(x, top, valor, tamanho = 10, negrito = false) {
+    comandos.push(`BT /${negrito ? "F2" : "F1"} ${tamanho} Tf ${n(x)} ${y(top)} Td (${textoPdf(valor)}) Tj ET`);
+  }
+
+  function textoCentro(x, top, valor, tamanho = 10, negrito = false) {
+    const largura = String(valor || "").length * tamanho * 0.52;
+    texto(x - largura / 2, top, valor, tamanho, negrito);
+  }
+
+  function linha(x1, top1, x2, top2, largura = 0.8) {
+    comandos.push(`${largura} w ${n(x1)} ${y(top1)} m ${n(x2)} ${y(top2)} l S`);
+  }
+
+  function caixa(x, top, largura, altura, stroke = "#111827") {
+    cor(stroke);
+    comandos.push(`0.8 w ${n(x)} ${y(top + altura)} ${n(largura)} ${n(altura)} re S`);
+  }
+
+  function linhaCampo(x1, top, x2, valor = "") {
+    linha(x1, top, x2, top, 0.7);
+    if (valor) texto(x1 + 4, top - 3, textoPdfCurto(valor, Math.floor((x2 - x1) / 5.4)), 9);
+  }
+
+  cor("#0b67d8");
+  texto(104, 48, "ae", 58, true);
+  cor("#050505");
+  texto(36, 92, "avil", 29, true);
+  cor("#0b67d8");
+  texto(96, 92, "ae", 29, true);
+  cor("#050505");
+  texto(134, 92, "ventos", 29, true);
+  cor("#0f3b82");
+  textoCentro(154, 111, marcaLocacao.subtitulo, 10, true);
+
+  cor("#050505");
+  texto(342, 55, "ORDEM DE LOCACAO", 24, true);
+  texto(413, 88, "No", 13);
+  linhaCampo(435, 88, 565, locacao.id || "");
+  cor("#0f3b82");
+  linha(28, 126, 567, 126, 1.7);
+
+  caixa(28, 142, 539, 108);
+  cor("#0f3b82");
+  texto(42, 162, "DADOS DA LOCACAO", 12, true);
+  cor("#111827");
+  texto(42, 192, "Empresa:", 10);
+  linhaCampo(86, 192, 285, locacao.empresa || "");
+  texto(42, 222, "Data de Saida:", 10);
+  linhaCampo(116, 222, 235, GE.dataBR(locacao.saida));
+  texto(42, 239, "Data de Retorno:", 10);
+  linhaCampo(128, 239, 245, GE.dataBR(locacao.retorno));
+  texto(322, 192, "Equipamentos (Qtd. de tipos diferentes):", 9.2);
+  linhaCampo(514, 192, 560, String(grupos.length));
+  texto(322, 222, "Quantidade Total de Itens:", 10);
+  linhaCampo(455, 222, 560, String(totalItens));
+
+  caixa(28, 266, 539, 336);
+  cor("#0f3b82");
+  texto(42, 286, "EQUIPAMENTOS LOCADOS", 12, true);
+  const tableX = 38;
+  const tableY = 306;
+  const rowH = 17;
+  const widths = [38, 255, 78, 88, 80];
+  const headers = ["ITEM", "EQUIPAMENTO", "QUANTIDADE", "VALOR UNITARIO", "VALOR TOTAL"];
+  let x = tableX;
+  cor("#0c2e63");
+  headers.forEach((header, index) => {
+    caixa(x, tableY, widths[index], 22, "#8b93a1");
+    textoCentro(x + widths[index] / 2, tableY + 14, header, 7.8, true);
+    x += widths[index];
+  });
+  for (let i = 0; i < 15; i += 1) {
+    const grupo = grupos[i];
+    x = tableX;
+    widths.forEach((largura) => { caixa(x, tableY + 22 + i * rowH, largura, rowH, "#8b93a1"); x += largura; });
+    cor("#111827");
+    textoCentro(tableX + widths[0] / 2, tableY + 35 + i * rowH, String(i + 1), 8.5);
+    if (grupo) {
+      texto(tableX + widths[0] + 4, tableY + 35 + i * rowH, textoPdfCurto(grupo.nome, 46), 7.8);
+      textoCentro(tableX + widths[0] + widths[1] + widths[2] / 2, tableY + 35 + i * rowH, String(grupo.codigos.length), 8.5);
+    }
+  }
+  const totalTop = tableY + 22 + 15 * rowH;
+  caixa(tableX, totalTop, widths.slice(0, 4).reduce((a, b) => a + b, 0), 24, "#8b93a1");
+  caixa(tableX + widths.slice(0, 4).reduce((a, b) => a + b, 0), totalTop, widths[4], 24, "#8b93a1");
+  cor("#0c2e63");
+  texto(360, totalTop + 15, "VALOR TOTAL DA LOCACAO:", 9, true);
+  cor("#111827");
+  texto(514, totalTop + 15, "R$ ______", 9, true);
+
+  caixa(28, 620, 539, 78);
+  cor("#0f3b82");
+  texto(42, 640, "OBSERVACOES", 11, true);
+  cor("#111827");
+  linha(42, 661, 553, 661);
+  linha(42, 681, 553, 681);
+  linha(42, 701, 553, 701);
+
+  caixa(28, 710, 539, 86);
+  linha(298, 710, 298, 796);
+  cor("#111827");
+  linha(78, 755, 250, 755);
+  textoCentro(164, 771, marcaLocacao.nome, 9.6, true);
+  textoCentro(164, 784, marcaLocacao.subtitulo, 8.5);
+  textoCentro(164, 795, `CNPJ: ${marcaLocacao.cnpj || ""}`, 8.1);
+  cor("#0f3b82");
+  texto(326, 732, "RECEBIDO POR:", 10, true);
+  cor("#111827");
+  texto(326, 756, "Nome:", 9);
+  linha(358, 756, 532, 756);
+  texto(326, 777, "CPF:", 9);
+  linha(352, 777, 532, 777);
+  texto(326, 798, "Data:", 9);
+  linha(356, 798, 454, 798);
+
+  cor("#0f3b82");
+  textoCentro(297, 820, "Obrigado por escolher a Avila Eventos!", 10, true);
+  cor("#111827");
+  textoCentro(297, 834, "Qualidade, compromisso e o melhor som para o seu evento.", 8.2);
+
+  const conteudo = comandos.join("\n");
+  const objetos = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    `<< /Length ${conteudo.length} >>\nstream\n${conteudo}\nendstream`
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objetos.forEach((objeto, index) => {
+    offsets[index + 1] = pdf.length;
+    pdf += `${index + 1} 0 obj\n${objeto}\nendobj\n`;
+  });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objetos.length + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i <= objetos.length; i += 1) {
+    pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objetos.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new Blob([pdf], { type: "application/pdf" });
+}
+
+function baixarOrdemLocacaoPdf(locacao, marcaLocacao, nomeArquivo, janela = window) {
+  const arquivo = criarPdfOrdemLocacao(locacao, marcaLocacao);
+  const url = janela.URL.createObjectURL(arquivo);
+  const link = janela.document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivo;
+  janela.document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => janela.URL.revokeObjectURL(url), 1000);
+}
+function gerarOrdemLocacao(id) {
+  const locacao = (GE.dados().locacoes || []).find((item) => item.id === id);
+  if (!locacao) return GE.mensagem("Locação não encontrada.", "error");
+
+  const grupos = agruparEquipamentosOrdem(locacao.equipamentos || []);
+  const totalItens = (locacao.equipamentos || []).length;
+  const empresaSistema = GE.empresaAtual() || {};
+  const marcaLocacao = {
+    nome: "Avila Eventos",
+    subtitulo: "sonorização, iluminação",
+    cnpj: empresaSistema.cnpj || "12.345.678/0001-90"
+  };
+  const ordem = window.open("", "_blank");
+
+  if (!ordem) {
+    GE.mensagem("Não foi possível abrir a ordem. Permita pop-ups para gerar o arquivo.", "warning");
+    return;
+  }
+
+  const nomeArquivo = `ordem-locacao-${String(locacao.id || "locacao").replace(/[^a-z0-9_-]+/gi, "-")}.pdf`;
+  const logoAvilaUrl = new URL("assets/logo-avila-eventos.png", window.location.href).href;
+  const documentoOrdem = `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Ordem de Locação - ${textoSeguro(locacao.id || "")}<\/title>
+  <style>
+    * { box-sizing: border-box; }
+    @page { size: A4; margin: 0; }
+    html, body { margin: 0; min-height: 100%; background: #e5e7eb; color: #111827; font-family: Arial, Helvetica, sans-serif; }
+    .page { width: 210mm; height: 297mm; margin: 0 auto; padding: 6mm 7mm; overflow: hidden; background: #fff; }
+    .top { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; border-bottom: 2.5px solid #0f3b82; padding-bottom: 7px; margin-bottom: 7px; }
+    .avila-logo { width: 310px; max-width: 100%; }
+    .avila-logo img { width: 300px; max-width: 100%; height: auto; display: block; }
+    .doc-title { text-align: right; font-size: 27px; font-weight: 900; letter-spacing: .2px; padding-top: 8px; }
+    .doc-number { text-align: right; margin-top: 13px; font-size: 15px; }
+    .line { display: inline-block; min-width: 160px; border-bottom: 1px solid #111; height: 17px; vertical-align: bottom; text-align: center; }
+    .box { border: 1px solid #111827; border-radius: 7px; padding: 7px 10px; margin-bottom: 7px; }
+    .section-title { color: #0f3b82; font-weight: 900; font-size: 14px; margin-bottom: 8px; }
+    .fields { display: grid; grid-template-columns: 1.08fr 1fr; gap: 10px 32px; font-size: 12.5px; }
+    .field { display: grid; grid-template-columns: max-content minmax(70px, 1fr); align-items: end; column-gap: 8px; min-width: 0; }
+    .field.field-right { grid-template-columns: minmax(0, 1fr) 78px; }
+    .field strong { font-weight: 400; white-space: nowrap; }
+    .field.field-right strong { white-space: normal; line-height: 1.08; }
+    .field-line { display: block; width: 100%; min-width: 0; border-bottom: 1px solid #111; min-height: 16px; text-align: center; padding: 0 4px 1px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10.8px; }
+    th, td { border: 1px solid #8b93a1; padding: 2px 5px; height: 21px; }
+    th { height: 23px; background: #edf3fb; color: #0c2e63; font-weight: 900; text-align: center; }
+    td:nth-child(1), td:nth-child(3), td:nth-child(4), td:nth-child(5) { text-align: center; }
+    .total-row td { height: 28px; font-weight: 900; color: #0c2e63; }
+    .obs-lines div { border-bottom: 1px solid #111; height: 16px; }
+    .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .sign > div { padding: 0 18px; min-height: 70px; font-size: 12.2px; }
+    .sign > div + div { border-left: 1px solid #111827; }
+    .brand-signature { display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 8px; }
+    .signature-line { border-bottom: 1px solid #111; height: 0; margin: 0 28px 7px; }
+    .center { text-align: center; }
+    .thanks { text-align: center; color: #0f3b82; font-style: italic; font-weight: 800; margin-top: 7px; font-size: 13px; }
+    .footer-note { font-size: 12px; }
+    .print-actions { position: sticky; top: 0; padding: 10px; background: #111827; display: flex; gap: 8px; justify-content: center; }
+    .print-actions button { border: 0; border-radius: 6px; padding: 10px 14px; font-weight: 800; cursor: pointer; }
+    .print-actions .primary { background: #7c3aed; color: #fff; }
+    .print-actions .secondary { background: #fff; color: #111827; }
+    @media print {
+      body { background: #fff; }
+      .page { margin: 0; box-shadow: none; }
+      .print-actions { display: none; }
+    }
+  <\/style>
+<\/head>
+<body>
+  <div class="print-actions">
+    <button class="primary" id="imprimirOrdem">Imprimir<\/button>
+    <button class="secondary" id="salvarOrdem">Salvar PDF<\/button>
+    <button class="secondary" onclick="window.close()">Fechar<\/button>
+  <\/div>
+  <main class="page">
+    <section class="top">
+      <div>
+        <div class="avila-logo">
+          <img src="${textoSeguro(logoAvilaUrl)}" alt="Avila Eventos">
+        <\/div>
+      <\/div>
+      <div>
+        <div class="doc-title">ORDEM DE LOCAÇÃO<\/div>
+        <div class="doc-number">Nº <span class="line">${textoSeguro(locacao.id || "")}<\/span><\/div>
+      <\/div>
+    <\/section>
+
+    <section class="box">
+      <div class="section-title">DADOS DA LOCAÇÃO<\/div>
+      <div class="fields">
+        <div class="field"><strong>Empresa:<\/strong><span class="field-line">${textoSeguro(locacao.empresa || "")}<\/span><\/div>
+        <div class="field field-right"><strong>Equipamentos (Qtd. de tipos diferentes):<\/strong><span class="field-line">${grupos.length}<\/span><\/div>
+        <div class="field"><strong>Data de Saída:<\/strong><span class="field-line">${textoSeguro(GE.dataBR(locacao.saida))}<\/span><\/div>
+        <div class="field field-right"><strong>Quantidade Total de Itens:<\/strong><span class="field-line">${totalItens}<\/span><\/div>
+        <div class="field"><strong>Data de Retorno:<\/strong><span class="field-line">${textoSeguro(GE.dataBR(locacao.retorno))}<\/span><\/div>
+      <\/div>
+    <\/section>
+
+    <section class="box">
+      <div class="section-title">EQUIPAMENTOS LOCADOS<\/div>
+      <table>
+        <thead>
+          <tr>
+            <th>ITEM<\/th>
+            <th>EQUIPAMENTO<\/th>
+            <th>QUANTIDADE<\/th>
+            <th>VALOR UNITÁRIO<\/th>
+            <th>VALOR TOTAL<\/th>
+          <\/tr>
+        <\/thead>
+        <tbody>
+          ${linhasOrdemLocacao(locacao)}
+          <tr class="total-row">
+            <td colspan="4" style="text-align:right">VALOR TOTAL DA LOCAÇÃO:<\/td>
+            <td>R$ __________<\/td>
+          <\/tr>
+        <\/tbody>
+      <\/table>
+    <\/section>
+
+    <section class="box">
+      <div class="section-title">OBSERVAÇÕES<\/div>
+      <div class="obs-lines"><div><\/div><div><\/div><div><\/div><\/div>
+    <\/section>
+
+    <section class="box sign">
+      <div class="center brand-signature">
+        <div class="signature-line"><\/div>
+        <strong>${textoSeguro(marcaLocacao.nome)}<\/strong><br>
+        ${textoSeguro(marcaLocacao.subtitulo)}<br>
+        CNPJ: ${textoSeguro(marcaLocacao.cnpj)}
+      <\/div>
+      <div>
+        <div class="section-title">RECEBIDO POR:<\/div>
+        Nome: <span class="field-line"><\/span><br><br>
+        CPF: <span class="field-line"><\/span><br><br>
+        Data: <span class="field-line"><\/span>
+      <\/div>
+    <\/section>
+
+    <div class="thanks">Obrigado por escolher a Avila Eventos!<\/div>
+    <div class="center footer-note">Qualidade, compromisso e o melhor som para o seu evento.<\/div>
+  <\/main>
+<\/body>
+<\/html>`;
+  ordem.document.write(documentoOrdem);
+  ordem.document.close();
+
+  setTimeout(() => {
+    const botaoImprimir = ordem.document.getElementById("imprimirOrdem");
+    const botaoSalvar = ordem.document.getElementById("salvarOrdem");
+
+    if (botaoImprimir) botaoImprimir.addEventListener("click", () => ordem.print());
+    if (botaoSalvar) botaoSalvar.addEventListener("click", () => {
+      baixarOrdemLocacaoPdf(locacao, marcaLocacao, nomeArquivo, ordem);
+    });
+  }, 0);
+}
+window.gerarOrdemLocacao = gerarOrdemLocacao;
+
 function equipamentoPodeSerLocado(eq) {
   if (equipamentosSelecionados.includes(eq.codigo)) return false;
   if (locacaoEditandoId) {
@@ -533,6 +934,7 @@ function renderLocacoes() {
       <td><span class="badge ${finalizada ? "badge-green" : "badge-cyan"}">${textoSeguro(locacao.status || "Em Andamento")}</span></td>
       <td>
         <div class="locacao-actions">
+          <button class="locacao-action" title="Gerar ordem de locação" onclick="gerarOrdemLocacao('${textoSeguro(locacao.id)}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg></button>
           <button class="locacao-action" title="Editar loca\u00e7\u00e3o" onclick="editarLocacao('${textoSeguro(locacao.id)}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
           <button class="locacao-action finish" title="Concluir loca\u00e7\u00e3o" onclick="concluirLocacao('${textoSeguro(locacao.id)}')" ${finalizada ? "disabled" : ""}><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 6L9 17l-5-5"/></svg></button>
           <button class="locacao-action delete" title="Excluir loca\u00e7\u00e3o" onclick="excluirLocacao('${textoSeguro(locacao.id)}')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg></button>
@@ -560,6 +962,7 @@ renderLocacoes();
   <script src="pwa.js?v=20260621-ajustes-finais" defer></script>
 </body>
 </html>
+
 
 
 
