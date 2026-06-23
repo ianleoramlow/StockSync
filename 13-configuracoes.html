@@ -105,9 +105,15 @@
           <input class="form-input" id="empresaTelefone" type="text" placeholder="(00) 00000-0000">
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Endereço</label>
-        <input class="form-input" id="empresaEndereco" type="text" placeholder="Rua, número, cidade">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CNPJ</label>
+          <input class="form-input" id="empresaCnpj" type="text" placeholder="00.000.000/0000-00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Endereço</label>
+          <input class="form-input" id="empresaEndereco" type="text" placeholder="Rua, número, cidade">
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Observações internas</label>
@@ -187,11 +193,12 @@ function carregarEmpresa() {
   empresaCodigo.value = GE.codigoEmpresa(empresa) || "";
   empresaEmail.value = empresa.email || "";
   empresaTelefone.value = empresa.telefone || "";
+  empresaCnpj.value = empresa.cnpj || "";
   empresaEndereco.value = empresa.endereco || "";
   empresaObservacoes.value = empresa.observacoes || "";
 
   if (!ehAdmin()) {
-    [empresaNome, empresaEmail, empresaTelefone, empresaEndereco, empresaObservacoes, salvarEmpresa].forEach((item) => item.disabled = true);
+    [empresaNome, empresaEmail, empresaTelefone, empresaCnpj, empresaEndereco, empresaObservacoes, salvarEmpresa].forEach((item) => item.disabled = true);
   }
 }
 
@@ -244,6 +251,7 @@ salvarEmpresa.addEventListener("click", () => {
     nome: empresaNome.value,
     email: empresaEmail.value,
     telefone: empresaTelefone.value,
+    cnpj: empresaCnpj.value,
     endereco: empresaEndereco.value,
     observacoes: empresaObservacoes.value
   });
