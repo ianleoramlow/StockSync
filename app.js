@@ -794,6 +794,7 @@ const GE = (() => {
       nome,
       telefone: String(dadosEmpresa.telefone || "").trim(),
       email: String(dadosEmpresa.email || "").trim(),
+      cnpj: String(dadosEmpresa.cnpj || "").trim(),
       endereco: String(dadosEmpresa.endereco || "").trim(),
       observacoes: String(dadosEmpresa.observacoes || "").trim(),
       atualizadaEm: new Date().toISOString()
@@ -979,17 +980,58 @@ const GE = (() => {
     return dados().equipamentos.find((eq) => eq.codigo === codigo);
   }
 
-  function salvarEquipamento(equipamento) {
+  function trocarCodigoEquipamentoNasReferencias(db, codigoAntigo, codigoNovo) {
+    if (!codigoAntigo || !codigoNovo || codigoAntigo === codigoNovo) return;
+    const trocar = (codigo) => codigo === codigoAntigo ? codigoNovo : codigo;
+
+    db.manutencoes = (db.manutencoes || []).map((manutencao) =>
+      manutencao.codigo === codigoAntigo ? { ...manutencao, codigo: codigoNovo } : manutencao
+    );
+    db.eventos = (db.eventos || []).map((evento) => ({
+      ...evento,
+      equipamentos: (evento.equipamentos || []).map(trocar)
+    }));
+    db.locacoes = (db.locacoes || []).map((locacao) => ({
+      ...locacao,
+      equipamentos: (locacao.equipamentos || []).map(trocar)
+    }));
+  }
+
+  function trocarCodigoMaterialNasReferencias(db, codigoAntigo, codigoNovo) {
+    if (!codigoAntigo || !codigoNovo || codigoAntigo === codigoNovo) return;
+    db.eventos = (db.eventos || []).map((evento) => ({
+      ...evento,
+      consumos: normalizarConsumosEvento(evento.consumos).map((item) =>
+        item.codigo === codigoAntigo ? { ...item, codigo: codigoNovo } : item
+      )
+    }));
+  }
+
+  function salvarEquipamento(equipamento, codigoOriginal = "") {
     const db = dados();
     const codigo = equipamento.codigo.trim().toUpperCase();
+    const original = String(codigoOriginal || codigo).trim().toUpperCase();
+    const indiceOriginal = db.equipamentos.findIndex((eq) => eq.codigo === original);
     const existente = db.equipamentos.findIndex((eq) => eq.codigo === codigo);
+
+    if (!codigo) return { erro: "Informe o código do equipamento." };
+    if (codigo !== original && existente >= 0) {
+      return { erro: "Já existe um equipamento com esse código." };
+    }
+
     const registroBase = { ...equipamento, codigo, categoria: categoriaEstoqueCanonica(equipamento.categoria, "Sem categoria"), status: equipamento.status || "disponivel" };
+    const indiceImagem = indiceOriginal >= 0 ? indiceOriginal : existente;
     const registro = {
       ...registroBase,
-      imagem: equipamento.imagem || db.equipamentos[existente]?.imagem || imagemEquipamento(registroBase)
+      imagem: equipamento.imagem || db.equipamentos[indiceImagem]?.imagem || imagemEquipamento(registroBase)
     };
 
-    if (existente >= 0) {
+    if (indiceOriginal >= 0) {
+      db.equipamentos[indiceOriginal] = { ...db.equipamentos[indiceOriginal], ...registro };
+      trocarCodigoEquipamentoNasReferencias(db, original, codigo);
+      const detalheCodigo = original !== codigo ? `${original} -> ${codigo}` : codigo;
+      db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Editou Equipamento", tipo: "badge-purple", detalhes: `${detalheCodigo} - ${registro.nome}` });
+    } else if (existente >= 0) {
       db.equipamentos[existente] = { ...db.equipamentos[existente], ...registro };
       db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Editou Equipamento", tipo: "badge-purple", detalhes: `${codigo} - ${registro.nome}` });
     } else {
@@ -998,6 +1040,7 @@ const GE = (() => {
     }
 
     salvar(db);
+    return { ok: true, codigo };
   }
 
   function salvarEquipamentosEmLote(equipamento, quantidade) {
@@ -1045,14 +1088,26 @@ const GE = (() => {
     return (dados().materiaisConsumo || []).find((item) => item.codigo === chave || item.id === chave);
   }
 
-  function salvarMaterialConsumo(material) {
+  function salvarMaterialConsumo(material, codigoOriginal = "") {
     const db = dados();
     db.materiaisConsumo = db.materiaisConsumo || [];
     const registro = normalizarMaterialConsumo(material);
     if (!registro.codigo || !registro.nome || !registro.categoria) return null;
 
+    const original = String(codigoOriginal || registro.codigo).trim().toUpperCase();
+    const indiceOriginal = db.materiaisConsumo.findIndex((item) => item.codigo === original || item.id === original);
     const indice = db.materiaisConsumo.findIndex((item) => item.codigo === registro.codigo || item.id === registro.codigo);
-    if (indice >= 0) {
+
+    if (registro.codigo !== original && indice >= 0) {
+      return { erro: "Já existe um material com esse código." };
+    }
+
+    if (indiceOriginal >= 0) {
+      db.materiaisConsumo[indiceOriginal] = { ...db.materiaisConsumo[indiceOriginal], ...registro };
+      trocarCodigoMaterialNasReferencias(db, original, registro.codigo);
+      const detalheCodigo = original !== registro.codigo ? original + " -> " + registro.codigo : registro.codigo;
+      db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Editou Material de Consumo", tipo: "badge-purple", detalhes: detalheCodigo + " - " + registro.nome });
+    } else if (indice >= 0) {
       db.materiaisConsumo[indice] = { ...db.materiaisConsumo[indice], ...registro };
       db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Editou Material de Consumo", tipo: "badge-purple", detalhes: registro.codigo + " - " + registro.nome });
     } else {
