@@ -10,8 +10,8 @@
   <meta name="apple-mobile-web-app-title" content="StockSync">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
-<title>StockSync – Logs do Sistema</title>
-<link rel="stylesheet" href="styles.css?v=20260621-ajustes-finais">
+<title>StockSync  -  Logs do Sistema</title>
+<link rel="stylesheet" href="styles.css?v=20260625-edicao-grupo-equipamento">
 <style>
 .logs-toolbar {
   display: grid;
@@ -95,9 +95,9 @@
       <div class="form-group">
         <label class="form-label" for="periodoRelatorioLogs">Período do relatório</label>
         <select class="form-select" id="periodoRelatorioLogs">
-          <option value="7">Últimos 7 dias</option>
-          <option value="30" selected>Últimos 30 dias</option>
-          <option value="90">Últimos 90 dias</option>
+          <option value="7">Ãšltimos 7 dias</option>
+          <option value="30" selected>Ãšltimos 30 dias</option>
+          <option value="90">Ãšltimos 90 dias</option>
           <option value="custom">Período personalizado</option>
           <option value="all">Todos os logs</option>
         </select>
@@ -136,31 +136,31 @@
             <td style="font-family:var(--mono);font-size:11.5px">10/01 09:15</td>
             <td style="color:var(--text2)">João Silva</td>
             <td><span class="badge badge-green">Registrou Retorno</span></td>
-            <td style="color:var(--text2)">EQP002 – Mesa de Som</td>
+            <td style="color:var(--text2)">EQP002  -  Mesa de Som</td>
           </tr>
           <tr>
             <td style="font-family:var(--mono);font-size:11.5px">09/01 16:45</td>
             <td style="color:var(--text2)">Pedro Oliveira</td>
             <td><span class="badge badge-purple">Criou Locação</span></td>
-            <td style="color:var(--text2)">TechSom Events – 8 equipamentos</td>
+            <td style="color:var(--text2)">TechSom Events  -  8 equipamentos</td>
           </tr>
           <tr>
             <td style="font-family:var(--mono);font-size:11.5px">09/01 10:20</td>
             <td style="color:var(--text2)">Ana Costa</td>
             <td><span class="badge badge-red">Enviou para Manutenção</span></td>
-            <td style="color:var(--text2)">EQP004 – Microfone SM58</td>
+            <td style="color:var(--text2)">EQP004  -  Microfone SM58</td>
           </tr>
           <tr>
             <td style="font-family:var(--mono);font-size:11.5px">08/01 11:00</td>
             <td style="color:var(--text2)">João Silva</td>
             <td><span class="badge badge-green">Cadastrou Equipamento</span></td>
-            <td style="color:var(--text2)">EQP012 – Refletor Par LED 64</td>
+            <td style="color:var(--text2)">EQP012  -  Refletor Par LED 64</td>
           </tr>
           <tr>
             <td style="font-family:var(--mono);font-size:11.5px">07/01 15:30</td>
             <td style="color:var(--text2)">Maria Santos</td>
             <td><span class="badge badge-cyan">Importou Evento</span></td>
-            <td style="color:var(--text2)">EVT120 – Show de Verão 2024</td>
+            <td style="color:var(--text2)">EVT120  -  Show de Verão 2024</td>
           </tr>
         </tbody>
       </table>
@@ -179,7 +179,7 @@
     </div>
   </div>
 </main>
-<script src="app.js?v=20260621-ajustes-finais"></script>
+<script src="app.js?v=20260625-edicao-grupo-equipamento"></script>
 <script>
 const tbody = document.querySelector("tbody");
 const botoes = document.querySelectorAll(".page-btn");
@@ -377,7 +377,7 @@ configurarPeriodoPadrao();
 periodoRelatorio.dispatchEvent(new Event("change"));
 renderLogs();
 </script>
-  <script src="pwa.js?v=20260621-ajustes-finais" defer></script>
+  <script src="pwa.js?v=20260625-edicao-grupo-equipamento" defer></script>
 </body>
 </html>
 
