@@ -1,9 +1,9 @@
-const STOCKSYNC_CACHE = "stocksync-pwa-20260626-instant-save";
+const STOCKSYNC_CACHE = "stocksync-pwa-20260626-speed-save";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
-  "/pwa.js?v=20260626-instant-save",
+  "/pwa.js?v=20260626-speed-save",
   "/styles.css?v=20260626-no-auto-reload",
-  "/app.js?v=20260626-instant-save",
+  "/app.js?v=20260626-speed-save",
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/logo-stocksync-icon.png",
