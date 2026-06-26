@@ -161,10 +161,10 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
       </div>
       <div class="user-profile-trigger" id="abrirPerfil" title="Abrir perfil">
-        <div class="user-avatar">JS</div>
+        <div class="user-avatar">--</div>
         <div>
-          <div class="user-name">João Silva</div>
-          <div class="user-role">Freelancer</div>
+          <div class="user-name">Carregando</div>
+          <div class="user-role">-</div>
         </div>
       </div>
     </div>
@@ -174,19 +174,19 @@
   <div class="grid-4" style="margin-bottom:24px">
     <a class="stat-card stat-link" href="04-equipamentos.html?status=todos" aria-label="Ver todos os equipamentos">
       <div class="stat-label">Total de Equipamentos</div>
-      <div class="stat-value">328</div>
+      <div class="stat-value">0</div>
     </a>
     <a class="stat-card stat-link" href="04-equipamentos.html?status=disponivel" aria-label="Ver equipamentos disponíveis">
       <div class="stat-label">Disponíveis</div>
-      <div class="stat-value green">227</div>
+      <div class="stat-value green">0</div>
     </a>
     <a class="stat-card stat-link" href="04-equipamentos.html?status=evento" aria-label="Ver equipamentos em evento">
       <div class="stat-label">Em Eventos</div>
-      <div class="stat-value cyan">76</div>
+      <div class="stat-value cyan">0</div>
     </a>
     <a class="stat-card stat-link" href="04-equipamentos.html?status=manutencao" aria-label="Ver equipamentos em manutenção">
       <div class="stat-label">Em Manutenção</div>
-      <div class="stat-value red">12</div>
+      <div class="stat-value red">0</div>
     </a>
   </div>
 
@@ -224,20 +224,8 @@
         <a class="see-all" href="12-logs.html">Ver todas</a>
       </div>
       <div class="move-item">
-        <div class="move-time">10/01 14:32</div>
-        <div class="move-desc">Microfone SMS8 enviado para Casamento João - Por: Maria Santos</div>
-      </div>
-      <div class="move-item">
-        <div class="move-time">10/01 09:15</div>
-        <div class="move-desc">Mesa de Som X32 retornada do evento Festival Rock - Por: João Silva</div>
-      </div>
-      <div class="move-item">
-        <div class="move-time">09/01 16:45</div>
-        <div class="move-desc">Refletor LED 200W enviado para Locação - TechSom</div>
-      </div>
-      <div class="move-item">
-        <div class="move-time">09/01 10:20</div>
-        <div class="move-desc">Caixa Ativa JBL enviada para Show Corporativo - Por: Pedro Oliveira</div>
+        <div class="move-time">-</div>
+        <div class="move-desc">Carregando movimentações...</div>
       </div>
     </div>
   </div>
@@ -287,7 +275,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260626-no-auto-reload"></script>
+<script src="app.js?v=20260626-fast-navigation"></script>
 <script>
 let usuarioLogado = GE.sessaoAtiva();
 
@@ -400,31 +388,56 @@ document.getElementById("salvarPerfil").addEventListener("click", () => {
   modalPerfil.classList.remove("open");
 });
 
-const db = GE.dados();
 const valores = document.querySelectorAll(".stat-value");
-const totalEquipamentos = db.equipamentos.length;
+const moves = document.querySelector(".card:last-child");
 const statusFluxoEvento = ["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"];
-const manutencoesAtivas = new Set((db.manutencoes || [])
-  .filter((manutencao) => manutencao.status !== "Finalizada")
-  .map((manutencao) => manutencao.codigo));
-const totaisStatus = {
-  disponivel: db.equipamentos.filter((eq) => eq.status === "disponivel").length,
-  evento: db.equipamentos.filter((eq) => statusFluxoEvento.includes(eq.status)).length,
-  locado: db.equipamentos.filter((eq) => eq.status === "locado").length,
-  manutencao: db.equipamentos.filter((eq) => eq.status === "manutencao" || manutencoesAtivas.has(eq.codigo)).length
-};
 
-valores[0].textContent = totalEquipamentos;
-valores[1].textContent = totaisStatus.disponivel;
-valores[2].textContent = totaisStatus.evento;
-valores[3].textContent = totaisStatus.manutencao;
+document.querySelector(".bell").addEventListener("click", () => GE.mensagem("Nenhuma notificação nova.", "info"));
 
-function porcentagemStatus(status) {
-  if (!totalEquipamentos) return 0;
-  return Math.round((totaisStatus[status] / totalEquipamentos) * 100);
+function textoSeguroMovimentacao(valor) {
+  return String(valor || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function atualizarGraficoEstoque() {
+function detalhesMovimentacaoDashboard(log) {
+  const detalhes = String(log.detalhes || "");
+  if (log.acao === "Atualizou Status do Evento") {
+    return detalhes.replace(/:\s*[^:]+$/, "");
+  }
+  return detalhes;
+}
+
+function calcularResumoDashboard() {
+  const dbAtual = GE.dados();
+  const equipamentos = Array.isArray(dbAtual.equipamentos) ? dbAtual.equipamentos : [];
+  const manutencoesAtivas = new Set((dbAtual.manutencoes || [])
+    .filter((manutencao) => manutencao.status !== "Finalizada")
+    .map((manutencao) => manutencao.codigo));
+  const totaisStatus = {
+    disponivel: equipamentos.filter((eq) => eq.status === "disponivel").length,
+    evento: equipamentos.filter((eq) => statusFluxoEvento.includes(eq.status)).length,
+    locado: equipamentos.filter((eq) => eq.status === "locado").length,
+    manutencao: equipamentos.filter((eq) => eq.status === "manutencao" || manutencoesAtivas.has(eq.codigo)).length
+  };
+  return { dbAtual, totalEquipamentos: equipamentos.length, totaisStatus };
+}
+
+function renderDashboard() {
+  const { dbAtual, totalEquipamentos, totaisStatus } = calcularResumoDashboard();
+  valores[0].textContent = totalEquipamentos;
+  valores[1].textContent = totaisStatus.disponivel;
+  valores[2].textContent = totaisStatus.evento;
+  valores[3].textContent = totaisStatus.manutencao;
+
+  function porcentagemStatus(status) {
+    if (!totalEquipamentos) return 0;
+    return Math.round((totaisStatus[status] / totalEquipamentos) * 100);
+  }
+
   const labels = {
     disponivel: "Disponível",
     evento: "Em Eventos",
@@ -447,38 +460,39 @@ function atualizarGraficoEstoque() {
     const quantidade = totaisStatus[status] || 0;
     item.querySelector("span").textContent = `${porcentagem}% ${labels[status]} (${quantidade})`;
   });
-}
 
-atualizarGraficoEstoque();
-
-const moves = document.querySelector(".card:last-child");
-const antigos = moves.querySelectorAll(".move-item");
-antigos.forEach((item) => item.remove());
-document.querySelector(".bell").addEventListener("click", () => GE.mensagem("Nenhuma notificação nova.", "info"));
-function textoSeguroMovimentacao(valor) {
-  return String(valor || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function detalhesMovimentacaoDashboard(log) {
-  const detalhes = String(log.detalhes || "");
-  if (log.acao === "Atualizou Status do Evento") {
-    return detalhes.replace(/:\s*[^:]+$/, "");
+  moves.querySelectorAll(".move-item").forEach((item) => item.remove());
+  const logs = Array.isArray(dbAtual.logs) ? dbAtual.logs.slice(0, 4) : [];
+  if (!logs.length) {
+    const item = document.createElement("div");
+    item.className = "move-item";
+    item.innerHTML = `<div class="move-time">-</div><div class="move-desc">Nenhuma movimentação registrada.</div>`;
+    moves.appendChild(item);
+    return;
   }
-  return detalhes;
+
+  logs.forEach((log) => {
+    const item = document.createElement("div");
+    item.className = "move-item";
+    const detalhes = detalhesMovimentacaoDashboard(log);
+    item.innerHTML = `<div class="move-time">${textoSeguroMovimentacao(log.data)}</div><div class="move-desc">${textoSeguroMovimentacao(log.acao)} - ${textoSeguroMovimentacao(detalhes)}</div>`;
+    moves.appendChild(item);
+  });
 }
 
-db.logs.slice(0, 4).forEach((log) => {
-  const item = document.createElement("div");
-  item.className = "move-item";
-  const detalhes = detalhesMovimentacaoDashboard(log);
-  item.innerHTML = `<div class="move-time">${textoSeguroMovimentacao(log.data)}</div><div class="move-desc">${textoSeguroMovimentacao(log.acao)} - ${textoSeguroMovimentacao(detalhes)}</div>`;
-  moves.appendChild(item);
-});</script>
+window.addEventListener("stocksync:sincronizado", (event) => {
+  event.preventDefault();
+  usuarioLogado = GE.sessaoAtiva() || usuarioLogado;
+  if (usuarioLogado) {
+    fotoPerfilSelecionada = usuarioLogado.foto || fotoPerfilSelecionada || "";
+    atualizarResumoUsuario();
+  }
+  const empresa = GE.empresaAtual();
+  if (empresa) document.querySelector(".page-subtitle").textContent = `Visão geral do estoque - ${empresa.nome} | Código: ${GE.codigoEmpresa(empresa)}`;
+  renderDashboard();
+});
+
+renderDashboard();</script>
   <script src="pwa.js?v=20260626-no-auto-reload" defer></script>
 </body>
 </html>
