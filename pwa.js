@@ -8,7 +8,7 @@
 
   if (isHttp && "serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/service-worker.js?v=20260625-storage-quota-fix").catch(() => null);
+      navigator.serviceWorker.register("/service-worker.js?v=20260626-no-auto-reload").catch(() => null);
     });
   }
 
