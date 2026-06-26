@@ -1,9 +1,9 @@
-const STOCKSYNC_CACHE = "stocksync-pwa-20260622-ordem-pdf-cnpj";
+const STOCKSYNC_CACHE = "stocksync-pwa-20260625-edicao-grupo-equipamento";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
-  "/pwa.js?v=20260621-ajustes-finais",
-  "/styles.css?v=20260621-ajustes-finais",
-  "/app.js?v=20260621-ajustes-finais",
+  "/pwa.js?v=20260625-edicao-grupo-equipamento",
+  "/styles.css?v=20260625-edicao-grupo-equipamento",
+  "/app.js?v=20260625-edicao-grupo-equipamento",
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/logo-stocksync-icon.png",
