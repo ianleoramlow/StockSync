@@ -8,6 +8,7 @@ const GE = (() => {
   const SOLICITACOES_KEY = "ge_solicitacoes_funcionarios";
   const API_CLIENT_HEADER = "stocksync-web";
   const BACKEND_MISSING = Symbol("backend_missing");
+  const HANDOFF_PREFIX = "stocksync-handoff:";
   const backendCache = new Map();
   const backendWriteTimers = new Map();
   const backendWriteQueue = new Map();
@@ -34,25 +35,71 @@ const GE = (() => {
     return String(chave || "").startsWith("ge_dados_");
   }
 
-  function lerLocalJSON(chave) {
+  function lerHandoff() {
+    if (typeof window === "undefined" || !String(window.name || "").startsWith(HANDOFF_PREFIX)) return null;
     try {
-      return JSON.parse(localStorage.getItem(chave) || "null");
+      return JSON.parse(String(window.name).slice(HANDOFF_PREFIX.length));
     } catch (error) {
       return null;
     }
   }
 
+  function lerHandoffJSON(chave) {
+    const pacote = lerHandoff();
+    if (!pacote || pacote.chave !== chave || !pacote.valor) return null;
+    try {
+      return JSON.parse(pacote.valor);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function salvarHandoff(chave, valorSerializado) {
+    if (typeof window === "undefined" || !chaveBancoEmpresa(chave)) return false;
+    try {
+      window.name = HANDOFF_PREFIX + JSON.stringify({ chave, valor: valorSerializado });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function limparHandoff(chave) {
+    if (typeof window === "undefined" || !String(window.name || "").startsWith(HANDOFF_PREFIX)) return;
+    const pacote = lerHandoff();
+    if (pacote?.chave === chave) window.name = "";
+  }
+
+  function lerLocalJSON(chave) {
+    let valorLocal = null;
+    try {
+      valorLocal = JSON.parse(localStorage.getItem(chave) || "null");
+    } catch (error) {
+      valorLocal = null;
+    }
+
+    if (!chaveBancoEmpresa(chave)) return valorLocal;
+
+    const valorHandoff = lerHandoffJSON(chave);
+    if (!valorHandoff) return valorLocal;
+    if (!valorLocal) return valorHandoff;
+    return carimboDados(valorHandoff) >= carimboDados(valorLocal) ? valorHandoff : valorLocal;
+  }
+
   function salvarLocalSeguro(chave, valorSerializado) {
     try {
       if (chaveBancoEmpresa(chave) && String(valorSerializado || "").length > 4200000) {
+        salvarHandoff(chave, valorSerializado);
         localStorage.removeItem(chave);
         return false;
       }
 
       localStorage.setItem(chave, valorSerializado);
+      limparHandoff(chave);
       return true;
     } catch (error) {
       try {
+        salvarHandoff(chave, valorSerializado);
         if (chaveBancoEmpresa(chave)) localStorage.removeItem(chave);
       } catch (removeError) {
         console.warn("StockSync: não foi possível limpar o cache local.", removeError);
@@ -140,13 +187,6 @@ const GE = (() => {
     backendWriteQueue.set(chave, valor);
 
     clearTimeout(backendWriteTimers.get(chave));
-    if (opcoes.sincronico) {
-      backendWriteQueue.delete(chave);
-      backendWriteTimers.delete(chave);
-      requisicaoBackend("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value: valor });
-      return;
-    }
-
     if (opcoes.imediato) {
       backendWriteQueue.delete(chave);
       backendWriteTimers.delete(chave);
@@ -591,10 +631,9 @@ const GE = (() => {
     const serializado = JSON.stringify(valorFinal);
     ultimaGravacaoLocal = Date.now();
     ultimaAssinaturaRemota = "";
-    const salvouLocal = salvarLocalSeguro(chave, serializado);
+    salvarLocalSeguro(chave, serializado);
     salvarBackend(chave, valorFinal, {
-      imediato: chaveBancoEmpresa(chave),
-      sincronico: chaveBancoEmpresa(chave) && !salvouLocal
+      imediato: chaveBancoEmpresa(chave)
     });
     notificarSincronizacaoBackend([chave]);
   }
