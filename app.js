@@ -23,6 +23,30 @@ const GE = (() => {
       || chave.startsWith("ge_dados_");
   }
 
+  function chaveBancoEmpresa(chave) {
+    return String(chave || "").startsWith("ge_dados_");
+  }
+
+  function salvarLocalSeguro(chave, valorSerializado) {
+    try {
+      if (chaveBancoEmpresa(chave) && String(valorSerializado || "").length > 1500000) {
+        localStorage.removeItem(chave);
+        return false;
+      }
+
+      localStorage.setItem(chave, valorSerializado);
+      return true;
+    } catch (error) {
+      try {
+        if (chaveBancoEmpresa(chave)) localStorage.removeItem(chave);
+      } catch (removeError) {
+        console.warn("StockSync: não foi possível limpar o cache local.", removeError);
+      }
+      console.warn("StockSync: cache local cheio; mantendo dados online.", error);
+      return false;
+    }
+  }
+
   function requisicaoBackend(metodo, caminho, corpo = null) {
     if (!location.protocol.startsWith("http")) return null;
 
@@ -169,7 +193,7 @@ const GE = (() => {
         const remoto = JSON.stringify(valor ?? null);
         const local = localStorage.getItem(chave);
         if (local !== remoto) {
-          localStorage.setItem(chave, remoto);
+          salvarLocalSeguro(chave, remoto);
           backendCache.set(chave, valor);
           chavesAlteradas.push(chave);
         }
@@ -225,7 +249,7 @@ const GE = (() => {
   function aplicarTema(tema = temaSalvo()) {
     const temaFinal = tema === "claro" ? "light" : "dark";
     document.documentElement.dataset.theme = temaFinal;
-    localStorage.setItem(TEMA_KEY, temaFinal === "light" ? "claro" : "escuro");
+    salvarLocalSeguro(TEMA_KEY, temaFinal === "light" ? "claro" : "escuro");
     atualizarBotoesTema();
     atualizarLogosTema();
   }
@@ -493,7 +517,7 @@ const GE = (() => {
     if (chaveCompartilhada(chave) && backendDisponivel !== false) {
       const valorBackend = lerBackend(chave);
       if (valorBackend !== BACKEND_MISSING) {
-        if (valorBackend) localStorage.setItem(chave, JSON.stringify(valorBackend));
+        if (valorBackend) salvarLocalSeguro(chave, JSON.stringify(valorBackend));
         return valorBackend || fallback;
       }
     }
@@ -508,7 +532,7 @@ const GE = (() => {
     if (!chaveCompartilhada(chave)) {
       const valorBackend = lerBackend(chave);
       if (valorBackend !== BACKEND_MISSING) {
-        if (valorBackend) localStorage.setItem(chave, JSON.stringify(valorBackend));
+        if (valorBackend) salvarLocalSeguro(chave, JSON.stringify(valorBackend));
         return valorBackend || fallback;
       }
     }
@@ -518,11 +542,7 @@ const GE = (() => {
 
   function salvarJSON(chave, valor) {
     ultimaGravacaoLocal = Date.now();
-    try {
-      localStorage.setItem(chave, JSON.stringify(valor));
-    } catch (error) {
-      console.warn("StockSync: cache local cheio; mantendo salvamento online.", error);
-    }
+    salvarLocalSeguro(chave, JSON.stringify(valor));
     salvarBackend(chave, valor);
   }
 
@@ -696,7 +716,7 @@ const GE = (() => {
       const usuarioMigrado = { ...usuarioAntigo, empresaId: id, empresaCodigo: empresa.codigo, empresaNome: nomeEmpresa };
       salvarJSON(USUARIO_KEY, usuarioMigrado);
       salvarJSON(SESSAO_KEY, usuarioMigrado);
-      localStorage.setItem(EMPRESA_ATUAL_KEY, id);
+      salvarLocalSeguro(EMPRESA_ATUAL_KEY, id);
     }
   }
 
@@ -881,7 +901,7 @@ const GE = (() => {
     });
     salvarJSON(USUARIO_KEY, admin);
     salvarJSON(SESSAO_KEY, admin);
-    localStorage.setItem(EMPRESA_ATUAL_KEY, id);
+    salvarLocalSeguro(EMPRESA_ATUAL_KEY, id);
     return admin;
   }
 
@@ -899,7 +919,7 @@ const GE = (() => {
         const usuario = { ...funcionario, empresaId: empresa.id, empresaCodigo: codigoAcessoEmpresa(empresa), empresaNome: empresa.nome };
         salvarJSON(USUARIO_KEY, usuario);
         salvarJSON(SESSAO_KEY, usuario);
-        localStorage.setItem(EMPRESA_ATUAL_KEY, empresa.id);
+        salvarLocalSeguro(EMPRESA_ATUAL_KEY, empresa.id);
         return usuario;
       }
 
