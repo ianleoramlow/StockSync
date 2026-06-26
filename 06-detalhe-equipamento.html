@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
 <title>StockSync  -  Detalhe Equipamento</title>
-<link rel="stylesheet" href="styles.css?v=20260625-edicao-grupo-equipamento">
+<link rel="stylesheet" href="styles.css?v=20260625-storage-quota-fix">
 <style>
 .equip-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:24px; }
 .equip-title-row { display:flex;align-items:center;gap:12px; }
@@ -97,7 +97,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260625-edicao-grupo-equipamento"></script>
+<script src="app.js?v=20260625-storage-quota-fix"></script>
 <script>
 function normalizarDetalhe(texto) {
   return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -375,7 +375,7 @@ document.getElementById("confirmarManutencaoDetalhe").addEventListener("click", 
   setTimeout(() => window.location.href = "11-manutencoes.html", 650);
 });
 </script>
-  <script src="pwa.js?v=20260625-edicao-grupo-equipamento" defer></script>
+  <script src="pwa.js?v=20260625-storage-quota-fix" defer></script>
 </body>
 </html>
 
