@@ -111,6 +111,15 @@ const GE = (() => {
     return chavesAlteradas.some((chave) => chaveCompartilhada(chave));
   }
 
+  function notificarSincronizacaoBackend(chavesAlteradas) {
+    if (typeof window === "undefined" || typeof CustomEvent !== "function") return true;
+    const evento = new CustomEvent("stocksync:sincronizado", {
+      cancelable: true,
+      detail: { chaves: chavesAlteradas }
+    });
+    return window.dispatchEvent(evento);
+  }
+
   function chavesSincronizacaoBackend() {
     const chaves = [EMPRESAS_KEY, SOLICITACOES_KEY];
     const empresaId = empresaAtualId();
@@ -167,6 +176,8 @@ const GE = (() => {
       });
 
       if (deveRecarregarAposSync(chavesAlteradas)) {
+        const deveRecarregar = notificarSincronizacaoBackend(chavesAlteradas);
+        if (deveRecarregar === false || document.body?.dataset?.stocksyncSyncMode === "inline") return;
         sessionStorage.setItem("stocksyncSyncReload", String(Date.now()));
         location.reload();
       }
@@ -507,7 +518,11 @@ const GE = (() => {
 
   function salvarJSON(chave, valor) {
     ultimaGravacaoLocal = Date.now();
-    localStorage.setItem(chave, JSON.stringify(valor));
+    try {
+      localStorage.setItem(chave, JSON.stringify(valor));
+    } catch (error) {
+      console.warn("StockSync: cache local cheio; mantendo salvamento online.", error);
+    }
     salvarBackend(chave, valor);
   }
 
@@ -1043,6 +1058,80 @@ const GE = (() => {
     return { ok: true, codigo };
   }
 
+  function nomeBaseEquipamento(nome) {
+    return String(nome || "").replace(/\s+\d+$/, "").trim();
+  }
+
+  function sufixoNumericoEquipamento(nome) {
+    const match = String(nome || "").match(/(\s+\d+)$/);
+    return match ? match[1] : "";
+  }
+
+  function chaveGrupoEquipamento(equipamento) {
+    if (!equipamento) return "";
+    const nome = normalizar(nomeBaseEquipamento(equipamento.nome));
+    const categoria = chaveCategoriaEstoque(categoriaEstoqueCanonica(equipamento.categoria, "Sem categoria"));
+    return `${nome}|${categoria}`;
+  }
+
+  function equipamentosDoMesmoGrupo(codigoReferencia) {
+    const db = dados();
+    const codigo = String(codigoReferencia || "").trim().toUpperCase();
+    const referencia = db.equipamentos.find((eq) => eq.codigo === codigo);
+    if (!referencia) return [];
+    const chave = chaveGrupoEquipamento(referencia);
+    return db.equipamentos.filter((eq) => chaveGrupoEquipamento(eq) === chave);
+  }
+
+  function salvarGrupoEquipamentos(codigoReferencia, equipamento) {
+    const db = dados();
+    const codigo = String(codigoReferencia || "").trim().toUpperCase();
+    const referencia = db.equipamentos.find((eq) => eq.codigo === codigo);
+    if (!referencia) return { erro: "Equipamento não encontrado." };
+
+    const codigoInformado = String(equipamento.codigo || codigo).trim().toUpperCase();
+    if (codigoInformado && codigoInformado !== codigo) {
+      return { erro: "Para editar todos do grupo, mantenha o código individual. O código só pode ser alterado editando uma unidade por vez." };
+    }
+
+    const chave = chaveGrupoEquipamento(referencia);
+    const nomeNovo = String(equipamento.nome || "").trim();
+    const categoriaNova = categoriaEstoqueCanonica(equipamento.categoria, "Sem categoria");
+    const descricaoNova = equipamento.descricao || "";
+    const imagemNova = equipamento.imagem || "";
+    const codigosAlterados = [];
+
+    db.equipamentos = db.equipamentos.map((eq) => {
+      if (chaveGrupoEquipamento(eq) !== chave) return eq;
+      const sufixo = sufixoNumericoEquipamento(eq.nome);
+      const nomeComSufixo = sufixo && nomeNovo
+        ? `${nomeBaseEquipamento(nomeNovo)}${sufixo}`
+        : nomeNovo || eq.nome;
+
+      codigosAlterados.push(eq.codigo);
+      return {
+        ...eq,
+        nome: nomeComSufixo,
+        categoria: categoriaNova,
+        descricao: descricaoNova,
+        imagem: imagemNova || eq.imagem || imagemEquipamento({ ...eq, nome: nomeComSufixo, categoria: categoriaNova })
+      };
+    });
+
+    if (!codigosAlterados.length) return { erro: "Nenhum equipamento do grupo foi encontrado." };
+
+    db.logs.unshift({
+      data: hojeCurto(),
+      usuario: usuarioAtual().nome,
+      acao: "Editou Grupo de Equipamentos",
+      tipo: "badge-purple",
+      detalhes: `${codigosAlterados.length} unidades - ${nomeBaseEquipamento(nomeNovo || referencia.nome)}`
+    });
+
+    salvar(db);
+    return { ok: true, codigos: codigosAlterados, total: codigosAlterados.length };
+  }
+
   function salvarEquipamentosEmLote(equipamento, quantidade) {
     const total = Math.max(1, Number(quantidade) || 1);
     const db = dados();
@@ -1052,17 +1141,23 @@ const GE = (() => {
     const match = codigoBase.match(/^(.*?)(\d+)$/);
     const criados = [];
 
-    for (let i = 0; i < total; i++) {
+    const limiteTentativas = Math.max(total + db.equipamentos.length + 200, total * 3);
+    let tentativa = 0;
+
+    while (criados.length < total && tentativa < limiteTentativas) {
       const codigo = match
-        ? `${match[1]}${String(Number(match[2]) + i).padStart(match[2].length, "0")}`
-        : total === 1 ? codigoBase : `${codigoBase}-${String(i + 1).padStart(2, "0")}`;
+        ? `${match[1]}${String(Number(match[2]) + tentativa).padStart(match[2].length, "0")}`
+        : total === 1 ? codigoBase : `${codigoBase}-${String(tentativa + 1).padStart(2, "0")}`;
+
+      tentativa += 1;
 
       if (db.equipamentos.some((eq) => eq.codigo === codigo)) continue;
 
+      const indiceCriado = criados.length + 1;
       db.equipamentos.push({
         ...equipamentoBase,
         codigo,
-        nome: total > 1 ? `${equipamento.nome} ${String(i + 1).padStart(2, "0")}` : equipamento.nome,
+        nome: total > 1 ? `${equipamento.nome} ${String(indiceCriado).padStart(2, "0")}` : equipamento.nome,
         status: equipamento.status || "disponivel",
         imagem: equipamento.imagem || imagemEquipamento(equipamentoBase)
       });
@@ -2261,7 +2356,7 @@ const GE = (() => {
 
   return {
     dados, salvar, log, normalizar, badge, statusInfo, dataBR, mensagem, imagemEquipamento,
-    getEquipamento, salvarEquipamento, salvarEquipamentosEmLote, removerEquipamento, getMaterialConsumo, salvarMaterialConsumo, removerMaterialConsumo, enviarManutencao, finalizarManutencao,
+    getEquipamento, salvarEquipamento, salvarGrupoEquipamentos, equipamentosDoMesmoGrupo, salvarEquipamentosEmLote, removerEquipamento, getMaterialConsumo, salvarMaterialConsumo, removerMaterialConsumo, enviarManutencao, finalizarManutencao,
     salvarEvento, editarEvento, atualizarStatusEvento, excluirEventoFinalizado, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
     empresas, empresaAtual, salvarEmpresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema, aplicarTema, categoriasEstoque, salvarCategoriasEstoque, categoriaEstoqueCanonica
   };
