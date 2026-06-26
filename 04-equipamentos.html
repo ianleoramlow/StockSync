@@ -10,8 +10,8 @@
   <meta name="apple-mobile-web-app-title" content="StockSync">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
-<title>StockSync – Equipamentos</title>
-<link rel="stylesheet" href="styles.css?v=20260621-ajustes-finais">
+<title>StockSync  -  Equipamentos</title>
+<link rel="stylesheet" href="styles.css?v=20260625-edicao-grupo-equipamento">
 <style>
 .maintenance-action {
   width: 34px;
@@ -301,7 +301,7 @@ onclick="window.location.href='05-cadastro-equipamento.html'">
     </div>
   </div>
 </div>
-<script src="app.js?v=20260621-ajustes-finais"></script>
+<script src="app.js?v=20260625-edicao-grupo-equipamento"></script>
 <script>
 const filtros = {
   todos: { titulo: "Equipamentos", subtitulo: "Todos os equipamentos cadastrados no sistema" },
@@ -314,12 +314,16 @@ const params = new URLSearchParams(window.location.search);
 const filtroAtual = params.get("status") || "todos";
 const busca = document.querySelector(".search-input");
 const tbody = document.querySelector("tbody");
+const pagination = document.querySelector(".pagination");
 const pageTitle = document.querySelector(".page-title");
 const pageSubtitle = document.querySelector(".page-subtitle");
 const statusHeader = document.getElementById("statusHeader");
 const filtroConfig = filtros[filtroAtual] || filtros.todos;
 const statusFluxoEvento = ["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"];
 let visualizacaoEvento = localStorage.getItem("equipamentosEventoVisualizacao") || "status";
+let paginaAtual = Math.max(1, Number(new URLSearchParams(window.location.search).get("pagina")) || 1);
+const itensPorPagina = 25;
+let totalPaginasAtual = 1;
 const modalManutencaoLista = document.getElementById("modalManutencaoLista");
 const manutencaoListaEquipamento = document.getElementById("manutencaoListaEquipamento");
 const manutencaoListaCodigoGrupo = document.getElementById("manutencaoListaCodigoGrupo");
@@ -333,6 +337,12 @@ let manutencaoListaCodigo = "";
 
 pageTitle.textContent = filtroConfig.titulo;
 pageSubtitle.textContent = filtroConfig.subtitulo;
+document.body.dataset.stocksyncSyncMode = "inline";
+
+window.addEventListener("stocksync:sincronizado", (event) => {
+  event.preventDefault();
+  renderEquipamentos();
+});
 
 function configurarCabecalhoStatus() {
   if (filtroAtual !== "evento") {
@@ -355,6 +365,7 @@ function configurarCabecalhoStatus() {
   document.getElementById("visualizacaoEvento").addEventListener("change", (event) => {
     visualizacaoEvento = event.target.value;
     localStorage.setItem("equipamentosEventoVisualizacao", visualizacaoEvento);
+    paginaAtual = 1;
     renderEquipamentos();
   });
 }
@@ -566,6 +577,60 @@ function renderLinhasPorCategoria(itens) {
   }).join("");
 }
 
+function atualizarParametroPagina() {
+  const url = new URL(window.location.href);
+  if (paginaAtual > 1) url.searchParams.set("pagina", String(paginaAtual));
+  else url.searchParams.delete("pagina");
+  window.history.replaceState({}, "", url);
+}
+
+function paginasVisiveis(totalPaginas) {
+  if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, indice) => indice + 1);
+  const paginas = new Set([1, totalPaginas, paginaAtual - 1, paginaAtual, paginaAtual + 1]);
+  if (paginaAtual <= 3) {
+    paginas.add(2);
+    paginas.add(3);
+    paginas.add(4);
+  }
+  if (paginaAtual >= totalPaginas - 2) {
+    paginas.add(totalPaginas - 1);
+    paginas.add(totalPaginas - 2);
+    paginas.add(totalPaginas - 3);
+  }
+  return [...paginas].filter((pagina) => pagina >= 1 && pagina <= totalPaginas).sort((a, b) => a - b);
+}
+
+function renderPaginacao(totalItens) {
+  totalPaginasAtual = Math.max(1, Math.ceil(totalItens / itensPorPagina));
+  if (paginaAtual > totalPaginasAtual) paginaAtual = totalPaginasAtual;
+  if (paginaAtual < 1) paginaAtual = 1;
+  atualizarParametroPagina();
+
+  if (!pagination) return;
+  const paginas = paginasVisiveis(totalPaginasAtual);
+  const botoes = [];
+  let anterior = 0;
+
+  paginas.forEach((pagina) => {
+    if (anterior && pagina - anterior > 1) {
+      botoes.push(`<span class="page-ellipsis">...</span>`);
+    }
+    botoes.push(`<button class="page-btn ${pagina === paginaAtual ? "active" : ""}" data-page="${pagina}">${pagina}</button>`);
+    anterior = pagina;
+  });
+
+  pagination.innerHTML = `
+    <button class="page-btn" data-page="prev" ${paginaAtual <= 1 ? "disabled" : ""} aria-label="Página anterior">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    ${botoes.join("")}
+    <button class="page-btn" data-page="next" ${paginaAtual >= totalPaginasAtual ? "disabled" : ""} aria-label="Próxima página">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <span class="pagination-info">Página ${paginaAtual} de ${totalPaginasAtual} · ${totalItens} ${totalItens === 1 ? "item" : "itens"}</span>
+  `;
+}
+
 function renderEquipamentos() {
   const db = GE.dados();
   const termo = GE.normalizar(busca.value.trim());
@@ -592,7 +657,11 @@ function renderEquipamentos() {
       }).map((material) => ({ ...material, tipo: "consumo" }))
     : [];
 
-  const linhas = renderLinhasPorCategoria([...grupos, ...materiais]);
+  const itens = [...grupos, ...materiais].sort(ordenarPorCategoriaENome);
+  renderPaginacao(itens.length);
+  const inicio = (paginaAtual - 1) * itensPorPagina;
+  const itensPagina = itens.slice(inicio, inicio + itensPorPagina);
+  const linhas = renderLinhasPorCategoria(itensPagina);
   tbody.innerHTML = linhas || `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhum item encontrado.</td></tr>`;
 }
 function nomeBase(nome) {
@@ -754,7 +823,10 @@ function salvarManutencaoLista() {
   setTimeout(fecharModalManutencaoLista, 650);
 }
 
-busca.addEventListener("input", renderEquipamentos);
+busca.addEventListener("input", () => {
+  paginaAtual = 1;
+  renderEquipamentos();
+});
 manutencaoListaCodigoSelect.addEventListener("change", atualizarCodigoManutencaoLista);
 document.getElementById("salvarManutencaoLista").addEventListener("click", salvarManutencaoLista);
 modalManutencaoLista.addEventListener("click", (event) => {
@@ -763,10 +835,21 @@ modalManutencaoLista.addEventListener("click", (event) => {
 document.querySelectorAll(".page-btn").forEach((botao) => {
   botao.addEventListener("click", () => GE.mensagem("A paginação está pronta; com os dados atuais só existe a página 1.", "info"));
 });
+pagination?.addEventListener("click", (event) => {
+  const botao = event.target.closest(".page-btn");
+  if (!botao || botao.disabled) return;
+  const destino = botao.dataset.page;
+  if (destino === "prev") paginaAtual -= 1;
+  else if (destino === "next") paginaAtual += 1;
+  else paginaAtual = Number(destino) || 1;
+  paginaAtual = Math.min(Math.max(1, paginaAtual), totalPaginasAtual);
+  renderEquipamentos();
+  document.querySelector(".card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 configurarCabecalhoStatus();
 renderEquipamentos();
 </script>
-  <script src="pwa.js?v=20260621-ajustes-finais" defer></script>
+  <script src="pwa.js?v=20260625-edicao-grupo-equipamento" defer></script>
 </body>
 </html>
 
