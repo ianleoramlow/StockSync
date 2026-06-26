@@ -34,9 +34,17 @@ const GE = (() => {
     return String(chave || "").startsWith("ge_dados_");
   }
 
+  function lerLocalJSON(chave) {
+    try {
+      return JSON.parse(localStorage.getItem(chave) || "null");
+    } catch (error) {
+      return null;
+    }
+  }
+
   function salvarLocalSeguro(chave, valorSerializado) {
     try {
-      if (chaveBancoEmpresa(chave) && String(valorSerializado || "").length > 1500000) {
+      if (chaveBancoEmpresa(chave) && String(valorSerializado || "").length > 4200000) {
         localStorage.removeItem(chave);
         return false;
       }
@@ -519,6 +527,11 @@ const GE = (() => {
   }
 
   function lerJSON(chave, fallback = null) {
+    if (chaveBancoEmpresa(chave)) {
+      const valorLocalRapido = lerLocalJSON(chave);
+      if (valorLocalRapido) return valorLocalRapido;
+    }
+
     if (chaveCompartilhada(chave) && backendDisponivel !== false) {
       const valorBackend = lerBackend(chave);
       if (valorBackend !== BACKEND_MISSING) {
@@ -527,12 +540,8 @@ const GE = (() => {
       }
     }
 
-    try {
-      const valorLocal = JSON.parse(localStorage.getItem(chave) || "null");
-      if (valorLocal) return valorLocal;
-    } catch (error) {
-      return fallback;
-    }
+    const valorLocal = lerLocalJSON(chave);
+    if (valorLocal) return valorLocal;
 
     if (!chaveCompartilhada(chave)) {
       const valorBackend = lerBackend(chave);
