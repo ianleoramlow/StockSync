@@ -278,7 +278,9 @@ if (new URLSearchParams(window.location.search).has("novo")) {
             <th>Ações</th>
           </tr>
         </thead>
-        <tbody id="solicitacoesTabela"></tbody>
+        <tbody id="solicitacoesTabela">
+          <tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Carregando solicitações...</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
@@ -301,7 +303,9 @@ if (new URLSearchParams(window.location.search).has("novo")) {
             <th>Ações</th>
           </tr>
         </thead>
-        <tbody id="funcionariosTabela"></tbody>
+        <tbody id="funcionariosTabela">
+          <tr><td colspan="5" style="color:var(--text3);font-family:var(--font)">Carregando funcionários...</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
@@ -373,7 +377,7 @@ if (new URLSearchParams(window.location.search).has("novo")) {
     </div>
   </div>
 </div>
-<script src="app.js?v=20260626-no-auto-reload"></script>
+<script src="app.js?v=20260626-fast-navigation"></script>
 <script>
 const modalFuncionario = document.getElementById("modalFuncionario");
 const tabelaFuncionarios = document.getElementById("funcionariosTabela");
@@ -798,6 +802,11 @@ document.getElementById("cadastrarUsuario").addEventListener("click", function (
 const params = new URLSearchParams(window.location.search);
 const criandoNovaEmpresa = params.get("novo") === "empresa";
 const criandoFuncionario = params.get("novo") === "funcionario";
+
+window.addEventListener("stocksync:sincronizado", (event) => {
+  event.preventDefault();
+  if (!criandoNovaEmpresa && !criandoFuncionario && GE.sessaoAtiva()) renderFuncionarios();
+});
 
 if (criandoNovaEmpresa) {
   renderCadastroEmpresa();
