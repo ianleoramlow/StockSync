@@ -62,6 +62,18 @@ const GE = (() => {
     }
   }
 
+  function carimboDados(valor) {
+    const numero = Number(valor?._stocksyncAtualizadoEm || 0);
+    return Number.isFinite(numero) ? numero : 0;
+  }
+
+  function prepararValorParaSalvar(chave, valor) {
+    if (chaveBancoEmpresa(chave) && valor && typeof valor === "object" && !Array.isArray(valor)) {
+      valor._stocksyncAtualizadoEm = Date.now();
+    }
+    return valor;
+  }
+
   function requisicaoBackend(metodo, caminho, corpo = null) {
     if (!location.protocol.startsWith("http")) return null;
 
@@ -121,13 +133,27 @@ const GE = (() => {
     return resposta.value;
   }
 
-  function salvarBackend(chave, valor) {
+  function salvarBackend(chave, valor, opcoes = {}) {
     if (!chaveCompartilhada(chave)) return;
 
     backendCache.set(chave, valor);
     backendWriteQueue.set(chave, valor);
 
     clearTimeout(backendWriteTimers.get(chave));
+    if (opcoes.sincronico) {
+      backendWriteQueue.delete(chave);
+      backendWriteTimers.delete(chave);
+      requisicaoBackend("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value: valor });
+      return;
+    }
+
+    if (opcoes.imediato) {
+      backendWriteQueue.delete(chave);
+      backendWriteTimers.delete(chave);
+      requisicaoBackendAsync("PUT", `/api/storage/${encodeURIComponent(chave)}`, { value: valor });
+      return;
+    }
+
     backendWriteTimers.set(chave, setTimeout(() => {
       const value = backendWriteQueue.get(chave);
       backendWriteQueue.delete(chave);
@@ -206,6 +232,12 @@ const GE = (() => {
       const chavesAlteradas = [];
       Object.entries(storage).forEach(([chave, valor]) => {
         if (!chaveCompartilhada(chave) || backendWriteQueue.has(chave)) return;
+        const valorLocal = lerLocalJSON(chave);
+        if (chaveBancoEmpresa(chave) && carimboDados(valorLocal) > carimboDados(valor)) {
+          backendCache.set(chave, valorLocal);
+          salvarBackend(chave, valorLocal, { imediato: true });
+          return;
+        }
         const remoto = JSON.stringify(valor ?? null);
         const local = localStorage.getItem(chave);
         if (local !== remoto) {
@@ -555,9 +587,16 @@ const GE = (() => {
   }
 
   function salvarJSON(chave, valor) {
+    const valorFinal = prepararValorParaSalvar(chave, valor);
+    const serializado = JSON.stringify(valorFinal);
     ultimaGravacaoLocal = Date.now();
-    salvarLocalSeguro(chave, JSON.stringify(valor));
-    salvarBackend(chave, valor);
+    ultimaAssinaturaRemota = "";
+    const salvouLocal = salvarLocalSeguro(chave, serializado);
+    salvarBackend(chave, valorFinal, {
+      imediato: chaveBancoEmpresa(chave),
+      sincronico: chaveBancoEmpresa(chave) && !salvouLocal
+    });
+    notificarSincronizacaoBackend([chave]);
   }
 
   function solicitacoesGlobais() {
