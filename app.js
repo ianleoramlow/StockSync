@@ -15,7 +15,14 @@ const GE = (() => {
   let ultimaGravacaoLocal = 0;
   let sincronizacaoEmAndamento = false;
   let ultimaAssinaturaRemota = "";
-  const snapshotsEmpresa = new Map();
+
+  function usuarioEditandoFormulario() {
+    if (typeof document === "undefined") return false;
+    const elemento = document.activeElement;
+    if (!elemento) return false;
+    const tag = String(elemento.tagName || "").toUpperCase();
+    return ["INPUT", "TEXTAREA", "SELECT"].includes(tag) && !elemento.readOnly && !elemento.disabled;
+  }
 
   function chaveCompartilhada(chave) {
     return chave === EMPRESAS_KEY
@@ -170,6 +177,7 @@ const GE = (() => {
     if (sincronizacaoEmAndamento) return;
     if (backendWriteQueue.size) return;
     if (!remotoObrigatorio && Date.now() - ultimaGravacaoLocal < 3000) return;
+    if (!remotoObrigatorio && usuarioEditandoFormulario()) return;
     if (document.visibilityState && document.visibilityState !== "visible") return;
 
     sincronizacaoEmAndamento = true;
@@ -211,8 +219,8 @@ const GE = (() => {
 
   function iniciarSincronizacaoBackend() {
     if (!location.protocol.startsWith("http") || typeof fetch !== "function") return;
-    setTimeout(() => sincronizarBackend(true), 900);
-    setInterval(() => sincronizarBackend(false), 12000);
+    setTimeout(() => sincronizarBackend(true), 1200);
+    setInterval(() => sincronizarBackend(false), 30000);
     window.addEventListener("focus", () => sincronizarBackend(true));
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") sincronizarBackend(true);
@@ -774,10 +782,13 @@ const GE = (() => {
       alterou = true;
     }
 
-    if (aplicarImagensEquipamentos(db)) alterou = true;
+    if (!db.imagensEquipamentosVerificadas) {
+      if (aplicarImagensEquipamentos(db)) alterou = true;
+      db.imagensEquipamentosVerificadas = true;
+      alterou = true;
+    }
     if (alterou) salvarJSON(chaveEmpresa(id), db);
 
-    snapshotsEmpresa.set(id, clone(db));
     return db;
   }
 
@@ -792,6 +803,7 @@ const GE = (() => {
     if (!id) return;
     const db = garantirEstrutura(dadosAtualizados);
     aplicarImagensEquipamentos(db);
+    db.imagensEquipamentosVerificadas = true;
     salvarJSON(chaveEmpresa(id), db);
   }
 
