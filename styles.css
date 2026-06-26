@@ -492,6 +492,22 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
 }
 .page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .page-btn:hover:not(.active) { background: var(--surface3); color: var(--text); }
+.page-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.page-ellipsis,
+.pagination-info {
+  color: var(--text3);
+  font-size: 12px;
+  font-family: var(--font);
+}
+.page-ellipsis {
+  padding: 0 4px;
+}
+.pagination-info {
+  margin-left: 10px;
+}
 
 /* â”€â”€ SECTION HEADER â”€â”€ */
 .section-header {
@@ -1398,7 +1414,7 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
   .event-list-table tbody td:nth-child(4)::before { content: "Local"; }
   .event-list-table tbody td:nth-child(5)::before { content: "Qtd."; }
 
-  .event-detail-table tbody td:nth-child(1)::before { content: "CÃ³digos"; }
+  .event-detail-table tbody td:nth-child(1)::before { content: "Códigos"; }
   .event-detail-table tbody td:nth-child(2)::before { content: "Equipamento"; }
   .event-detail-table tbody td:nth-child(3)::before { content: "Categoria"; }
   .event-detail-table tbody td:nth-child(4)::before { content: "Quantidade"; }
