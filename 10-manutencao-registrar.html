@@ -270,7 +270,9 @@
               <th>Ações</th>
             </tr>
           </thead>
-          <tbody id="manutencoesTabela"></tbody>
+          <tbody id="manutencoesTabela">
+            <tr><td colspan="7" style="color:var(--text3);font-family:var(--font)">Carregando manutenções...</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -290,7 +292,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260626-no-auto-reload"></script>
+<script src="app.js?v=20260626-fast-navigation"></script>
 <script>
 const busca = document.querySelector(".search-input");
 const problema = document.querySelector(".form-textarea");
@@ -527,6 +529,12 @@ busca.addEventListener("input", () => {
   codigoSelecionado = "";
   atualizarEquipamentoSelecionado();
   renderResultadosEquipamentos();
+});
+
+window.addEventListener("stocksync:sincronizado", (event) => {
+  event.preventDefault();
+  renderManutencoes();
+  if (busca.value.trim()) renderResultadosEquipamentos();
 });
 
 if (codigoInicial) {
