@@ -200,10 +200,7 @@ const GE = (() => {
       });
 
       if (deveRecarregarAposSync(chavesAlteradas)) {
-        const deveRecarregar = notificarSincronizacaoBackend(chavesAlteradas);
-        if (deveRecarregar === false || document.body?.dataset?.stocksyncSyncMode === "inline") return;
-        sessionStorage.setItem("stocksyncSyncReload", String(Date.now()));
-        location.reload();
+        notificarSincronizacaoBackend(chavesAlteradas);
       }
     } catch (error) {
       backendDisponivel = false;
