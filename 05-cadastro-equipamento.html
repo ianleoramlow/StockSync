@@ -135,7 +135,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260626-instant-save"></script>
+<script src="app.js?v=20260626-speed-save"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const codigoEdicao = params.get("codigo");
@@ -369,7 +369,7 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
     }
 
     GE.mensagem(codigoMaterialEdicao ? "Material de consumo atualizado." : "Material de consumo cadastrado.", "success", { tempo: 1200 });
-    setTimeout(() => window.location.href = "04-equipamentos.html", 650);
+    setTimeout(() => window.location.href = "04-equipamentos.html", 180);
     return;
   }
 
@@ -406,10 +406,10 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
     GE.mensagem(criados.length === 1 ? "Equipamento cadastrado." : criados.length + " equipamentos cadastrados.", "success", { tempo: 1200 });
   }
 
-  setTimeout(() => window.location.href = "04-equipamentos.html", 650);
+  setTimeout(() => window.location.href = "04-equipamentos.html", 180);
 });
 </script>
-  <script src="pwa.js?v=20260626-instant-save" defer></script>
+  <script src="pwa.js?v=20260626-speed-save" defer></script>
 </body>
 </html>
 
