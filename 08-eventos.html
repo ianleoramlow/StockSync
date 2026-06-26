@@ -527,7 +527,7 @@
     <div class="breadcrumb"> <a href="08-eventos.html">Eventos</a> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
         stroke="currentColor" stroke-width="2" width="12" height="12">
         <polyline points="9 18 15 12 9 6" />
-      </svg> <span>EVT123</span> </div>
+      </svg> <span>-</span> </div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
       <button class="btn btn-primary" onclick="abrirModalEvento()">+ Adicionar Novo Evento</button>
     </div>
@@ -555,7 +555,7 @@
               <th>Qtd. Equip.</th>
             </tr>
           </thead>
-          <tbody id="eventosTabela"></tbody>
+          <tbody id="eventosTabela"><tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Carregando eventos...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -568,8 +568,8 @@
             <path d="M16 2v4M8 2v4M3 10h18" />
           </svg> </div>
         <div>
-          <div style="font-size:16px;font-weight:700">Show de Verão 2024</div>
-          <div style="font-size:12.5px;color:var(--text3);margin-top:3px">20/01/2024  -  Arena Anhembi</div>
+          <div style="font-size:16px;font-weight:700">Carregando evento...</div>
+          <div style="font-size:12.5px;color:var(--text3);margin-top:3px">Aguarde os dados do sistema</div>
         </div>
       </div>
       <div class="event-actions">
@@ -602,7 +602,7 @@
               <th>Ações</th>
             </tr>
           </thead>
-          <tbody id="eventoDetalheTabela"></tbody>
+          <tbody id="eventoDetalheTabela"><tr><td colspan="8" style="color:var(--text3);font-family:var(--font)">Carregando detalhes do evento...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -839,7 +839,7 @@
       </div>
     </div>
   </div>
-<script src="app.js?v=20260626-no-auto-reload"></script>
+<script src="app.js?v=20260626-fast-navigation"></script>
 <script>
 function abrirModalEvento() {
   modoEvento = "novo";
@@ -873,6 +873,12 @@ const eventosIniciais = GE.dados().eventos || [];
 let filtroEventos = params.get("status") === "finalizados" ? "finalizados" : "andamento";
 if (eventoInicialParam && eventosIniciais.some((evento) => evento.id === eventoInicialParam && evento.status === "Finalizado")) filtroEventos = "finalizados";
 let eventoSelecionadoId = eventoInicialParam || "";
+
+window.addEventListener("stocksync:sincronizado", (event) => {
+  event.preventDefault();
+  renderEventos(eventoSelecionadoId);
+  renderEvento();
+});
 
 function nomeBaseEquipamento(nome) {
   return nome.replace(/\s+\d+$/, "").trim();
@@ -2171,7 +2177,6 @@ renderEvento();
 </body>
 
 </html>
-
 
 
 
