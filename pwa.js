@@ -8,7 +8,7 @@
 
   if (isHttp && "serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/service-worker.js?v=20260626-instant-save").catch(() => null);
+      navigator.serviceWorker.register("/service-worker.js?v=20260626-speed-save").catch(() => null);
     });
   }
 
