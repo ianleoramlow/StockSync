@@ -52,33 +52,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>EQP004</td>
-            <td style="color:var(--text);font-weight:500">Microfone Shure SM58</td>
-            <td style="color:var(--text2)">Sem áudio, cápsula danificada</td>
-            <td style="color:var(--text2);font-family:var(--mono);font-size:12px">08/01/2024</td>
-            <td><span class="badge badge-red">Em Manutenção</span></td>
-          </tr>
-          <tr>
-            <td>EQP008</td>
-            <td style="color:var(--text);font-weight:500">Amplificador Crown XTi 4000</td>
-            <td style="color:var(--text2)">Ruído excessivo no canal A</td>
-            <td style="color:var(--text2);font-family:var(--mono);font-size:12px">08/01/2024</td>
-            <td><span class="badge badge-red">Em Manutenção</span></td>
-          </tr>
-          <tr>
-            <td>EQP011</td>
-            <td style="color:var(--text);font-weight:500">Moving Head Spot 575</td>
-            <td style="color:var(--text2)">Falha no motor do pan</td>
-            <td style="color:var(--text2);font-family:var(--mono);font-size:12px">02/01/2024</td>
-            <td><span class="badge badge-yellow">Aguardando Peças</span></td>
-          </tr>
+          <tr><td colspan="5" style="color:var(--text3);font-family:var(--font)">Carregando manutenções...</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 </main>
-<script src="app.js?v=20260626-no-auto-reload"></script>
+<script src="app.js?v=20260626-fast-navigation"></script>
 <script>
 const tbody = document.querySelector("tbody");
 function renderManutencoes() {
@@ -96,6 +76,11 @@ function renderManutencoes() {
       </tr>`;
   }).join("") || `<tr><td colspan="5" style="color:var(--text3);font-family:var(--font)">Nenhuma manutenção em andamento.</td></tr>`;
 }
+window.addEventListener("stocksync:sincronizado", (event) => {
+  event.preventDefault();
+  renderManutencoes();
+});
+
 renderManutencoes();
 </script>
   <script src="pwa.js?v=20260626-no-auto-reload" defer></script>
