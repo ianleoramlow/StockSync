@@ -1,9 +1,9 @@
-const STOCKSYNC_CACHE = "stocksync-pwa-20260625-edicao-grupo-equipamento";
+const STOCKSYNC_CACHE = "stocksync-pwa-20260625-storage-quota-fix";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
-  "/pwa.js?v=20260625-edicao-grupo-equipamento",
-  "/styles.css?v=20260625-edicao-grupo-equipamento",
-  "/app.js?v=20260625-edicao-grupo-equipamento",
+  "/pwa.js?v=20260625-storage-quota-fix",
+  "/styles.css?v=20260625-storage-quota-fix",
+  "/app.js?v=20260625-storage-quota-fix",
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/logo-stocksync-icon.png",
