@@ -35,10 +35,13 @@
     clienteEmail: $("#clienteEmail"),
     clienteEndereco: $("#clienteEndereco"),
     eventoNome: $("#eventoNome"),
-    eventoData: $("#eventoData"),
-    eventoHorario: $("#eventoHorario"),
+    eventoDataInicio: $("#eventoDataInicio"),
+    eventoDataFim: $("#eventoDataFim"),
+    eventoHorarioInicio: $("#eventoHorarioInicio"),
+    eventoHorarioFim: $("#eventoHorarioFim"),
     eventoCidadeUf: $("#eventoCidadeUf"),
     eventoLocal: $("#eventoLocal"),
+    pdfModoValores: $("#pdfModoValores"),
     valorFrete: $("#valorFrete"),
     valorMontagem: $("#valorMontagem"),
     valorDesmontagem: $("#valorDesmontagem"),
@@ -277,7 +280,8 @@
       emissao: hojeISO(),
       empresa: empresaPadrao(),
       cliente: { nome: "", documento: "", telefone: "", email: "", endereco: "" },
-      evento: { nome: "", data: "", horario: "", local: "", cidadeUf: "" },
+      evento: { nome: "", data: "", dataInicio: "", dataFim: "", horario: "", horarioInicio: "", horarioFim: "", local: "", cidadeUf: "" },
+      pdf: { modoValores: "detalhado" },
       itens: [novoItem()],
       equipeServicos: [],
       adicionais: {
@@ -336,12 +340,21 @@
         valorDiaria: documento.adicionais.servicos
       });
     }
+    const eventoOriginal = documento.evento || {};
     const normalizado = {
       ...base,
       ...documento,
       empresa: normalizarEmpresaDocumento(documento.empresa || {}),
       cliente: { ...base.cliente, ...(documento.cliente || {}) },
-      evento: { ...base.evento, ...(documento.evento || {}) },
+      evento: {
+        ...base.evento,
+        ...eventoOriginal,
+        dataInicio: eventoOriginal.dataInicio || eventoOriginal.data || "",
+        dataFim: eventoOriginal.dataFim || "",
+        horarioInicio: eventoOriginal.horarioInicio || eventoOriginal.horario || "",
+        horarioFim: eventoOriginal.horarioFim || ""
+      },
+      pdf: { ...base.pdf, ...(documento.pdf || {}) },
       adicionais: { ...base.adicionais, ...(documento.adicionais || {}) },
       condicoes: { ...base.condicoes, ...(documento.condicoes || {}) },
       itens: Array.isArray(documento.itens) ? documento.itens.map(normalizarItem) : [novoItem()],
@@ -400,10 +413,13 @@
     setValor(campos.clienteEmail, doc.cliente.email);
     setValor(campos.clienteEndereco, doc.cliente.endereco);
     setValor(campos.eventoNome, doc.evento.nome);
-    setValor(campos.eventoData, doc.evento.data);
-    setValor(campos.eventoHorario, doc.evento.horario);
+    setValor(campos.eventoDataInicio, doc.evento.dataInicio || doc.evento.data);
+    setValor(campos.eventoDataFim, doc.evento.dataFim);
+    setValor(campos.eventoHorarioInicio, doc.evento.horarioInicio || doc.evento.horario);
+    setValor(campos.eventoHorarioFim, doc.evento.horarioFim);
     setValor(campos.eventoCidadeUf, doc.evento.cidadeUf);
     setValor(campos.eventoLocal, doc.evento.local);
+    setValor(campos.pdfModoValores, doc.pdf?.modoValores || "detalhado");
     setValor(campos.valorFrete, doc.adicionais.frete);
     setValor(campos.valorMontagem, doc.adicionais.montagem);
     setValor(campos.valorDesmontagem, doc.adicionais.desmontagem);
@@ -450,10 +466,17 @@
       },
       evento: {
         nome: campos.eventoNome.value.trim(),
-        data: campos.eventoData.value,
-        horario: campos.eventoHorario.value,
+        data: campos.eventoDataInicio.value,
+        dataInicio: campos.eventoDataInicio.value,
+        dataFim: campos.eventoDataFim.value,
+        horario: campos.eventoHorarioInicio.value,
+        horarioInicio: campos.eventoHorarioInicio.value,
+        horarioFim: campos.eventoHorarioFim.value,
         local: campos.eventoLocal.value.trim(),
         cidadeUf: campos.eventoCidadeUf.value.trim()
+      },
+      pdf: {
+        modoValores: campos.pdfModoValores.value || "detalhado"
       },
       itens: itens.map(normalizarItem),
       equipeServicos: equipeServicos.map(normalizarServicoEquipe).filter((servico) => servico.descricao || numero(servico.valorDiaria)),
@@ -1319,137 +1342,297 @@
       return true;
     }
 
-    function novaPagina() {
+    function novaPagina(opcoes = {}) {
       const comandos = [];
       paginas.push(comandos);
-      desenharCabecalho(comandos, paginas.length);
+      if (opcoes.cabecalho !== false) desenharCabecalho(comandos);
+      desenharRodape(comandos);
       return comandos;
     }
 
-    function desenharCabecalho(comandos, pagina) {
-      rect(comandos, 0, 0, pageW, 94, "#08080c");
+    function desenharCabecalho(comandos) {
+      rect(comandos, 0, 0, pageW, 98, "#08080c");
       if (logo) {
-        imagem(comandos, 28, 28, 118, 46);
+        imagem(comandos, 28, 26, 118, 50);
       } else {
         cor(comandos, "#ffffff", false);
         textoAuto(comandos, 28, 40, documento.empresa.nome || "Empresa", 13, 176, true);
         textoAuto(comandos, 28, 60, documento.empresa.telefone || documento.empresa.email || "", 8.8, 176);
       }
       cor(comandos, "#8b5cf6", false);
-      texto(comandos, 286, 58, "OR\u00c7AMENTO", 24, true, { align: "center" });
+      texto(comandos, 292, 58, "OR\u00c7AMENTO", 22, true, { align: "center" });
       rect(comandos, 438, 22, 129, 54, "#111827", "#8b5cf6", 0.6);
       cor(comandos, "#ffffff", false);
       textoAuto(comandos, 502, 42, `No ${documento.numero || ""}`, 10.5, 104, true, { align: "center" });
-      textoAuto(comandos, 502, 61, `Emissao: ${dataBR(documento.emissao)}`, 8.2, 112, false, { align: "center" });
-      if (pagina > 1) texto(comandos, 550, 82, `Pag. ${pagina}`, 7.5, false, { align: "right" });
+      textoAuto(comandos, 502, 61, `Emiss\u00e3o: ${dataBR(documento.emissao)}`, 8.2, 112, false, { align: "center" });
+    }
+
+    function desenharRodape(comandos) {
+      const top = 808;
+      linha(comandos, 28, top, 567, top, "#d1d5db", 0.45);
+      cor(comandos, "#111827", false);
+      textoAuto(comandos, 28, top + 14, documento.empresa.nome || "", 8.2, 252, true);
+      const contato = [documento.empresa.documento, documento.empresa.telefone, documento.empresa.email].filter(Boolean).join(" | ");
+      textoAuto(comandos, 28, top + 28, contato, 7.3, 252);
+      textoAuto(comandos, 567, top + 20, documento.empresa.endereco || "", 7.3, 255, false, { align: "right" });
     }
 
     function campo(comandos, label, valor, x, top, labelW, valueW) {
       cor(comandos, "#111827", false);
-      const gap = 3;
+      const gap = 6;
       const valorX = x + larguraTexto(label, 8.2, true) + gap;
       texto(comandos, x, top, label, 8.2, true);
       textoAuto(comandos, valorX, top, valor || "-", 8.2, Math.max(45, labelW + valueW - (valorX - x)));
     }
 
+    function periodoData(evento) {
+      const inicio = dataBR(evento.dataInicio || evento.data);
+      const fim = dataBR(evento.dataFim);
+      if (inicio && fim && inicio !== fim) return `${inicio} - ${fim}`;
+      return inicio || fim || "-";
+    }
+
+    function periodoHorario(evento) {
+      const inicio = evento.horarioInicio || evento.horario || "";
+      const fim = evento.horarioFim || "";
+      if (inicio && fim && inicio !== fim) return `${inicio} - ${fim}`;
+      return inicio || fim || "-";
+    }
+
     function desenharDadosIniciais(comandos) {
-      rect(comandos, 28, 112, 539, 118, "#ffffff", "#8b5cf6");
+      rect(comandos, 28, 114, 539, 112, "#ffffff", "#8b5cf6");
       cor(comandos, "#32158a", false);
       texto(comandos, 46, 134, "DADOS DO CLIENTE", 10.5, true);
-      campo(comandos, "Cliente:", documento.cliente.nome, 46, 157, 46, 185);
-      campo(comandos, "CPF/CNPJ:", documento.cliente.documento, 46, 174, 58, 172);
-      campo(comandos, "Telefone:", documento.cliente.telefone, 46, 191, 55, 170);
-      campo(comandos, "E-mail:", documento.cliente.email, 46, 208, 42, 190);
-      campo(comandos, "Evento:", documento.evento.nome, 318, 157, 47, 168);
-      campo(comandos, "Data:", dataBR(documento.evento.data), 318, 174, 35, 92);
-      campo(comandos, "Horario:", documento.evento.horario, 318, 191, 47, 92);
-      campo(comandos, "Local:", documento.evento.local || documento.evento.cidadeUf, 318, 208, 38, 180);
+      campo(comandos, "Cliente:", documento.cliente.nome, 46, 156, 46, 192);
+      campo(comandos, "CPF/CNPJ:", documento.cliente.documento, 46, 173, 58, 176);
+      campo(comandos, "Telefone:", documento.cliente.telefone, 46, 190, 55, 174);
+      campo(comandos, "E-mail:", documento.cliente.email, 46, 207, 42, 194);
+      campo(comandos, "Evento:", documento.evento.nome, 312, 156, 47, 178);
+      campo(comandos, "Data:", periodoData(documento.evento), 312, 173, 35, 150);
+      campo(comandos, "Hor\u00e1rio:", periodoHorario(documento.evento), 312, 190, 50, 150);
+      campo(comandos, "Local:", documento.evento.local || documento.evento.cidadeUf, 312, 207, 38, 188);
 
-      rect(comandos, 28, 244, 539, 76, "#ffffff", "#8b5cf6");
+      rect(comandos, 28, 238, 539, 94, "#ffffff", "#8b5cf6");
       cor(comandos, "#32158a", false);
-      texto(comandos, 46, 266, "CONDI\u00c7\u00d5ES COMERCIAIS", 10.5, true);
-      campo(comandos, "Pagamento:", documento.condicoes.pagamento, 46, 290, 66, 190);
-      campo(comandos, "Entrada:", documento.condicoes.entrada, 46, 307, 50, 170);
-      campo(comandos, "Validade:", dataBR(documento.condicoes.validade), 318, 290, 55, 110);
-      campo(comandos, "Vencimento:", dataBR(documento.condicoes.vencimento), 318, 307, 72, 110);
+      texto(comandos, 46, 260, "CONDI\u00c7\u00d5ES COMERCIAIS", 10.5, true);
+      campo(comandos, "Pagamento:", documento.condicoes.pagamento, 46, 284, 66, 190);
+      campo(comandos, "Entrada:", documento.condicoes.entrada, 46, 302, 50, 170);
+      campo(comandos, "Montagem:", documento.condicoes.prazoMontagem, 46, 320, 60, 170);
+      campo(comandos, "Validade:", dataBR(documento.condicoes.validade), 312, 284, 55, 112);
+      campo(comandos, "Vencimento:", dataBR(documento.condicoes.vencimento), 312, 302, 72, 112);
+      campo(comandos, "Desmontagem:", documento.condicoes.prazoDesmontagem, 312, 320, 82, 104);
     }
 
-    function desenharTabela(comandos, linhas, offset, top) {
+    function agruparItensOrcamento(lista) {
+      const mapa = new Map();
+      lista.forEach((item) => {
+        const categoria = String(item.categoria || "Outros").trim() || "Outros";
+        if (!mapa.has(categoria)) mapa.set(categoria, []);
+        mapa.get(categoria).push(item);
+      });
+      return Array.from(mapa.entries()).map(([categoria, grupoItens]) => ({
+        categoria,
+        itens: grupoItens,
+        subtotal: grupoItens.reduce((total, item) => total + calcularItem(item).total, 0),
+        quantidade: grupoItens.reduce((total, item) => total + numero(item.quantidade), 0)
+      }));
+    }
+
+    function montarLinhasTabelaOrcamento(lista, modoValores) {
+      const grupos = agruparItensOrcamento(lista);
+      if (modoValores === "agrupado") {
+        return grupos.map((grupo, idx) => ({
+          tipo: "grupo-resumo",
+          numero: idx + 1,
+          categoria: grupo.categoria,
+          itens: grupo.itens.map((item) => ({
+            descricao: item.descricao || "-",
+            quantidade: item.quantidade || 0,
+            unidade: item.unidade || "un."
+          })),
+          tipos: grupo.itens.length,
+          quantidade: grupo.quantidade,
+          total: grupo.subtotal
+        }));
+      }
+      const linhas = [];
+      let numeroItem = 1;
+      grupos.forEach((grupo) => {
+        linhas.push({ tipo: "grupo", categoria: grupo.categoria, total: grupo.subtotal });
+        grupo.itens.forEach((item) => {
+          linhas.push({ tipo: "item", numero: numeroItem, item });
+          numeroItem += 1;
+        });
+      });
+      return linhas;
+    }
+
+    function desenharCabecalhoTabela(comandos, top, modoValores) {
       const x = 28;
       const w = 539;
-      const headerH = 24;
-      const rowH = 18;
-      const col = [x, 58, 118, 310, 358, 420, 492, x + w];
-      rect(comandos, x, top, w, headerH + (linhas.length * rowH), "#ffffff", "#8b5cf6");
+      const headerH = 21;
       rect(comandos, x, top, w, headerH, "#32158a");
       cor(comandos, "#ffffff", false);
-      texto(comandos, 43, top + 16, "ITEM", 7.6, true, { align: "center" });
-      texto(comandos, 88, top + 16, "CAT.", 7.6, true, { align: "center" });
-      texto(comandos, 214, top + 16, "DESCRI\u00c7\u00c3O", 7.6, true, { align: "center" });
-      texto(comandos, 334, top + 16, "QTD", 7.6, true, { align: "center" });
-      texto(comandos, 389, top + 16, "DIARIAS", 7.6, true, { align: "center" });
-      texto(comandos, 456, top + 16, "UNIT.", 7.6, true, { align: "center" });
-      texto(comandos, 530, top + 16, "TOTAL", 7.6, true, { align: "center" });
-      col.slice(1, -1).forEach((px) => linha(comandos, px, top, px, top + headerH + (linhas.length * rowH), "#c7b7ff", 0.3));
-
-      linhas.forEach((item, idx) => {
-        const yRow = top + headerH + (idx * rowH);
-        const calc = calcularItem(item);
-        linha(comandos, x, yRow, x + w, yRow, "#d1d5db", 0.28);
-        cor(comandos, "#32158a", false);
-        texto(comandos, 43, yRow + 12, String(offset + idx + 1).padStart(2, "0"), 7.8, true, { align: "center" });
-        cor(comandos, "#111827", false);
-        textoAuto(comandos, 88, yRow + 12, item.categoria, 7.4, 52, false, { align: "center" });
-        textoAuto(comandos, 214, yRow + 12, item.descricao || "-", 7.7, 180, false, { align: "center" });
-        texto(comandos, 334, yRow + 12, String(item.quantidade || 0), 7.8, false, { align: "center" });
-        texto(comandos, 389, yRow + 12, String(item.diarias || 1), 7.8, false, { align: "center" });
-        texto(comandos, 456, yRow + 12, dinheiro(item.valorUnitario), 7.4, false, { align: "center" });
-        texto(comandos, 552, yRow + 12, dinheiro(calc.total), 7.4, false, { align: "right" });
-      });
-      return top + headerH + (linhas.length * rowH);
+      if (modoValores === "agrupado") {
+        texto(comandos, 43, top + 14, "ITEM", 7.2, true, { align: "center" });
+        texto(comandos, 95, top + 14, "GRUPO", 7.2, true, { align: "center" });
+        texto(comandos, 250, top + 14, "ITENS INCLUSOS", 7.2, true, { align: "center" });
+        texto(comandos, 404, top + 14, "QTD.", 7.2, true, { align: "center" });
+        texto(comandos, 530, top + 14, "TOTAL DO GRUPO", 7.2, true, { align: "right" });
+      } else {
+        texto(comandos, 43, top + 14, "ITEM", 7.2, true, { align: "center" });
+        texto(comandos, 86, top + 14, "CAT.", 7.2, true, { align: "center" });
+        texto(comandos, 204, top + 14, "DESCRI\u00c7\u00c3O", 7.2, true, { align: "center" });
+        texto(comandos, 333, top + 14, "QTD.", 7.2, true, { align: "center" });
+        texto(comandos, 385, top + 14, "DI\u00c1RIAS", 7.2, true, { align: "center" });
+        texto(comandos, 454, top + 14, "UNIT.", 7.2, true, { align: "center" });
+        texto(comandos, 530, top + 14, "TOTAL", 7.2, true, { align: "right" });
+      }
+      return top + headerH;
     }
 
-    function desenharResumo(comandos, top) {
-      rect(comandos, 28, top, 318, 70, "#ffffff", "#8b5cf6");
+    function alturaLinhaTabela(row, modoValores) {
+      if (row.tipo === "grupo") return 17;
+      if (modoValores === "agrupado") {
+        const linhas = (row.itens || []).reduce((total, item) => total + wrapTexto(`${item.descricao} (${item.quantidade} ${item.unidade})`, 54, 2).length, 0);
+        return Math.max(30, 11 + (Math.max(1, linhas) * 9));
+      }
+      return Math.max(18, 10 + (wrapTexto(row.item?.descricao, 40, 2).length * 9));
+    }
+
+    function desenharLinhaTabela(comandos, row, top, h, modoValores, zebra) {
+      const x = 28;
+      const w = 539;
+      const fill = row.tipo === "grupo" ? "#eee9ff" : (zebra ? "#f3f4f6" : "#ffffff");
+      rect(comandos, x, top, w, h, fill);
+      linha(comandos, x, top + h, x + w, top + h, "#d1d5db", 0.28);
+      if (row.tipo === "grupo") {
+        cor(comandos, "#32158a", false);
+        textoAuto(comandos, 36, top + 12, row.categoria, 8.2, 330, true);
+        textoAuto(comandos, 557, top + 12, `Sub-total: ${dinheiro(row.total)}`, 8.2, 188, true, { align: "right" });
+        return;
+      }
+
+      if (modoValores === "agrupado") {
+        cor(comandos, "#32158a", false);
+        texto(comandos, 43, top + 13, String(row.numero).padStart(2, "0"), 7.7, true, { align: "center" });
+        cor(comandos, "#111827", false);
+        textoAuto(comandos, 95, top + 13, row.categoria, 7.8, 82, true, { align: "center" });
+        let linhaAtual = 0;
+        (row.itens || [{ descricao: `${row.tipos || 0} itens`, quantidade: row.quantidade || 0, unidade: "un." }]).forEach((item) => {
+          wrapTexto(`${item.descricao} (${item.quantidade} ${item.unidade})`, 54, 2).forEach((linhaTexto) => {
+            texto(comandos, 152, top + 13 + (linhaAtual * 9), linhaTexto, 7.1);
+            linhaAtual += 1;
+          });
+        });
+        texto(comandos, 404, top + 13, `${row.quantidade || 0}`, 7.7, false, { align: "center" });
+        textoAuto(comandos, 557, top + 13, dinheiro(row.total), 7.8, 110, true, { align: "right" });
+        return;
+      }
+
+      const item = row.item;
+      const calc = calcularItem(item);
+      const linhasDescricao = wrapTexto(item.descricao || "-", 40, 2);
       cor(comandos, "#32158a", false);
-      texto(comandos, 46, top + 22, "OBSERVA\u00c7\u00d5ES", 10, true);
-      textoWrap(comandos, 48, top + 42, documento.condicoes.observacoes, 64, 7.8, 3, 11);
-
-      rect(comandos, 360, top, 207, 70, "#32158a", "#32158a");
-      cor(comandos, "#ffffff", false);
-      texto(comandos, 464, top + 26, "TOTAL GERAL", 10.5, true, { align: "center" });
-      texto(comandos, 464, top + 56, dinheiro(totais.totalGeral), 20, true, { align: "center" });
-
-      const topDetalhes = top + 86;
-      rect(comandos, 28, topDetalhes, 539, 66, "#ffffff", "#8b5cf6");
-      cor(comandos, "#32158a", false);
-      texto(comandos, 46, topDetalhes + 20, "RESUMO FINANCEIRO", 9.4, true);
+      texto(comandos, 43, top + 13, String(row.numero).padStart(2, "0"), 7.7, true, { align: "center" });
       cor(comandos, "#111827", false);
-      campo(comandos, "Itens:", dinheiro(totais.subtotalItens), 46, topDetalhes + 42, 36, 78);
-      campo(comandos, "Equipe:", dinheiro(totais.subtotalEquipe), 166, topDetalhes + 42, 46, 78);
-      campo(comandos, "Adic.:", dinheiro(totais.adicionais), 304, topDetalhes + 42, 40, 78);
-      campo(comandos, "Desc.:", dinheiro(totais.totalDescontos), 430, topDetalhes + 42, 42, 78);
-      textoWrap(comandos, 46, topDetalhes + 61, documento.condicoes.termos, 106, 7.2, 1, 10);
+      textoAuto(comandos, 86, top + 13, item.categoria, 7.1, 54, false, { align: "center" });
+      linhasDescricao.forEach((linhaTexto, idx) => texto(comandos, 122, top + 13 + (idx * 9), linhaTexto, 7.3));
+      textoAuto(comandos, 333, top + 13, `${item.quantidade || 0} ${item.unidade || "un."}`, 7.2, 58, false, { align: "center" });
+      texto(comandos, 385, top + 13, String(item.diarias || 1), 7.5, false, { align: "center" });
+      textoAuto(comandos, 454, top + 13, dinheiro(item.valorUnitario), 7.1, 64, false, { align: "center" });
+      textoAuto(comandos, 557, top + 13, dinheiro(calc.total), 7.2, 82, false, { align: "right" });
+    }
 
-      const topAssinatura = topDetalhes + 82;
-      rect(comandos, 28, topAssinatura, 539, 108, "#ffffff", "#111827", 0.55);
-      linha(comandos, 297, topAssinatura, 297, topAssinatura + 108, "#111827", 0.55);
-      linha(comandos, 70, topAssinatura + 45, 254, topAssinatura + 45, "#111827", 0.7);
-      textoAuto(comandos, 162, topAssinatura + 64, documento.empresa.nome || "Empresa", 8.5, 205, true, { align: "center" });
-      if (documento.empresa.documento) textoAuto(comandos, 162, topAssinatura + 78, `CNPJ/CPF: ${documento.empresa.documento}`, 7.5, 205, false, { align: "center" });
-      cor(comandos, "#32158a", false);
-      texto(comandos, 325, topAssinatura + 24, "ACEITE DO CLIENTE:", 8.8, true);
-      cor(comandos, "#111827", false);
-      texto(comandos, 325, topAssinatura + 47, "Nome:", 7.8);
-      linha(comandos, 362, topAssinatura + 47, 540, topAssinatura + 47, "#111827", 0.5);
-      texto(comandos, 325, topAssinatura + 69, "CPF:", 7.8);
-      linha(comandos, 354, topAssinatura + 69, 540, topAssinatura + 69, "#111827", 0.5);
-      texto(comandos, 325, topAssinatura + 91, "Assinatura:", 7.8);
-      linha(comandos, 392, topAssinatura + 91, 540, topAssinatura + 91, "#111827", 0.5);
+    function desenharTabelaOrcamento(comandosInicial, linhas, modoValores, topInicial) {
+      let comandosAtual = comandosInicial;
+      let top = desenharCabecalhoTabela(comandosAtual, topInicial, modoValores);
+      const limiteConteudo = 802;
+      linhas.forEach((row, idx) => {
+        const h = alturaLinhaTabela(row, modoValores);
+        if (top + h > limiteConteudo) {
+          comandosAtual = novaPagina();
+          top = desenharCabecalhoTabela(comandosAtual, 118, modoValores);
+        }
+        desenharLinhaTabela(comandosAtual, row, top, h, modoValores, idx % 2 === 0);
+        top += h;
+      });
+      return { comandos: comandosAtual, top };
+    }
 
-      cor(comandos, "#111827", false);
-      const rodape = [documento.empresa.telefone, documento.empresa.email, documento.empresa.endereco].filter(Boolean).join(" | ");
-      textoAuto(comandos, pageW / 2, 820, rodape, 7.2, 520, false, { align: "center" });
+    function desenharResumoFinal(comandosInicial, topInicial) {
+      let comandosAtual = comandosInicial;
+      let top = topInicial + 18;
+      const limiteConteudo = 802;
+      const garantirEspaco = (altura) => {
+        if (top + altura > limiteConteudo) {
+          comandosAtual = novaPagina();
+          top = 118;
+        }
+      };
+
+      garantirEspaco(126);
+      rect(comandosAtual, 28, top, 254, 116, "#ffffff", "#8b5cf6");
+      cor(comandosAtual, "#32158a", false);
+      texto(comandosAtual, 44, top + 20, "RESUMO FINANCEIRO", 9.4, true);
+      campo(comandosAtual, "Itens:", dinheiro(totais.subtotalItens), 44, top + 42, 36, 88);
+      campo(comandosAtual, "Equipe:", dinheiro(totais.subtotalEquipe), 154, top + 42, 46, 82);
+      campo(comandosAtual, "Adic.:", dinheiro(totais.adicionais), 44, top + 61, 40, 88);
+      campo(comandosAtual, "Desc.:", dinheiro(totais.totalDescontos), 154, top + 61, 42, 82);
+
+      rect(comandosAtual, 302, top, 265, 116, "#ffffff", "#8b5cf6");
+      cor(comandosAtual, "#32158a", false);
+      texto(comandosAtual, 318, top + 20, "CONDI\u00c7\u00d5ES DE PAGAMENTO", 9.4, true);
+      campo(comandosAtual, "Forma:", documento.condicoes.pagamento, 318, top + 42, 42, 174);
+      campo(comandosAtual, "Entrada:", documento.condicoes.entrada, 318, top + 60, 50, 174);
+      campo(comandosAtual, "Validade:", dataBR(documento.condicoes.validade), 318, top + 78, 55, 78);
+      campo(comandosAtual, "Vencimento:", dataBR(documento.condicoes.vencimento), 440, top + 78, 72, 54);
+      campo(comandosAtual, "Montagem:", documento.condicoes.prazoMontagem, 318, top + 96, 60, 70);
+      campo(comandosAtual, "Desmontagem:", documento.condicoes.prazoDesmontagem, 440, top + 96, 82, 52);
+
+      top += 132;
+      const linhasObs = wrapTexto(documento.condicoes.observacoes, 68, 6);
+      const hObs = Math.max(78, 30 + (linhasObs.length * 10));
+      garantirEspaco(hObs + 10);
+      rect(comandosAtual, 28, top, 318, hObs, "#ffffff", "#8b5cf6");
+      cor(comandosAtual, "#32158a", false);
+      texto(comandosAtual, 44, top + 18, "OBSERVA\u00c7\u00d5ES", 9.4, true);
+      cor(comandosAtual, "#111827", false);
+      linhasObs.forEach((linhaTexto, idx) => texto(comandosAtual, 44, top + 38 + (idx * 10), linhaTexto, 7.0));
+
+      rect(comandosAtual, 360, top, 207, hObs, "#32158a", "#32158a");
+      cor(comandosAtual, "#ffffff", false);
+      texto(comandosAtual, 464, top + 28, "TOTAL GERAL", 10.5, true, { align: "center" });
+      textoAuto(comandosAtual, 464, top + Math.min(62, hObs - 18), dinheiro(totais.totalGeral), 18, 184, true, { align: "center" });
+
+      top += hObs + 16;
+      const linhasTermos = wrapTexto(documento.condicoes.termos, 116, 11);
+      const hTermos = Math.max(48, 28 + (linhasTermos.length * 10));
+      garantirEspaco(hTermos);
+      rect(comandosAtual, 28, top, 539, hTermos, "#ffffff", "#8b5cf6");
+      cor(comandosAtual, "#32158a", false);
+      texto(comandosAtual, 44, top + 18, "CONDI\u00c7\u00d5ES GERAIS", 9.4, true);
+      cor(comandosAtual, "#111827", false);
+      linhasTermos.forEach((linhaTexto, idx) => texto(comandosAtual, 44, top + 38 + (idx * 10), linhaTexto, 7.2));
+
+      top += hTermos + 16;
+      garantirEspaco(112);
+      rect(comandosAtual, 28, top, 539, 104, "#ffffff", "#111827", 0.55);
+      linha(comandosAtual, 297, top, 297, top + 104, "#111827", 0.55);
+      linha(comandosAtual, 70, top + 42, 254, top + 42, "#111827", 0.7);
+      textoAuto(comandosAtual, 162, top + 62, documento.empresa.nome || "Empresa", 8.5, 205, true, { align: "center" });
+      if (documento.empresa.documento) textoAuto(comandosAtual, 162, top + 76, `CNPJ/CPF: ${documento.empresa.documento}`, 7.5, 205, false, { align: "center" });
+      cor(comandosAtual, "#32158a", false);
+      texto(comandosAtual, 325, top + 22, "ACEITE DO CLIENTE:", 8.8, true);
+      cor(comandosAtual, "#111827", false);
+      texto(comandosAtual, 325, top + 45, "Nome:", 7.8);
+      linha(comandosAtual, 362, top + 45, 540, top + 45, "#111827", 0.5);
+      texto(comandosAtual, 325, top + 67, "CPF:", 7.8);
+      linha(comandosAtual, 354, top + 67, 540, top + 67, "#111827", 0.5);
+      texto(comandosAtual, 325, top + 89, "Assinatura:", 7.8);
+      linha(comandosAtual, 392, top + 89, 540, top + 89, "#111827", 0.5);
+
+      return { comandos: comandosAtual, top: top + 104 };
     }
 
     const itensPdf = documento.itens.map(normalizarItem).filter((item) => item.descricao || item.valorUnitario || item.quantidade);
@@ -1487,28 +1670,13 @@
       }));
     let restante = [...itensPdf, ...equipePdf, ...adicionaisPdf];
     if (!restante.length) restante = [novoItem()];
-    let offset = 0;
-    let comandos = novaPagina();
+    let comandos = novaPagina({ cabecalho: true });
     desenharDadosIniciais(comandos);
-    let maxLinhas = 8;
-    let parte = restante.slice(offset, offset + maxLinhas);
-    let finalTabela = desenharTabela(comandos, parte, offset, 338);
-    offset += parte.length;
-
-    while (offset < restante.length) {
-      comandos = novaPagina();
-      maxLinhas = 25;
-      parte = restante.slice(offset, offset + maxLinhas);
-      finalTabela = desenharTabela(comandos, parte, offset, 124);
-      offset += parte.length;
-    }
-
-    if (finalTabela + 320 > 826) {
-      comandos = novaPagina();
-      desenharResumo(comandos, 126);
-    } else {
-      desenharResumo(comandos, finalTabela + 22);
-    }
+    const modoValores = documento.pdf?.modoValores === "agrupado" ? "agrupado" : "detalhado";
+    const linhasTabela = montarLinhasTabelaOrcamento(restante, modoValores);
+    const tabela = desenharTabelaOrcamento(comandos, linhasTabela, modoValores, 350);
+    comandos = tabela.comandos;
+    desenharResumoFinal(comandos, tabela.top);
 
     const objetos = [];
     const add = (obj) => {
