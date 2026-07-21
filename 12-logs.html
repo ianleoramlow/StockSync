@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
 <title>StockSync  -  Logs do Sistema</title>
-<link rel="stylesheet" href="styles.css?v=20260626-no-auto-reload">
+<link rel="stylesheet" href="styles.css?v=20260717-orc-logistica-admin">
 <style>
 .logs-toolbar {
   display: grid;
@@ -74,6 +74,7 @@
   <a class="nav-item" href="03-dashboard.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
   <a class="nav-item" href="04-equipamentos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Equipamentos</a>
   <a class="nav-item" href="08-eventos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Eventos</a>
+  <a class="nav-item" href="14-orcamentos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5M10 9h1"/></svg>Or&ccedil;amentos</a>
   <a class="nav-item" href="09-locacoes.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Locações</a>
   <a class="nav-item" href="10-manutencao-registrar.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Manutenção</a>
   <a class="nav-item" href="02-cadastro-funcionario.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Funcionários</a>
@@ -144,7 +145,7 @@
     </div>
   </div>
 </main>
-<script src="app.js?v=20260626-speed-save"></script>
+<script src="app.js?v=20260717-orc-logistica-admin"></script>
 <script>
 const tbody = document.querySelector("tbody");
 const botoes = document.querySelectorAll(".page-btn");
@@ -347,7 +348,7 @@ window.addEventListener("stocksync:sincronizado", (event) => {
 
 renderLogs();
 </script>
-  <script src="pwa.js?v=20260626-speed-save" defer></script>
+  <script src="pwa.js?v=20260717-orc-logistica-admin" defer></script>
 </body>
 </html>
 
