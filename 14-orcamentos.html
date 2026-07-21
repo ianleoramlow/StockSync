@@ -8,8 +8,8 @@
   <meta name="theme-color" content="#7c3aed">
   <link rel="icon" href="assets/pwa-icon-192.png">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=20260717-orc-pdf-logo-down">
-  <link rel="stylesheet" href="orcamentos-offline.css?v=20260717-orc-pdf-logo-down">
+  <link rel="stylesheet" href="styles.css?v=20260721-orc-pdf-grupos-ajustado">
+  <link rel="stylesheet" href="orcamentos-offline.css?v=20260721-orc-pdf-grupos-ajustado">
 </head>
 <body>
 <aside class="sidebar">
@@ -85,6 +85,12 @@
         <label>Data de emiss&atilde;o<input class="form-input" id="orcEmissao" type="date"></label>
         <label>Validade da proposta<input class="form-input" id="condValidade" type="date"></label>
         <label>Vencimento<input class="form-input" id="condVencimento" type="date"></label>
+        <label class="span-2">Valores no PDF
+          <select class="form-input" id="pdfModoValores">
+            <option value="detalhado">Detalhado por equipamento</option>
+            <option value="agrupado">Total por grupo/categoria</option>
+          </select>
+        </label>
       </div>
     </article>
 
@@ -100,8 +106,10 @@
         <label>E-mail<input class="form-input" id="clienteEmail" type="email"></label>
         <label class="span-2">Endere&ccedil;o<input class="form-input" id="clienteEndereco" type="text"></label>
         <label>Nome do evento<input class="form-input" id="eventoNome" type="text"></label>
-        <label>Data do evento<input class="form-input" id="eventoData" type="date"></label>
-        <label>Hor&aacute;rio<input class="form-input" id="eventoHorario" type="time"></label>
+        <label>Data de in&iacute;cio<input class="form-input" id="eventoDataInicio" type="date"></label>
+        <label>Data de t&eacute;rmino<input class="form-input" id="eventoDataFim" type="date"></label>
+        <label>Hor&aacute;rio de in&iacute;cio<input class="form-input" id="eventoHorarioInicio" type="time"></label>
+        <label>Hor&aacute;rio de t&eacute;rmino<input class="form-input" id="eventoHorarioFim" type="time"></label>
         <label>Cidade/UF<input class="form-input" id="eventoCidadeUf" type="text"></label>
         <label class="span-2">Local do evento<input class="form-input" id="eventoLocal" type="text"></label>
       </div>
@@ -218,8 +226,8 @@
   </section>
 </main>
 
-<script src="app.js?v=20260717-orc-pdf-logo-down"></script>
-<script src="orcamentos-offline.js?v=20260717-orc-pdf-logo-down" defer></script>
-<script src="pwa.js?v=20260717-orc-pdf-logo-down" defer></script>
+<script src="app.js?v=20260721-orc-pdf-grupos-ajustado"></script>
+<script src="orcamentos-offline.js?v=20260721-orc-pdf-grupos-ajustado" defer></script>
+<script src="pwa.js?v=20260721-orc-pdf-grupos-ajustado" defer></script>
 </body>
 </html>
