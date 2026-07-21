@@ -1,12 +1,12 @@
-const STOCKSYNC_CACHE = "stocksync-pwa-20260717-orc-pdf-logo-down-v1";
+const STOCKSYNC_CACHE = "stocksync-pwa-20260721-orc-pdf-grupos-ajustado-v1";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
-  "/pwa.js?v=20260717-orc-pdf-logo-down",
-  "/styles.css?v=20260717-orc-pdf-logo-down",
-  "/app.js?v=20260717-orc-pdf-logo-down",
+  "/pwa.js?v=20260721-orc-pdf-grupos-ajustado",
+  "/styles.css?v=20260721-orc-pdf-grupos-ajustado",
+  "/app.js?v=20260721-orc-pdf-grupos-ajustado",
   "/14-orcamentos.html",
-  "/orcamentos-offline.css?v=20260717-orc-pdf-logo-down",
-  "/orcamentos-offline.js?v=20260717-orc-pdf-logo-down",
+  "/orcamentos-offline.css?v=20260721-orc-pdf-grupos-ajustado",
+  "/orcamentos-offline.js?v=20260721-orc-pdf-grupos-ajustado",
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/logo-stocksync-icon.png",
