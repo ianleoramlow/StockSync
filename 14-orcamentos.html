@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockSync - Or&ccedil;amentos</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#7c3aed">
+  <link rel="icon" href="assets/pwa-icon-192.png">
+  <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
+  <link rel="stylesheet" href="styles.css?v=20260717-orc-pdf-logo-down">
+  <link rel="stylesheet" href="orcamentos-offline.css?v=20260717-orc-pdf-logo-down">
+</head>
+<body>
+<aside class="sidebar">
+  <a class="sidebar-logo" href="03-dashboard.html"><div class="brand-logo-frame"><img src="assets/logo-stocksync-icon.png" alt="StockSync"></div><div class="brand-name">Stock<span>Sync</span></div></a>
+  <a class="nav-item" href="03-dashboard.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+  <a class="nav-item" href="04-equipamentos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></svg>Equipamentos</a>
+  <a class="nav-item" href="08-eventos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Eventos</a>
+  <a class="nav-item active" href="14-orcamentos.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5M10 9h1"/></svg>Or&ccedil;amentos</a>
+  <a class="nav-item" href="09-locacoes.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Loca&ccedil;&otilde;es</a>
+  <a class="nav-item" href="10-manutencao-registrar.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.4-3.4a6 6 0 01-7.8 7.8l-6.4 6.4a2 2 0 11-2.8-2.8l6.4-6.4a6 6 0 017.8-7.8l-3.4 3.4z"/></svg>Manuten&ccedil;&atilde;o</a>
+  <a class="nav-item" href="02-cadastro-funcionario.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Funcion&aacute;rios</a>
+  <a class="nav-item" href="12-logs.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>Logs</a>
+  <a class="nav-item" href="13-configuracoes.html"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 .6 1.65 1.65 0 00-.4 1.1V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.4-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.6-1 1.65 1.65 0 00-1.1-.4H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 8a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-.6 1.65 1.65 0 00.4-1.1V3a2 2 0 014 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 00.6 1 1.65 1.65 0 001.1.4H21a2 2 0 010 4h-.09A1.65 1.65 0 0019.4 15z"/></svg>Configura&ccedil;&otilde;es</a>
+  <div class="sidebar-footer"><button class="btn-logout"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair</button></div>
+</aside>
+
+<main class="main budget-offline-page">
+  <div class="page-header budget-offline-header">
+    <div>
+      <h1>Or&ccedil;amentos</h1>
+      <p>Gerador offline de propostas comerciais, sem salvar dados no banco do StockSync.</p>
+    </div>
+    <div class="offline-status">
+      <span id="nomeArquivoAtual">Arquivo n&atilde;o salvo</span>
+      <strong id="estadoAlteracoes">Sem altera&ccedil;&otilde;es</strong>
+    </div>
+  </div>
+
+  <section class="offline-warning">
+    <strong>Privacidade:</strong>
+    Este or&ccedil;amento n&atilde;o &eacute; salvo no StockSync. Salve o arquivo no seu dispositivo para n&atilde;o perder os dados.
+  </section>
+
+  <section class="offline-toolbar" aria-label="A&ccedil;&otilde;es do or&ccedil;amento">
+    <button class="btn btn-primary" id="novoOrcamento" type="button">Novo or&ccedil;amento</button>
+    <button class="btn btn-secondary" id="abrirOrcamento" type="button">Abrir or&ccedil;amento</button>
+    <button class="btn btn-secondary" id="salvarOrcamento" type="button">Salvar</button>
+    <button class="btn btn-ghost" id="salvarComoOrcamento" type="button">Salvar como</button>
+    <button class="btn btn-primary" id="exportarPdf" type="button">Exportar PDF</button>
+    <input id="abrirArquivoFallback" type="file" accept="application/json,.json" hidden>
+  </section>
+
+  <section class="budget-editor-grid">
+    <article class="budget-panel">
+      <div class="budget-panel-title">
+        <h2>Dados da empresa</h2>
+        <span>Usados no cabe&ccedil;alho e rodap&eacute; do PDF</span>
+      </div>
+      <div class="budget-form-grid">
+        <label>Nome da empresa<input class="form-input" id="empresaNome" type="text"></label>
+        <label>CNPJ/CPF<input class="form-input" id="empresaDocumento" type="text"></label>
+        <label>Telefone<input class="form-input" id="empresaTelefone" type="text"></label>
+        <label>E-mail<input class="form-input" id="empresaEmail" type="email"></label>
+        <label class="span-2">Endere&ccedil;o<input class="form-input" id="empresaEndereco" type="text"></label>
+        <div class="logo-picker span-2">
+          <div class="logo-preview" id="logoPreview">Logo</div>
+          <div>
+            <label class="file-button" for="empresaLogo">Selecionar logo local</label>
+            <input id="empresaLogo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+            <button class="btn btn-ghost btn-small" id="removerLogo" type="button">Remover logo</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="budget-panel">
+      <div class="budget-panel-title">
+        <h2>Documento</h2>
+        <span>N&uacute;mero livre e datas do or&ccedil;amento</span>
+      </div>
+      <div class="budget-form-grid">
+        <label>N&uacute;mero<input class="form-input" id="orcNumero" type="text"></label>
+        <label>Data de emiss&atilde;o<input class="form-input" id="orcEmissao" type="date"></label>
+        <label>Validade da proposta<input class="form-input" id="condValidade" type="date"></label>
+        <label>Vencimento<input class="form-input" id="condVencimento" type="date"></label>
+      </div>
+    </article>
+
+    <article class="budget-panel">
+      <div class="budget-panel-title">
+        <h2>Cliente e evento</h2>
+        <span>Dados exibidos na proposta</span>
+      </div>
+      <div class="budget-form-grid">
+        <label>Nome/Raz&atilde;o social<input class="form-input" id="clienteNome" type="text"></label>
+        <label>CPF/CNPJ<input class="form-input" id="clienteDocumento" type="text"></label>
+        <label>Telefone<input class="form-input" id="clienteTelefone" type="text"></label>
+        <label>E-mail<input class="form-input" id="clienteEmail" type="email"></label>
+        <label class="span-2">Endere&ccedil;o<input class="form-input" id="clienteEndereco" type="text"></label>
+        <label>Nome do evento<input class="form-input" id="eventoNome" type="text"></label>
+        <label>Data do evento<input class="form-input" id="eventoData" type="date"></label>
+        <label>Hor&aacute;rio<input class="form-input" id="eventoHorario" type="time"></label>
+        <label>Cidade/UF<input class="form-input" id="eventoCidadeUf" type="text"></label>
+        <label class="span-2">Local do evento<input class="form-input" id="eventoLocal" type="text"></label>
+      </div>
+    </article>
+
+    <article class="budget-panel budget-conditions-panel">
+      <div class="budget-panel-title">
+        <h2>Condi&ccedil;&otilde;es especiais</h2>
+        <span>Condi&ccedil;&otilde;es que aparecem no PDF</span>
+      </div>
+      <div class="budget-form-grid">
+        <label>Forma de pagamento<input class="form-input" id="condPagamento" type="text"></label>
+        <label>Entrada<input class="form-input" id="condEntrada" type="text"></label>
+        <label>Prazo de montagem<input class="form-input" id="condPrazoMontagem" type="text"></label>
+        <label>Prazo de desmontagem<input class="form-input" id="condPrazoDesmontagem" type="text"></label>
+        <label class="span-2">Observa&ccedil;&otilde;es<textarea class="form-textarea" id="condObservacoes" rows="3"></textarea></label>
+        <label class="span-2">Termos e condi&ccedil;&otilde;es<textarea class="form-textarea" id="condTermos" rows="3"></textarea></label>
+      </div>
+    </article>
+  </section>
+
+  <section class="budget-panel budget-items-panel">
+    <div class="budget-panel-title budget-items-title">
+      <div>
+        <h2>Itens do or&ccedil;amento</h2>
+        <span>Equipamentos, materiais e itens do evento</span>
+      </div>
+      <button class="btn btn-primary" id="adicionarItem" type="button">Adicionar item</button>
+    </div>
+    <datalist id="sugestoesDescricoes"></datalist>
+    <div class="budget-table-wrap">
+      <table class="offline-items-table">
+        <thead>
+          <tr>
+            <th>N.</th>
+            <th>Categoria</th>
+            <th>Descri&ccedil;&atilde;o</th>
+            <th>Qtd.</th>
+            <th>Un.</th>
+            <th>Di&aacute;rias</th>
+            <th>Valor unit.</th>
+            <th>Desc.</th>
+            <th>Total</th>
+            <th>Obs.</th>
+            <th>A&ccedil;&otilde;es</th>
+          </tr>
+        </thead>
+        <tbody id="itensTabela"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="budget-panel budget-team-panel">
+    <div class="budget-panel-title budget-items-title">
+      <div>
+        <h2>Equipe e servi&ccedil;os</h2>
+        <span>T&eacute;cnicos, freelancers, operadores e m&atilde;o de obra do evento</span>
+      </div>
+      <button class="btn btn-primary" id="adicionarEquipeServico" type="button">Adicionar servi&ccedil;o</button>
+    </div>
+    <div class="budget-table-wrap">
+      <table class="offline-items-table offline-team-table">
+        <thead>
+          <tr>
+            <th>N.</th>
+            <th>Servi&ccedil;o / cargo</th>
+            <th>Pessoas</th>
+            <th>Di&aacute;rias</th>
+            <th>Valor di&aacute;ria</th>
+            <th>Total</th>
+            <th>Obs.</th>
+            <th>A&ccedil;&otilde;es</th>
+          </tr>
+        </thead>
+        <tbody id="equipeTabela"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="budget-editor-grid">
+    <article class="budget-panel">
+      <div class="budget-panel-title">
+        <h2>Valores adicionais</h2>
+        <span>Frete, montagem, taxas e descontos gerais</span>
+      </div>
+      <div class="budget-form-grid">
+        <label>Frete<input class="form-input money-input" id="valorFrete" type="number" min="0" step="0.01"></label>
+        <label>Montagem<input class="form-input money-input" id="valorMontagem" type="number" min="0" step="0.01"></label>
+        <label>Desmontagem<input class="form-input money-input" id="valorDesmontagem" type="number" min="0" step="0.01"></label>
+        <label>Taxas extras<input class="form-input money-input" id="valorTaxas" type="number" min="0" step="0.01"></label>
+        <label>Tipo de desconto
+          <select class="form-input" id="descontoTipo">
+            <option value="valor">Valor em reais</option>
+            <option value="percentual">Porcentagem</option>
+          </select>
+        </label>
+        <label>Desconto geral<input class="form-input money-input" id="descontoGeral" type="number" min="0" step="0.01"></label>
+      </div>
+    </article>
+
+    <article class="budget-panel budget-summary-panel">
+      <div class="budget-panel-title">
+        <h2>Resumo</h2>
+        <span>Atualizado automaticamente</span>
+      </div>
+      <dl class="budget-summary">
+        <div><dt>Subtotal dos itens</dt><dd id="subtotalItens">R$ 0,00</dd></div>
+        <div><dt>Equipe e servi&ccedil;os</dt><dd id="totalEquipeServicos">R$ 0,00</dd></div>
+        <div><dt>Adicionais</dt><dd id="totalAdicionais">R$ 0,00</dd></div>
+        <div><dt>Descontos</dt><dd id="totalDescontos">R$ 0,00</dd></div>
+        <div class="budget-total"><dt>Total geral</dt><dd id="totalGeral">R$ 0,00</dd></div>
+      </dl>
+    </article>
+  </section>
+</main>
+
+<script src="app.js?v=20260717-orc-pdf-logo-down"></script>
+<script src="orcamentos-offline.js?v=20260717-orc-pdf-logo-down" defer></script>
+<script src="pwa.js?v=20260717-orc-pdf-logo-down" defer></script>
+</body>
+</html>
