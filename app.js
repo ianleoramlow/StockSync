@@ -429,6 +429,7 @@ const GE = (() => {
 
   const statusInfo = {
     disponivel: { texto: "Disponível", classe: "badge-green" },
+    planejado: { texto: "Planejado", classe: "badge-purple" },
     reservado: { texto: "Reservado p/ Evento", classe: "badge-purple" },
     separacao: { texto: "Em Separação", classe: "badge-yellow" },
     caminhao: { texto: "No Caminhão", classe: "badge-yellow" },
@@ -565,6 +566,85 @@ const GE = (() => {
       .filter((item) => item.quantidade > 0 && (item.codigo || item.nome));
   }
 
+  function numeroOrcamento() {
+    const ano = new Date().getFullYear();
+    const existentes = (dados().orcamentos || [])
+      .map((item) => String(item.numero || item.id || ""))
+      .map((valor) => Number((valor.match(/(\d+)$/) || [])[1]) || 0);
+    const proximo = Math.max(0, ...existentes) + 1;
+    return `${ano}-${String(proximo).padStart(4, "0")}`;
+  }
+
+  function valorOrcamentoNumero(valor) {
+    if (typeof valor === "number" && Number.isFinite(valor)) return valor;
+    const texto = String(valor || "").replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+    const numero = Number(texto);
+    return Number.isFinite(numero) ? numero : 0;
+  }
+
+  function normalizarItemOrcamento(item = {}) {
+    const quantidade = Math.max(1, Math.floor(Number(item.quantidade) || 1));
+    const valorUnitario = Math.max(0, valorOrcamentoNumero(item.valorUnitario ?? item.valor ?? item.diaria));
+    const tipo = String(item.tipo || "servico").trim() || "servico";
+    const codigos = Array.isArray(item.codigos)
+      ? item.codigos.map((codigo) => String(codigo || "").trim().toUpperCase()).filter(Boolean)
+      : [];
+
+    return {
+      id: String(item.id || `ITEM-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
+      tipo,
+      codigo: String(item.codigo || codigos[0] || "").trim().toUpperCase(),
+      codigos,
+      nome: String(item.nome || item.descricao || "").trim(),
+      categoria: categoriaEstoqueCanonica(item.categoria || (tipo === "consumo" ? "Consumo" : ""), ""),
+      quantidade,
+      valorUnitario,
+      total: quantidade * valorUnitario,
+      observacao: String(item.observacao || "").trim()
+    };
+  }
+
+  function totalOrcamento(orcamento = {}) {
+    return (orcamento.itens || []).reduce((total, item) => total + Math.max(0, Number(item.total) || ((Number(item.quantidade) || 0) * (Number(item.valorUnitario) || 0))), 0);
+  }
+
+  function normalizarOrcamento(orcamento = {}) {
+    const numero = String(orcamento.numero || orcamento.id || `${new Date().getFullYear()}-0001`).trim();
+    const id = String(orcamento.id || `ORC-${numero}`).trim().replace(/\s+/g, "-").toUpperCase();
+    const itens = (Array.isArray(orcamento.itens) ? orcamento.itens : []).map(normalizarItemOrcamento).filter((item) => item.nome);
+    const hoje = new Date().toISOString().slice(0, 10);
+
+    return {
+      id,
+      numero,
+      status: orcamento.status || "Rascunho",
+      cliente: {
+        nome: String(orcamento.cliente?.nome || orcamento.clienteNome || "").trim(),
+        empresa: String(orcamento.cliente?.empresa || orcamento.clienteEmpresa || "").trim(),
+        telefone: String(orcamento.cliente?.telefone || orcamento.telefone || "").trim(),
+        email: String(orcamento.cliente?.email || orcamento.email || "").trim()
+      },
+      evento: {
+        nome: String(orcamento.evento?.nome || orcamento.eventoNome || "").trim(),
+        data: orcamento.evento?.data || orcamento.dataEvento || "",
+        local: String(orcamento.evento?.local || orcamento.local || "").trim()
+      },
+      validade: orcamento.validade || orcamento.dataValidade || "",
+      condicoes: {
+        pagamento: String(orcamento.condicoes?.pagamento || orcamento.pagamento || "50% entrada / 50% até 3 dias antes").trim(),
+        frete: String(orcamento.condicoes?.frete || orcamento.frete || "Incluso").trim(),
+        montagem: String(orcamento.condicoes?.montagem || orcamento.montagem || "Incluso").trim(),
+        desmontagem: String(orcamento.condicoes?.desmontagem || orcamento.desmontagem || "Incluso").trim()
+      },
+      itens,
+      observacoes: String(orcamento.observacoes || "Proposta válida conforme data acima.\nAlterações após aprovação podem gerar custos adicionais.\nEquipamentos sujeitos à disponibilidade.").trim(),
+      total: totalOrcamento({ itens }),
+      eventoGeradoId: String(orcamento.eventoGeradoId || "").trim(),
+      criadoEm: orcamento.criadoEm || hoje,
+      atualizadoEm: new Date().toISOString()
+    };
+  }
+
   function imagemEquipamento(equipamento = {}) {
     const nome = normalizar(equipamento.nome || "");
     const categoria = normalizar(equipamento.categoria || "");
@@ -669,6 +749,7 @@ const GE = (() => {
       categoriasEstoque: [],
       eventos: [],
       locacoes: [],
+      orcamentos: [],
       manutencoes: [],
       funcionarios: [],
       solicitacoesFuncionarios: [],
@@ -743,6 +824,7 @@ const GE = (() => {
     corrigido.materiaisConsumo = corrigido.materiaisConsumo.map(normalizarMaterialConsumo).filter((item) => item.nome);
     corrigido.categoriasEstoque = listaUnicaTexto(corrigido.categoriasEstoque);
     corrigido.preferencias = corrigido.preferencias && typeof corrigido.preferencias === "object" ? corrigido.preferencias : {};
+    corrigido.orcamentos = corrigido.orcamentos.map(normalizarOrcamento).filter((orcamento) => orcamento.cliente.nome || orcamento.evento.nome || orcamento.itens.length);
     corrigido.eventos = corrigido.eventos.map((evento) => ({
       ...evento,
       dataSaida: evento.dataSaida || evento.data_saida || evento.saida || evento.data || "",
@@ -1009,7 +1091,22 @@ const GE = (() => {
     if (codigoEmpresa && !empresaEscolhida) return null;
 
     for (const empresa of listaEmpresas) {
-      const db = dadosDaEmpresa(empresa.id);
+      const chaveDadosEmpresa = chaveEmpresa(empresa.id);
+      const bancosParaLogin = [dadosDaEmpresa(empresa.id)];
+
+      if (backendDisponivel !== false) {
+        backendCache.delete(chaveDadosEmpresa);
+        const remoto = lerBackend(chaveDadosEmpresa);
+        if (remoto !== BACKEND_MISSING && remoto) {
+          const dbRemoto = garantirEstrutura(remoto);
+          salvarLocalSeguro(chaveDadosEmpresa, JSON.stringify(dbRemoto));
+          bancosParaLogin.unshift(dbRemoto);
+        }
+      }
+
+      const db = bancosParaLogin.find((banco) =>
+        (banco.funcionarios || []).some((item) => normalizar(item.email) === emailNormalizado && item.senha === senha)
+      ) || bancosParaLogin[0];
       const funcionario = db.funcionarios.find((item) => normalizar(item.email) === emailNormalizado && item.senha === senha);
       if (funcionario) {
         const usuario = { ...funcionario, empresaId: empresa.id, empresaCodigo: codigoAcessoEmpresa(empresa), empresaNome: empresa.nome };
@@ -1368,6 +1465,35 @@ const GE = (() => {
     });
   }
 
+  function statusBaixaEstoqueEvento(status) {
+    return ["reservado", "separacao", "caminhao", "evento", "retornando", "retornado"].includes(status);
+  }
+
+  function eventoUsaEquipamentoNoEstoque(evento, codigo) {
+    if (!evento || evento.status === "Finalizado") return false;
+    if (!(evento.equipamentos || []).includes(codigo)) return false;
+    const statusItem = (evento.statusEquipamentos || {})[codigo];
+    if (statusItem) return statusBaixaEstoqueEvento(statusItem);
+    return evento.baixaEstoqueAtiva !== false;
+  }
+
+  function liberarEquipamentoSeLivre(db, codigo, eventoIgnoradoId = "") {
+    const eq = db.equipamentos.find((item) => item.codigo === codigo);
+    if (!eq || eq.status === "manutencao") return;
+
+    const emLocacao = (db.locacoes || []).some((locacao) =>
+      locacao.status !== "Finalizada" && (locacao.equipamentos || []).includes(codigo)
+    );
+    const emOutroEvento = (db.eventos || []).some((evento) =>
+      evento.id !== eventoIgnoradoId && eventoUsaEquipamentoNoEstoque(evento, codigo)
+    );
+    const emManutencao = (db.manutencoes || []).some((manutencao) =>
+      manutencao.codigo === codigo && manutencao.status !== "Finalizada"
+    );
+
+    if (!emLocacao && !emOutroEvento && !emManutencao) eq.status = "disponivel";
+  }
+
   function removerEquipamento(codigo) {
     const db = dados();
     const eq = db.equipamentos.find((item) => item.codigo === codigo);
@@ -1432,6 +1558,7 @@ const GE = (() => {
     const equipamentos = evento.equipamentos.map((codigo) => codigo.trim().toUpperCase()).filter(Boolean);
     const equipamentosExternos = evento.equipamentosExternos || [];
     const consumos = normalizarConsumosEvento(evento.consumos || evento.materiaisConsumo || []);
+    const baixaEstoqueAtiva = evento.baixaEstoqueAtiva !== false && evento.reservaEstoqueAtiva !== false && !evento.naoReservarEstoque;
     let id = idBase;
     let contador = 2;
 
@@ -1440,12 +1567,19 @@ const GE = (() => {
       contador += 1;
     }
 
-    const registro = { ...evento, id, dataSaida: evento.dataSaida || evento.data_saida || evento.saida || evento.data, equipamentos, equipamentosExternos, consumos, responsavel: usuarioAtual().nome };
-    db.eventos.unshift(registro);
-    aplicarMovimentoConsumosEvento(db, [], consumos);
-    db.equipamentos.forEach((eq) => {
-      if (equipamentos.includes(eq.codigo)) eq.status = "reservado";
+    const statusEquipamentos = { ...(evento.statusEquipamentos || {}) };
+    equipamentos.forEach((codigo) => {
+      if (!statusEquipamentos[codigo]) statusEquipamentos[codigo] = baixaEstoqueAtiva ? "reservado" : "planejado";
     });
+
+    const registro = { ...evento, id, dataSaida: evento.dataSaida || evento.data_saida || evento.saida || evento.data, equipamentos, equipamentosExternos, consumos, statusEquipamentos, baixaEstoqueAtiva, responsavel: usuarioAtual().nome };
+    db.eventos.unshift(registro);
+    if (baixaEstoqueAtiva) {
+      aplicarMovimentoConsumosEvento(db, [], consumos);
+      db.equipamentos.forEach((eq) => {
+        if (equipamentos.includes(eq.codigo)) eq.status = "reservado";
+      });
+    }
     db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Criou Evento", tipo: "badge-purple", detalhes: `${id} - ${registro.nome} | materiais pendentes de separação` });
     salvar(db);
     return registro;
@@ -1460,8 +1594,12 @@ const GE = (() => {
     const equipamentos = evento.equipamentos.map((codigo) => codigo.trim().toUpperCase()).filter(Boolean);
     const equipamentosExternos = evento.equipamentosExternos || [];
     const consumos = normalizarConsumosEvento(evento.consumos || evento.materiaisConsumo || []);
-    const antigos = db.eventos[indice].equipamentos || [];
-    const consumosAntigos = normalizarConsumosEvento(db.eventos[indice].consumos || db.eventos[indice].materiaisConsumo || []);
+    const eventoAntigo = db.eventos[indice];
+    const antigos = eventoAntigo.equipamentos || [];
+    const consumosAntigos = normalizarConsumosEvento(eventoAntigo.consumos || eventoAntigo.materiaisConsumo || []);
+    const baixaEstoqueAtiva = evento.baixaEstoqueAtiva !== undefined
+      ? evento.baixaEstoqueAtiva !== false
+      : eventoAntigo.baixaEstoqueAtiva !== false;
     let id = idBase;
     let contador = 2;
 
@@ -1470,14 +1608,24 @@ const GE = (() => {
       contador += 1;
     }
 
+    const statusEquipamentos = { ...(eventoAntigo.statusEquipamentos || {}), ...(evento.statusEquipamentos || {}) };
+    antigos.forEach((codigo) => {
+      if (!equipamentos.includes(codigo)) delete statusEquipamentos[codigo];
+    });
+    equipamentos.forEach((codigo) => {
+      if (!statusEquipamentos[codigo]) statusEquipamentos[codigo] = baixaEstoqueAtiva ? "reservado" : "planejado";
+    });
+
     const registro = {
-      ...db.eventos[indice],
+      ...eventoAntigo,
       ...evento,
       id,
       dataSaida: evento.dataSaida || evento.data_saida || evento.saida || evento.data || db.eventos[indice].dataSaida || db.eventos[indice].data || "",
       equipamentos,
       equipamentosExternos,
       consumos,
+      statusEquipamentos,
+      baixaEstoqueAtiva,
       responsavel: usuarioAtual().nome
     };
 
@@ -1485,7 +1633,7 @@ const GE = (() => {
 
     db.equipamentos.forEach((eq) => {
       if (antigos.includes(eq.codigo) && !equipamentos.includes(eq.codigo)) {
-        const usadoEmOutroEvento = db.eventos.some((item) => item.id !== id && (item.equipamentos || []).includes(eq.codigo));
+        const usadoEmOutroEvento = db.eventos.some((item) => item.id !== id && eventoUsaEquipamentoNoEstoque(item, eq.codigo));
         const usadoEmLocacao = db.locacoes.some((item) => (item.equipamentos || []).includes(eq.codigo) && item.status !== "Finalizada");
         const emManutencao = db.manutencoes.some((item) => item.codigo === eq.codigo && item.status !== "Finalizada");
 
@@ -1494,10 +1642,10 @@ const GE = (() => {
         }
       }
 
-      if (equipamentos.includes(eq.codigo) && !antigos.includes(eq.codigo)) eq.status = "reservado";
+      if (baixaEstoqueAtiva && equipamentos.includes(eq.codigo) && !antigos.includes(eq.codigo)) eq.status = "reservado";
     });
 
-    aplicarMovimentoConsumosEvento(db, consumosAntigos, consumos);
+    aplicarMovimentoConsumosEvento(db, eventoAntigo.baixaEstoqueAtiva === false ? [] : consumosAntigos, baixaEstoqueAtiva ? consumos : []);
 
     const adicionados = equipamentos.filter((codigo) => !antigos.includes(codigo));
     const removidos = antigos.filter((codigo) => !equipamentos.includes(codigo));
@@ -1516,9 +1664,23 @@ const GE = (() => {
     if (!evento || !statusInfo[status]) return false;
 
     const codigosNormalizados = codigos.map((codigo) => codigo.trim().toUpperCase());
+    evento.statusEquipamentos = evento.statusEquipamentos || {};
+    codigosNormalizados.forEach((codigo) => {
+      if ((evento.equipamentos || []).includes(codigo)) evento.statusEquipamentos[codigo] = status;
+    });
+
+    if (evento.baixaEstoqueAtiva === false && statusBaixaEstoqueEvento(status)) {
+      aplicarMovimentoConsumosEvento(db, [], normalizarConsumosEvento(evento.consumos || evento.materiaisConsumo || []));
+      evento.baixaEstoqueAtiva = true;
+    }
+
     db.equipamentos.forEach((eq) => {
       if (codigosNormalizados.includes(eq.codigo) && (evento.equipamentos || []).includes(eq.codigo)) {
-        eq.status = status;
+        if (statusBaixaEstoqueEvento(status) || status === "manutencao") {
+          eq.status = status;
+        } else {
+          liberarEquipamentoSeLivre(db, eq.codigo, evento.id);
+        }
       }
     });
 
@@ -1594,6 +1756,127 @@ const GE = (() => {
     });
     db.logs.unshift({ data: hojeCurto(), usuario: usuarioAtual().nome, acao: "Criou Locação", tipo: "badge-purple", detalhes: `${locacao.empresa} - ${equipamentos.length} equipamentos` });
     salvar(db);
+  }
+
+  function salvarOrcamento(orcamento, idOriginal = "") {
+    const db = dados();
+    const item = normalizarOrcamento({
+      ...orcamento,
+      numero: orcamento.numero || numeroOrcamento()
+    });
+    const indice = db.orcamentos.findIndex((registro) => registro.id === (idOriginal || item.id));
+    const antigo = indice >= 0 ? db.orcamentos[indice] : null;
+    const final = antigo ? { ...antigo, ...item, criadoEm: antigo.criadoEm || item.criadoEm } : item;
+
+    if (indice >= 0) db.orcamentos[indice] = final;
+    else db.orcamentos.unshift(final);
+
+    db.logs.unshift({
+      data: hojeCurto(),
+      usuario: usuarioAtual().nome,
+      acao: indice >= 0 ? "Editou Orçamento" : "Criou Orçamento",
+      tipo: "badge-purple",
+      detalhes: `${final.numero} - ${final.cliente.nome || final.evento.nome || "sem cliente"}`
+    });
+    salvar(db);
+    return final;
+  }
+
+  function atualizarStatusOrcamento(id, status) {
+    const db = dados();
+    const orcamento = (db.orcamentos || []).find((item) => item.id === id);
+    if (!orcamento) return false;
+    orcamento.status = status;
+    orcamento.atualizadoEm = new Date().toISOString();
+    db.logs.unshift({
+      data: hojeCurto(),
+      usuario: usuarioAtual().nome,
+      acao: "Atualizou Orçamento",
+      tipo: status === "Aprovado" ? "badge-green" : status === "Recusado" ? "badge-red" : "badge-purple",
+      detalhes: `${orcamento.numero} - ${status}`
+    });
+    salvar(db);
+    return true;
+  }
+
+  function excluirOrcamento(id) {
+    const db = dados();
+    const indice = (db.orcamentos || []).findIndex((item) => item.id === id);
+    if (indice < 0) return false;
+    const [orcamento] = db.orcamentos.splice(indice, 1);
+    db.logs.unshift({
+      data: hojeCurto(),
+      usuario: usuarioAtual().nome,
+      acao: "Excluiu Orçamento",
+      tipo: "badge-red",
+      detalhes: `${orcamento.numero} - ${orcamento.cliente?.nome || orcamento.evento?.nome || ""}`
+    });
+    salvar(db);
+    return true;
+  }
+
+  function aprovarOrcamento(id) {
+    const db = dados();
+    const orcamento = (db.orcamentos || []).find((item) => item.id === id);
+    if (!orcamento) return { erro: "Orçamento não encontrado." };
+    if (orcamento.eventoGeradoId) {
+      orcamento.status = "Aprovado";
+      orcamento.atualizadoEm = new Date().toISOString();
+      salvar(db);
+      return { ok: true, eventoId: orcamento.eventoGeradoId };
+    }
+
+    const hoje = new Date().toISOString().slice(0, 10);
+    const equipamentos = [];
+    const consumos = [];
+    (orcamento.itens || []).forEach((item) => {
+      if (item.tipo === "equipamento") {
+        const codigos = item.codigos?.length ? item.codigos : item.codigo ? [item.codigo] : [];
+        equipamentos.push(...codigos);
+      } else if (item.tipo === "consumo") {
+        consumos.push({
+          codigo: item.codigo,
+          nome: item.nome,
+          categoria: item.categoria || "Consumo",
+          quantidade: item.quantidade,
+          responsavel: usuarioAtual().nome,
+          data: orcamento.evento?.data || hoje,
+          observacao: `Gerado pelo orçamento ${orcamento.numero}`
+        });
+      }
+    });
+
+    const evento = {
+      id: `EVT-${String(orcamento.numero || Date.now()).replace(/[^A-Z0-9-]/gi, "").toUpperCase()}`,
+      nome: orcamento.evento?.nome || `Evento do orçamento ${orcamento.numero}`,
+      data: orcamento.evento?.data || hoje,
+      dataSaida: orcamento.evento?.dataSaida || orcamento.evento?.data || hoje,
+      local: orcamento.evento?.local || "Local não informado",
+      status: "Planejado",
+      baixaEstoqueAtiva: false,
+      equipamentos: [...new Set(equipamentos)],
+      equipamentosExternos: [],
+      consumos
+    };
+
+    const eventoSalvo = salvarEvento(evento);
+    const atualizado = dados();
+    const registro = (atualizado.orcamentos || []).find((item) => item.id === id);
+    if (registro) {
+      registro.status = "Aprovado";
+      registro.eventoGeradoId = eventoSalvo.id;
+      registro.atualizadoEm = new Date().toISOString();
+      atualizado.logs.unshift({
+        data: hojeCurto(),
+        usuario: usuarioAtual().nome,
+        acao: "Aprovou Orçamento",
+        tipo: "badge-green",
+        detalhes: `${registro.numero} gerou o evento ${eventoSalvo.nome}`
+      });
+      salvar(atualizado);
+    }
+
+    return { ok: true, eventoId: eventoSalvo.id };
   }
 
   function aprovarSolicitacaoFuncionario(id) {
@@ -1886,6 +2169,7 @@ const GE = (() => {
       dashboard: '<svg ' + atributos + '><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>',
       equipamentos: '<svg ' + atributos + '><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>',
       eventos: '<svg ' + atributos + '><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+      orcamentos: '<svg ' + atributos + '><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h5M10 9h1"/></svg>',
       locacoes: '<svg ' + atributos + '><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
       manutencao: '<svg ' + atributos + '><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.4-3.4a6 6 0 0 1-7.8 7.8l-6.4 6.4a2 2 0 1 1-2.8-2.8l6.4-6.4a6 6 0 0 1 7.8-7.8Z"/></svg>',
       funcionarios: '<svg ' + atributos + '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
@@ -1979,6 +2263,7 @@ const GE = (() => {
         <button class="mobile-icon-button mobile-more-close" type="button" aria-label="Fechar menu">${mobileIcone('close')}</button>
       </div>
       <div class="mobile-more-list">
+        <a href="14-orcamentos.html">${mobileIcone('orcamentos')}<span>Or\u00e7amentos</span></a>
         <a href="09-locacoes.html">${mobileIcone('locacoes')}<span>Loca\u00e7\u00f5es</span></a>
         <a href="10-manutencao-registrar.html">${mobileIcone('manutencao')}<span>Manuten\u00e7\u00e3o</span></a>
         <a href="02-cadastro-funcionario.html">${mobileIcone('funcionarios')}<span>Funcion\u00e1rios</span></a>
@@ -1990,6 +2275,7 @@ const GE = (() => {
     `;
   
     document.body.append(appbar, bottom, backdrop, sheet);
+    configurarAcessoOrcamentos();
   
     const abrirMenu = () => {
       backdrop.classList.add('is-open');
@@ -2082,6 +2368,7 @@ const GE = (() => {
       const tabelaLogs = Boolean(envoltorio?.classList.contains('logs-table'));
       const tabelaEventos = Boolean(envoltorio?.classList.contains('event-list-table'));
       const tabelaDetalheEvento = Boolean(envoltorio?.classList.contains('event-detail-table'));
+      const tabelaOrcamentos = Boolean(envoltorio?.classList.contains('orcamentos-table'));
       const tabelaLocacoes = Boolean(envoltorio?.classList.contains('locacoes-table'));
       const tabelaManutencao = Boolean(envoltorio?.classList.contains('maintenance-table'));
       const tabelaFuncionarios = linha.parentElement?.id === 'funcionariosTabela' || linha.parentElement?.id === 'solicitacoesTabela';
@@ -2089,7 +2376,8 @@ const GE = (() => {
   
       const idx = {
         codigo: indicePorRotulo(rotulos, ['codigo', 'codigos', 'id']),
-        nome: indicePorRotulo(rotulos, ['nome', 'equipamento', 'evento', 'empresa', 'material']),
+        nome: indicePorRotulo(rotulos, ['nome', 'equipamento', 'evento', 'empresa', 'cliente', 'material']),
+        evento: indicePorRotulo(rotulos, ['evento']),
         categoria: indicePorRotulo(rotulos, ['categoria']),
         quantidade: indicePorRotulo(rotulos, ['quantidade', 'qtd', 'qtd equip', 'estoque']),
         status: indicePorRotulo(rotulos, ['status', 'situacao']),
@@ -2115,6 +2403,10 @@ const GE = (() => {
         tituloIndice = idx.nome >= 0 ? idx.nome : 1;
         statusIndice = -1;
         metaIndices = [idx.data, idx.local, idx.quantidade];
+      } else if (tabelaOrcamentos) {
+        tituloIndice = idx.nome >= 0 ? idx.nome : 1;
+        statusIndice = idx.status;
+        metaIndices = [idx.evento, idx.data, idx.quantidade];
       } else if (tabelaFuncionarios) {
         tituloIndice = idx.nome >= 0 ? idx.nome : 0;
         statusIndice = idx.status >= 0 ? idx.status : idx.cargo;
@@ -2375,6 +2667,17 @@ const GE = (() => {
     });
   }
 
+  function configurarAcessoOrcamentos() {
+    const admin = usuarioAtual().cargo === "Administrador";
+    if (!admin) {
+      document.querySelectorAll('a[href*="14-orcamentos.html"]').forEach((link) => link.remove());
+      if (/14-orcamentos\.html$/i.test(location.pathname)) {
+        mensagem("Apenas administradores podem acessar orçamentos.", "warning");
+        setTimeout(() => { window.location.href = "03-dashboard.html"; }, 700);
+      }
+    }
+  }
+
   function tipoMensagem(tipo) {
     if (["success", "error", "warning", "info"].includes(tipo)) return tipo;
     return "info";
@@ -2454,6 +2757,7 @@ const GE = (() => {
   document.addEventListener("DOMContentLoaded", () => {
     configurarTema();
     configurarCabecalhoUsuarioGlobal();
+    configurarAcessoOrcamentos();
     const atualizarMobileResponsivo = () => {
       configurarMobileShell();
       configurarMobileCardsResumidos();
@@ -2473,7 +2777,7 @@ const GE = (() => {
   return {
     dados, salvar, log, normalizar, badge, statusInfo, dataBR, mensagem, imagemEquipamento,
     getEquipamento, salvarEquipamento, salvarGrupoEquipamentos, equipamentosDoMesmoGrupo, salvarEquipamentosEmLote, removerEquipamento, getMaterialConsumo, salvarMaterialConsumo, removerMaterialConsumo, enviarManutencao, finalizarManutencao,
-    salvarEvento, editarEvento, atualizarStatusEvento, excluirEventoFinalizado, finalizarEvento, salvarLocacao, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
+    salvarEvento, editarEvento, atualizarStatusEvento, excluirEventoFinalizado, finalizarEvento, salvarLocacao, salvarOrcamento, atualizarStatusOrcamento, excluirOrcamento, aprovarOrcamento, normalizarOrcamento, totalOrcamento, numeroOrcamento, salvarFuncionario, atualizarCargoFuncionario, excluirFuncionario, aprovarSolicitacaoFuncionario, recusarSolicitacaoFuncionario,
     empresas, empresaAtual, salvarEmpresaAtual, codigoEmpresa: codigoAcessoEmpresa, usuarioAtual, sessaoAtiva, autenticar, cadastrarEmpresa, cadastrarFuncionarioPorCodigo, solicitacoesFuncionarioEmpresa, atualizarUsuarioAtual, buscarEmpresa, confirmar, atualizarLogosTema, aplicarTema, categoriasEstoque, salvarCategoriasEstoque, categoriaEstoqueCanonica
   };
 })();
