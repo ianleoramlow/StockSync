@@ -649,10 +649,13 @@
           nome,
           categoria,
           unidade: "un.",
+          valorUnitario: 0,
           quantidade: 0,
           codigos: []
         };
         atual.quantidade += 1;
+        const valorEq = numero(eq.valorUnitario ?? eq.valor ?? 0);
+        if (!atual.valorUnitario && valorEq > 0) atual.valorUnitario = valorEq;
         if (eq.codigo) atual.codigos.push(String(eq.codigo).trim().toUpperCase());
         mapa.set(chave, atual);
       });
@@ -668,6 +671,7 @@
           nome,
           categoria,
           unidade: unidadeOrcamento(item.unidade, "unidade"),
+          valorUnitario: Math.max(0, numero(item.valorUnitario ?? item.valor ?? 0)),
           quantidade: Math.max(0, numero(item.quantidade)),
           codigos: item.codigo ? [String(item.codigo).trim().toUpperCase()] : []
         });
@@ -700,7 +704,8 @@
       categoria: categoriaOrcamento(item.categoria),
       descricao: item.nome,
       unidade: unidadeOrcamento(item.unidade, item.tipo === "consumo" ? "unidade" : "un."),
-      quantidade: Math.max(1, numero(itens[index].quantidade) || 1)
+      quantidade: Math.max(1, numero(itens[index].quantidade) || 1),
+      valorUnitario: numero(item.valorUnitario) > 0 ? numero(item.valorUnitario) : itens[index].valorUnitario
     };
     return true;
   }
@@ -789,7 +794,8 @@
     const lista = $("#sugestoesDescricoes");
     const opcoesEstoque = catalogoEstoque().slice(0, 400);
     lista.innerHTML = opcoesEstoque.map((item) => {
-      const label = `${item.categoria} - ${item.quantidade || 0} ${item.tipo === "consumo" ? item.unidade : "un."}`;
+      const valor = numero(item.valorUnitario) > 0 ? ` - ${dinheiro(item.valorUnitario)}` : "";
+      const label = `${item.categoria} - ${item.quantidade || 0} ${item.tipo === "consumo" ? item.unidade : "un."}${valor}`;
       return `<option value="${textoSeguro(item.nome)}" label="${textoSeguro(label)}"></option>`;
     }).join("");
   }
@@ -828,11 +834,12 @@
       const detalhe = item.tipo === "consumo"
         ? `${item.categoria} - ${item.quantidade || 0} ${item.unidade || "unidade"} em estoque`
         : `${item.categoria} - ${item.quantidade || 0} unidade${item.quantidade === 1 ? "" : "s"} cadastrada${item.quantidade === 1 ? "" : "s"}`;
+      const detalheValor = numero(item.valorUnitario) > 0 ? ` - ${dinheiro(item.valorUnitario)}` : "";
       return `
         <button class="stock-suggestion" type="button" data-stock-key="${textoSeguro(encodeURIComponent(item.chave))}">
           <span>
             <strong>${textoSeguro(item.nome)}</strong>
-            <small>${textoSeguro(detalhe)}</small>
+            <small>${textoSeguro(detalhe + detalheValor)}</small>
           </span>
           <em>${item.tipo === "consumo" ? "Consumo" : "Estoque"}</em>
         </button>`;
