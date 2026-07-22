@@ -523,7 +523,8 @@ tbody td:first-child { color: var(--text); font-family: var(--mono); font-size: 
 /* â”€â”€ GRID HELPERS â”€â”€ */
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.grid-2 > .card { align-self: start; }
 
 /* â”€â”€ DIVIDER â”€â”€ */
 .divider { height: 1px; background: var(--border); margin: 20px 0; }
