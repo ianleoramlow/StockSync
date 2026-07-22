@@ -94,6 +94,11 @@
         <option>Consumo</option>
       </select>
     </div>
+    <div class="form-group" id="grupoValorEquipamento" style="display:none;">
+      <label class="form-label">Valor unit&aacute;rio para or&ccedil;amento</label>
+      <input class="form-input" id="valorEquipamento" type="number" min="0" step="0.01" placeholder="Ex: 350.00">
+      <div class="quantity-hint">Vis&iacute;vel somente para administradores. Esse valor entra automaticamente nos or&ccedil;amentos.</div>
+    </div>
     <div class="form-group">
       <label class="form-label">Descri&ccedil;&atilde;o</label>
       <textarea class="form-textarea" placeholder="Descri&ccedil;&atilde;o do item..."></textarea>
@@ -124,7 +129,7 @@
           <input type="radio" name="escopoEdicaoEquipamento" value="grupo">
           <span>
             <strong>Todos os equipamentos deste grupo</strong>
-            <span id="grupoAplicacaoHint">Aplica nome, categoria, descrição e foto nas unidades iguais. Os códigos continuam individuais.</span>
+            <span id="grupoAplicacaoHint">Aplica nome, categoria, descrição, foto e valor nas unidades iguais. Os códigos continuam individuais.</span>
           </span>
         </label>
       </div>
@@ -136,7 +141,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260717-orc-logistica-admin"></script>
+<script src="app.js?v=20260721-valor-equipamento-orcamento"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const codigoEdicao = params.get("codigo");
@@ -147,6 +152,8 @@ const codigoItemLabel = document.getElementById("codigoItemLabel");
 const quantidadeItemLabel = document.getElementById("quantidadeItemLabel");
 const nomeInput = document.getElementById("nomeEquipamento");
 const categoria = document.getElementById("categoriaEstoque");
+const grupoValorEquipamento = document.getElementById("grupoValorEquipamento");
+const valorEquipamento = document.getElementById("valorEquipamento");
 const descricao = document.querySelector(".form-textarea");
 const titulo = document.querySelector(".modal-title");
 const subtitulo = document.querySelector(".modal-sub");
@@ -165,6 +172,15 @@ const grupoAplicacaoEdicao = document.getElementById("grupoAplicacaoEdicao");
 const grupoAplicacaoHint = document.getElementById("grupoAplicacaoHint");
 let imagemAtual = "";
 let quantidadeGrupoEdicao = 1;
+
+function usuarioAdministradorCadastro() {
+  return GE.usuarioAtual && GE.usuarioAtual()?.cargo === "Administrador";
+}
+
+function numeroCadastro(valor) {
+  const numero = Number(String(valor ?? "").replace(",", "."));
+  return Number.isFinite(numero) ? numero : 0;
+}
 
 function normalizarCadastro(texto) {
   return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -219,6 +235,7 @@ function atualizarModoCadastro() {
   grupoUnidadeConsumo.style.display = consumo ? "block" : "none";
   grupoEstoqueMinimo.style.display = consumo ? "block" : "none";
   grupoFotoEquipamento.style.display = consumo ? "none" : "block";
+  grupoValorEquipamento.style.display = !consumo && usuarioAdministradorCadastro() ? "block" : "none";
   tipoItem.disabled = Boolean(codigoEdicao || codigoMaterialEdicao);
   if (consumo && !categoria.value) categoria.value = "Consumo";
 }
@@ -290,6 +307,7 @@ if (codigoEdicao) {
     nomeInput.value = eq.nome;
     renderCategoriasCadastro(eq.categoria);
     categoria.value = categoriaCanonicaCadastro(eq.categoria, "Sem categoria");
+    valorEquipamento.value = eq.valorUnitario ?? eq.valor ?? "";
     descricao.value = eq.descricao || "";
     imagemAtual = eq.imagem || "";
     previewImagem.src = imagemAtual || imagemAutomaticaCadastro(eq);
@@ -297,7 +315,7 @@ if (codigoEdicao) {
     quantidadeGrupoEdicao = grupo.length || 1;
     if (quantidadeGrupoEdicao > 1) {
       grupoAplicacaoEdicao.style.display = "block";
-      grupoAplicacaoHint.textContent = `Aplica nome, categoria, descrição e foto nas ${quantidadeGrupoEdicao} unidades iguais. Os códigos continuam individuais.`;
+      grupoAplicacaoHint.textContent = `Aplica nome, categoria, descrição, foto e valor nas ${quantidadeGrupoEdicao} unidades iguais. Os códigos continuam individuais.`;
     }
   }
 }
@@ -383,6 +401,10 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
     status: codigoEdicao ? GE.getEquipamento(codigoEdicao)?.status : "disponivel"
   };
 
+  if (usuarioAdministradorCadastro()) {
+    equipamento.valorUnitario = Math.max(0, numeroCadastro(valorEquipamento.value));
+  }
+
   if (!equipamento.codigo || !equipamento.nome || !equipamento.categoria) {
     GE.mensagem("Preencha código, nome e categoria.", "warning");
     return;
@@ -410,11 +432,9 @@ document.getElementById("salvarEquipamento").addEventListener("click", function 
   setTimeout(() => window.location.href = "04-equipamentos.html", 180);
 });
 </script>
-  <script src="pwa.js?v=20260717-orc-logistica-admin" defer></script>
+  <script src="pwa.js?v=20260721-valor-equipamento-orcamento" defer></script>
 </body>
 </html>
-
-
 
 
 
