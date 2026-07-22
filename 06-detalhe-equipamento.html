@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
 <title>StockSync  -  Detalhe Equipamento</title>
-<link rel="stylesheet" href="styles.css?v=20260717-orc-logistica-admin">
+<link rel="stylesheet" href="styles.css?v=20260721-card-altura-historico">
 <style>
 .equip-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:24px; }
 .equip-title-row { display:flex;align-items:center;gap:12px; }
@@ -75,6 +75,7 @@
       <div class="detail-row"><span class="detail-key">Categoria</span><span class="detail-val">Som</span></div>
       <div class="detail-row"><span class="detail-key">Código</span><span class="detail-val" style="font-family:var(--mono);font-size:12.5px">EQP001</span></div>
       <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val"><span class="badge badge-green">Disponível</span></span></div>
+      <div class="detail-row" id="linhaValorEquipamento" style="display:none;"><span class="detail-key">Valor para orçamento</span><span class="detail-val" id="valorDetalheEquipamento">R$ 0,00</span></div>
       <div class="detail-row"><span class="detail-key">Descrição</span><span class="detail-val">Caixa ativa de 15 polegadas, 1500W</span></div>
     </div>
 
@@ -98,7 +99,7 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=20260717-orc-logistica-admin"></script>
+<script src="app.js?v=20260721-valor-equipamento-orcamento"></script>
 <script>
 function normalizarDetalhe(texto) {
   return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -111,6 +112,15 @@ function textoSeguroDetalhe(valor) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function usuarioAdministradorDetalhe() {
+  return GE.usuarioAtual && GE.usuarioAtual()?.cargo === "Administrador";
+}
+
+function dinheiroDetalhe(valor) {
+  const numero = Number(String(valor ?? "").replace(",", "."));
+  return (Number.isFinite(numero) ? numero : 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function nomeBaseHistoricoDetalhe(nome) {
@@ -323,7 +333,13 @@ if (!eq) {
   valores[1].textContent = eq.categoria;
   valores[2].textContent = eq.codigo;
   valores[3].innerHTML = GE.badge(eq.status);
-  valores[4].textContent = eq.descricao || "Sem descrição cadastrada";
+  const linhaValor = document.getElementById("linhaValorEquipamento");
+  const valorDetalhe = document.getElementById("valorDetalheEquipamento");
+  if (linhaValor && valorDetalhe && usuarioAdministradorDetalhe()) {
+    linhaValor.style.display = "";
+    valorDetalhe.textContent = dinheiroDetalhe(eq.valorUnitario ?? eq.valor ?? 0);
+  }
+  valores[valores.length - 1].textContent = eq.descricao || "Sem descrição cadastrada";
   renderHistoricoEquipamento(eq);
 }
 
@@ -376,13 +392,9 @@ document.getElementById("confirmarManutencaoDetalhe").addEventListener("click", 
   setTimeout(() => window.location.href = "11-manutencoes.html", 650);
 });
 </script>
-  <script src="pwa.js?v=20260717-orc-logistica-admin" defer></script>
+  <script src="pwa.js?v=20260721-valor-equipamento-orcamento" defer></script>
 </body>
 </html>
-
-
-
-
 
 
 
