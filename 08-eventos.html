@@ -32,6 +32,19 @@
       color: var(--text3);
     }
 
+    .event-current-id {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 8px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(124, 58, 237, 0.14);
+      color: var(--accent2);
+      font-family: var(--mono);
+      font-size: 11px;
+      vertical-align: middle;
+    }
+
     .event-header {
       background: var(--surface2);
       border: 1px solid var(--border);
@@ -224,6 +237,37 @@
       color: var(--text);
     }
 
+    .event-list-search {
+      display: grid;
+      gap: 7px;
+      margin: 16px 0 14px;
+    }
+
+    .event-list-search-row {
+      position: relative;
+    }
+
+    .event-list-search-row svg {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      pointer-events: none;
+    }
+
+    .event-list-search-row .input {
+      width: 100%;
+      min-height: 44px;
+      padding-left: 42px;
+    }
+
+    .event-list-search-hint {
+      min-height: 18px;
+      color: var(--text3);
+      font-size: 12px;
+    }
+
     @media (max-width: 720px) {
       .event-list-controls {
         justify-content: flex-start;
@@ -233,6 +277,10 @@
       .event-list-tab {
         flex: 1 1 140px;
         justify-content: center;
+      }
+
+      .event-list-search {
+        margin-top: 14px;
       }
     }
 
@@ -528,11 +576,11 @@
         </svg>Sair</button></div>
   </aside>
   <main class="main">
-    <div class="breadcrumb"> <a href="08-eventos.html">Eventos</a> <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-        stroke="currentColor" stroke-width="2" width="12" height="12">
-        <polyline points="9 18 15 12 9 6" />
-      </svg> <span>-</span> </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Eventos</div>
+        <div class="page-subtitle">Gerencie eventos em andamento, finalizados e equipamentos separados</div>
+      </div>
       <button class="btn btn-primary" onclick="abrirModalEvento()">+ Adicionar Novo Evento</button>
     </div>
 
@@ -546,6 +594,17 @@
           <button class="event-list-tab active" type="button" data-event-filter="andamento">Em andamento <span id="eventosAndamentoTotal">0</span></button>
           <button class="event-list-tab" type="button" data-event-filter="finalizados">Finalizados <span id="eventosFinalizadosTotal">0</span></button>
         </div>
+      </div>
+      <div class="event-list-search">
+        <label class="form-label" for="buscaEventosLista">Buscar evento</label>
+        <div class="event-list-search-row">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <input class="input" id="buscaEventosLista" type="search" placeholder="Buscar por evento, data, local, respons&aacute;vel ou equipamento">
+        </div>
+        <div class="event-list-search-hint" id="buscaEventosListaInfo">Busque por nome, data, local, respons&aacute;vel ou equipamento.</div>
       </div>
       <div class="table-wrap event-list-table mobile-card-table">
         <table>
@@ -572,7 +631,7 @@
             <path d="M16 2v4M8 2v4M3 10h18" />
           </svg> </div>
         <div>
-          <div style="font-size:16px;font-weight:700">Carregando evento...</div>
+          <div style="font-size:16px;font-weight:700">Carregando evento... <span class="event-current-id" id="eventoAtualId">-</span></div>
           <div style="font-size:12.5px;color:var(--text3);margin-top:3px">Aguarde os dados do sistema</div>
         </div>
       </div>
@@ -862,12 +921,14 @@ function fecharModalEvento() { document.getElementById("modalEvento").style.disp
 const params = new URLSearchParams(window.location.search);
 const eventTitle = document.querySelector(".event-header [style*='font-size:16px']");
 const eventInfo = document.querySelector(".event-header [style*='font-size:12.5px']");
-const breadcrumbId = document.querySelector(".breadcrumb span");
+const breadcrumbId = document.getElementById("eventoAtualId");
 const eventosTabela = document.getElementById("eventosTabela");
 const detalheTabela = document.getElementById("eventoDetalheTabela");
 const eventosListaTitulo = document.getElementById("eventosListaTitulo");
 const eventosListaSubtitulo = document.getElementById("eventosListaSubtitulo");
 const filtrosEventosBotoes = document.querySelectorAll("[data-event-filter]");
+const buscaEventosLista = document.getElementById("buscaEventosLista");
+const buscaEventosListaInfo = document.getElementById("buscaEventosListaInfo");
 const finalizarEventoBotao = document.getElementById("finalizarEventoBotao");
 const excluirEventoFinalizadoBotao = document.getElementById("excluirEventoFinalizadoBotao");
 const statusEventoGeral = document.getElementById("statusEventoGeral");
@@ -898,6 +959,101 @@ function eventoEstaFinalizado(evento = {}) {
 
 function eventosPorFiltro(eventos) {
   return eventos.filter((evento) => filtroEventos === "finalizados" ? eventoEstaFinalizado(evento) : !eventoEstaFinalizado(evento));
+}
+
+function termoBuscaEventos() {
+  return GE.normalizar(buscaEventosLista?.value || "");
+}
+
+function textoDataBuscaEvento(data) {
+  if (!data) return "";
+  return [data, GE.dataBR(data)].filter(Boolean).join(" ");
+}
+
+function rotuloStatusBuscaEvento(status) {
+  const encontrado = statusFluxoEvento.find((item) => item.valor === status);
+  return encontrado ? encontrado.texto : status;
+}
+
+function textoBuscaEvento(evento = {}, db = GE.dados()) {
+  const equipamentosPorCodigo = new Map((db.equipamentos || []).map((eq) => [
+    String(eq.codigo || "").trim().toUpperCase(),
+    eq
+  ]));
+  const statusEquipamentos = evento.statusEquipamentos || {};
+  const partes = [
+    evento.id,
+    evento.nome,
+    evento.local,
+    evento.responsavel,
+    evento.status,
+    textoDataBuscaEvento(evento.data),
+    textoDataBuscaEvento(dataSaidaEvento(evento)),
+    textoDataBuscaEvento(evento.finalizadoEm),
+    quantidadeTotalEvento(evento)
+  ];
+
+  (evento.equipamentos || []).forEach((codigo) => {
+    const codigoSeguro = String(codigo || "").trim().toUpperCase();
+    const equipamento = equipamentosPorCodigo.get(codigoSeguro) || {};
+    const statusItem = statusEquipamentos[codigoSeguro] || "";
+    partes.push(
+      codigoSeguro,
+      equipamento.nome,
+      nomeBaseEquipamento(equipamento.nome || ""),
+      equipamento.categoria,
+      equipamento.descricao,
+      statusItem,
+      rotuloStatusBuscaEvento(statusItem)
+    );
+  });
+
+  (evento.equipamentosExternos || []).forEach((item) => {
+    partes.push(
+      item.nome,
+      item.empresa,
+      item.codigo,
+      item.categoria,
+      item.observacao,
+      item.status,
+      item.problemaManutencao,
+      item.tecnicoManutencao
+    );
+  });
+
+  (evento.consumos || evento.materiaisConsumo || []).map(normalizarConsumoEvento).forEach((item) => {
+    partes.push(
+      item.nome,
+      item.codigo,
+      item.categoria,
+      item.unidade,
+      item.quantidade
+    );
+  });
+
+  Object.entries(statusEquipamentos).forEach(([codigo, status]) => {
+    partes.push(codigo, status, rotuloStatusBuscaEvento(status));
+  });
+
+  return GE.normalizar(partes.filter((parte) => parte !== null && parte !== undefined).join(" "));
+}
+
+function eventosPorBusca(eventos, db) {
+  const termo = termoBuscaEventos();
+  if (!termo) return eventos;
+  return eventos.filter((evento) => textoBuscaEvento(evento, db).includes(termo));
+}
+
+function atualizarInfoBuscaEventos(eventosBase, eventosFiltrados) {
+  if (!buscaEventosListaInfo) return;
+  const termoOriginal = String(buscaEventosLista?.value || "").trim();
+  const totalTexto = pluralEvento(eventosBase.length, "evento", "eventos");
+  if (!termoOriginal) {
+    buscaEventosListaInfo.textContent = `Busque por nome, data, local, responsável ou equipamento. ${eventosBase.length} ${totalTexto} nesta lista.`;
+    return;
+  }
+  const encontradosTexto = pluralEvento(eventosFiltrados.length, "encontrado", "encontrados");
+  buscaEventosListaInfo.textContent = `${eventosFiltrados.length} de ${eventosBase.length} ${totalTexto} ${encontradosTexto}.`;
 }
 
 function atualizarCabecalhoListaEventos(todosEventos) {
@@ -972,15 +1128,39 @@ function configurarFiltroEventos() {
   });
 }
 
-function renderEventos(idParaSelecionar = eventoSelecionadoId) {
-  const todosEventos = GE.dados().eventos || [];
-  const eventos = eventosPorFiltro(todosEventos);
-  atualizarCabecalhoListaEventos(todosEventos);
+function configurarBuscaEventos() {
+  if (!buscaEventosLista) return;
+  buscaEventosLista.addEventListener("input", () => {
+    renderEventos(eventoSelecionadoId);
+    renderEvento();
+  });
+  buscaEventosLista.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !buscaEventosLista.value) return;
+    buscaEventosLista.value = "";
+    renderEventos(eventoSelecionadoId);
+    renderEvento();
+  });
+}
 
-  if (!eventos.length) {
+function renderEventos(idParaSelecionar = eventoSelecionadoId) {
+  const db = GE.dados();
+  const todosEventos = db.eventos || [];
+  const eventosBase = eventosPorFiltro(todosEventos);
+  const eventos = eventosPorBusca(eventosBase, db);
+  atualizarCabecalhoListaEventos(todosEventos);
+  atualizarInfoBuscaEventos(eventosBase, eventos);
+
+  if (!eventosBase.length) {
     eventoSelecionadoId = "";
     const mensagemVazia = filtroEventos === "finalizados" ? "Nenhum evento finalizado." : "Nenhum evento em andamento.";
     eventosTabela.innerHTML = `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">${mensagemVazia}</td></tr>`;
+    limparDetalheEventos();
+    return;
+  }
+
+  if (!eventos.length) {
+    eventoSelecionadoId = "";
+    eventosTabela.innerHTML = `<tr><td colspan="6" style="color:var(--text3);font-family:var(--font)">Nenhum evento encontrado para essa busca.</td></tr>`;
     limparDetalheEventos();
     return;
   }
@@ -2183,6 +2363,7 @@ salvar.addEventListener("click", () => {
 });
 
 configurarFiltroEventos();
+configurarBuscaEventos();
 renderEventos();
 renderEvento();
 </script>
@@ -2190,7 +2371,3 @@ renderEvento();
 </body>
 
 </html>
-
-
-
-
