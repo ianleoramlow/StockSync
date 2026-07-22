@@ -1241,6 +1241,7 @@ const GE = (() => {
     const original = String(codigoOriginal || codigo).trim().toUpperCase();
     const indiceOriginal = db.equipamentos.findIndex((eq) => eq.codigo === original);
     const existente = db.equipamentos.findIndex((eq) => eq.codigo === codigo);
+    const usuarioAdmin = usuarioAtual()?.cargo === "Administrador";
 
     if (!codigo) return { erro: "Informe o código do equipamento." };
     if (codigo !== original && existente >= 0) {
@@ -1249,6 +1250,10 @@ const GE = (() => {
 
     const registroBase = { ...equipamento, codigo, categoria: categoriaEstoqueCanonica(equipamento.categoria, "Sem categoria"), status: equipamento.status || "disponivel" };
     const indiceImagem = indiceOriginal >= 0 ? indiceOriginal : existente;
+    const valorAnterior = db.equipamentos[indiceImagem]?.valorUnitario ?? db.equipamentos[indiceImagem]?.valor ?? 0;
+    registroBase.valorUnitario = usuarioAdmin
+      ? Math.max(0, Number(String(equipamento.valorUnitario ?? 0).replace(",", ".")) || 0)
+      : valorAnterior;
     const registro = {
       ...registroBase,
       imagem: equipamento.imagem || db.equipamentos[indiceImagem]?.imagem || imagemEquipamento(registroBase)
@@ -1312,6 +1317,8 @@ const GE = (() => {
     const categoriaNova = categoriaEstoqueCanonica(equipamento.categoria, "Sem categoria");
     const descricaoNova = equipamento.descricao || "";
     const imagemNova = equipamento.imagem || "";
+    const usuarioAdmin = usuarioAtual()?.cargo === "Administrador";
+    const valorNovo = Math.max(0, Number(String(equipamento.valorUnitario ?? 0).replace(",", ".")) || 0);
     const codigosAlterados = [];
 
     db.equipamentos = db.equipamentos.map((eq) => {
@@ -1327,6 +1334,7 @@ const GE = (() => {
         nome: nomeComSufixo,
         categoria: categoriaNova,
         descricao: descricaoNova,
+        valorUnitario: usuarioAdmin ? valorNovo : (eq.valorUnitario ?? eq.valor ?? 0),
         imagem: imagemNova || eq.imagem || imagemEquipamento({ ...eq, nome: nomeComSufixo, categoria: categoriaNova })
       };
     });
