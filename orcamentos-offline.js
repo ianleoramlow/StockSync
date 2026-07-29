@@ -5,11 +5,19 @@
   const VERSAO_ARQUIVO = 1;
   const categorias = ["Som", "Ilumina\u00e7\u00e3o", "Painel de LED", "Cabos", "Energia", "Estrutura", "Consumo", "V\u00eddeo", "Transporte", "M\u00e3o de obra", "Servi\u00e7os", "Outros"];
   const unidades = ["un.", "unidade", "dia", "servi\u00e7o", "servico", "metro", "hora", "pacote", "rolo", "frasco"];
+  const LOGO_AREA_PDF = Object.freeze({ largura: 190, altura: 70 });
+  const LOGO_AJUSTE_PADRAO = Object.freeze({ zoom: 100, offsetX: 0, offsetY: 0 });
+  const LOGO_AJUSTE_LIMITES = Object.freeze({
+    zoom: [50, 600],
+    offsetX: [-260, 260],
+    offsetY: [-260, 260]
+  });
   let sequenciaSessao = 1;
   let arquivoHandleAtual = null;
   let nomeArquivoAtual = "";
   let alteracoesPendentes = false;
   let logoEmpresaDataUrl = "";
+  let logoAjusteAtual = { ...LOGO_AJUSTE_PADRAO };
   let itens = [];
   let equipeServicos = [];
   let empresasStorageCache = null;
@@ -42,6 +50,7 @@
     eventoCidadeUf: $("#eventoCidadeUf"),
     eventoLocal: $("#eventoLocal"),
     pdfModoValores: $("#pdfModoValores"),
+    logoZoom: $("#logoZoom"),
     valorFrete: $("#valorFrete"),
     valorMontagem: $("#valorMontagem"),
     valorDesmontagem: $("#valorDesmontagem"),
@@ -74,6 +83,42 @@
   function numero(valor) {
     const n = Number(String(valor ?? "").replace(",", "."));
     return Number.isFinite(n) ? n : 0;
+  }
+
+  function limitarNumero(valor, min, max, fallback) {
+    const n = Number(valor);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function normalizarLogoAjuste(ajuste = {}) {
+    const zoomLegado = ajuste.zoom ?? (ajuste.largura ? (Number(ajuste.largura) / LOGO_AREA_PDF.largura) * 100 : LOGO_AJUSTE_PADRAO.zoom);
+    return {
+      zoom: limitarNumero(zoomLegado, LOGO_AJUSTE_LIMITES.zoom[0], LOGO_AJUSTE_LIMITES.zoom[1], LOGO_AJUSTE_PADRAO.zoom),
+      offsetX: limitarNumero(ajuste.offsetX, LOGO_AJUSTE_LIMITES.offsetX[0], LOGO_AJUSTE_LIMITES.offsetX[1], LOGO_AJUSTE_PADRAO.offsetX),
+      offsetY: limitarNumero(ajuste.offsetY, LOGO_AJUSTE_LIMITES.offsetY[0], LOGO_AJUSTE_LIMITES.offsetY[1], LOGO_AJUSTE_PADRAO.offsetY)
+    };
+  }
+
+  function aplicarAjusteInicialLogo(dataUrl) {
+    if (!dataUrl || typeof Image === "undefined") return Promise.resolve();
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const proporcaoLogo = img.width / Math.max(1, img.height);
+        const proporcaoMoldura = LOGO_AREA_PDF.largura / LOGO_AREA_PDF.altura;
+        const precisaPreencherHorizontal = proporcaoLogo < proporcaoMoldura;
+        const zoomPreenchimento = precisaPreencherHorizontal ? Math.ceil((proporcaoMoldura / proporcaoLogo) * 100) : 100;
+        logoAjusteAtual = normalizarLogoAjuste({
+          zoom: Math.max(LOGO_AJUSTE_PADRAO.zoom, zoomPreenchimento),
+          offsetX: 0,
+          offsetY: 0
+        });
+        resolve();
+      };
+      img.onerror = () => resolve();
+      img.src = dataUrl;
+    });
   }
 
   function dinheiro(valor) {
@@ -281,7 +326,7 @@
       empresa: empresaPadrao(),
       cliente: { nome: "", documento: "", telefone: "", email: "", endereco: "" },
       evento: { nome: "", data: "", dataInicio: "", dataFim: "", horario: "", horarioInicio: "", horarioFim: "", local: "", cidadeUf: "" },
-      pdf: { modoValores: "detalhado" },
+      pdf: { modoValores: "detalhado", logo: { ...LOGO_AJUSTE_PADRAO } },
       itens: [novoItem()],
       equipeServicos: [],
       adicionais: {
@@ -361,6 +406,7 @@
       equipeServicos: equipeDoDocumento
     };
     delete normalizado.adicionais.servicos;
+    normalizado.pdf.logo = normalizarLogoAjuste(normalizado.pdf.logo || documento.logoAjuste || {});
     if (!normalizado.itens.length) normalizado.itens = [novoItem()];
     return normalizado;
   }
@@ -395,6 +441,7 @@
   function preencherCampos(documento, sujo = false) {
     const doc = normalizarDocumento(documento);
     logoEmpresaDataUrl = doc.empresa.logo || "";
+    logoAjusteAtual = normalizarLogoAjuste(doc.pdf?.logo);
     itens = doc.itens;
     equipeServicos = doc.equipeServicos;
 
@@ -433,6 +480,7 @@
     setValor(campos.condObservacoes, doc.condicoes.observacoes);
     setValor(campos.condTermos, doc.condicoes.termos);
 
+    sincronizarCamposLogoAjuste();
     renderLogo();
     renderItens();
     renderEquipeServicos();
@@ -476,7 +524,8 @@
         cidadeUf: campos.eventoCidadeUf.value.trim()
       },
       pdf: {
-        modoValores: campos.pdfModoValores.value || "detalhado"
+        modoValores: campos.pdfModoValores.value || "detalhado",
+        logo: normalizarLogoAjuste(logoAjusteAtual)
       },
       itens: itens.map(normalizarItem),
       equipeServicos: equipeServicos.map(normalizarServicoEquipe).filter((servico) => servico.descricao || numero(servico.valorDiaria)),
@@ -591,11 +640,52 @@
     estado.classList.toggle("is-dirty", alteracoesPendentes);
   }
 
+  function sincronizarCamposLogoAjuste() {
+    logoAjusteAtual = normalizarLogoAjuste(logoAjusteAtual);
+    if (campos.logoZoom && String(campos.logoZoom.value) !== String(logoAjusteAtual.zoom)) {
+      campos.logoZoom.value = logoAjusteAtual.zoom;
+    }
+    const resumo = $("#logoAjusteResumo");
+    if (resumo) {
+      resumo.textContent = `Zoom ${Math.round(logoAjusteAtual.zoom)}% \u00b7 X ${Math.round(logoAjusteAtual.offsetX)} \u00b7 Y ${Math.round(logoAjusteAtual.offsetY)}`;
+    }
+  }
+
+  function aplicarTransformacaoLogoCrop() {
+    const frame = $("#logoCropFrame");
+    const imagemCrop = $("#logoCropImage");
+    if (!frame || !imagemCrop) return;
+    const frameW = frame.clientWidth || 318;
+    const frameH = frame.clientHeight || 135;
+    const xPreview = (logoAjusteAtual.offsetX / LOGO_AREA_PDF.largura) * frameW;
+    const yPreview = (logoAjusteAtual.offsetY / LOGO_AREA_PDF.altura) * frameH;
+    imagemCrop.style.setProperty("--logo-crop-x", `${xPreview.toFixed(1)}px`);
+    imagemCrop.style.setProperty("--logo-crop-y", `${yPreview.toFixed(1)}px`);
+    imagemCrop.style.setProperty("--logo-crop-zoom", String(logoAjusteAtual.zoom / 100));
+  }
+
   function renderLogo() {
     const preview = $("#logoPreview");
-    preview.innerHTML = logoEmpresaDataUrl
+    logoAjusteAtual = normalizarLogoAjuste(logoAjusteAtual);
+    if (preview) {
+      preview.innerHTML = logoEmpresaDataUrl
       ? `<img src="${textoSeguro(logoEmpresaDataUrl)}" alt="Logo da empresa">`
       : "Logo";
+    }
+    const frame = $("#logoCropFrame");
+    const imagemCrop = $("#logoCropImage");
+    if (frame) frame.classList.toggle("has-logo", Boolean(logoEmpresaDataUrl));
+    if (imagemCrop) {
+      if (logoEmpresaDataUrl) {
+        imagemCrop.src = logoEmpresaDataUrl;
+        imagemCrop.style.display = "block";
+      } else {
+        imagemCrop.removeAttribute("src");
+        imagemCrop.style.display = "none";
+      }
+    }
+    sincronizarCamposLogoAjuste();
+    aplicarTransformacaoLogoCrop();
   }
 
   function opcoes(lista, selecionado) {
@@ -1040,8 +1130,9 @@
         return;
       }
       const leitor = new FileReader();
-      leitor.onload = () => {
+      leitor.onload = async () => {
         logoEmpresaDataUrl = String(leitor.result || "");
+        await aplicarAjusteInicialLogo(logoEmpresaDataUrl);
         renderLogo();
         marcarSujo();
       };
@@ -1053,6 +1144,64 @@
       renderLogo();
       marcarSujo();
     });
+    campos.logoZoom?.addEventListener("input", () => {
+      logoAjusteAtual = normalizarLogoAjuste({ ...logoAjusteAtual, zoom: campos.logoZoom.value });
+      renderLogo();
+      marcarSujo();
+    });
+    $("#centralizarLogoAjuste")?.addEventListener("click", () => {
+      logoAjusteAtual = normalizarLogoAjuste({ ...logoAjusteAtual, offsetX: 0, offsetY: 0 });
+      renderLogo();
+      marcarSujo();
+    });
+    $("#resetarLogoAjuste")?.addEventListener("click", () => {
+      logoAjusteAtual = { ...LOGO_AJUSTE_PADRAO };
+      renderLogo();
+      marcarSujo();
+    });
+    const logoCropFrame = $("#logoCropFrame");
+    let arrasteLogo = null;
+    logoCropFrame?.addEventListener("pointerdown", (evento) => {
+      if (!logoEmpresaDataUrl) return;
+      arrasteLogo = {
+        inicioX: evento.clientX,
+        inicioY: evento.clientY,
+        offsetX: logoAjusteAtual.offsetX,
+        offsetY: logoAjusteAtual.offsetY
+      };
+      logoCropFrame.classList.add("is-dragging");
+      logoCropFrame.setPointerCapture?.(evento.pointerId);
+      evento.preventDefault();
+    });
+    logoCropFrame?.addEventListener("pointermove", (evento) => {
+      if (!arrasteLogo) return;
+      const frameW = logoCropFrame.clientWidth || 318;
+      const frameH = logoCropFrame.clientHeight || 135;
+      const deltaX = (evento.clientX - arrasteLogo.inicioX) * (LOGO_AREA_PDF.largura / frameW);
+      const deltaY = (evento.clientY - arrasteLogo.inicioY) * (LOGO_AREA_PDF.altura / frameH);
+      logoAjusteAtual = normalizarLogoAjuste({
+        ...logoAjusteAtual,
+        offsetX: arrasteLogo.offsetX + deltaX,
+        offsetY: arrasteLogo.offsetY + deltaY
+      });
+      sincronizarCamposLogoAjuste();
+      aplicarTransformacaoLogoCrop();
+      marcarSujo();
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach((tipo) => {
+      logoCropFrame?.addEventListener(tipo, () => {
+        arrasteLogo = null;
+        logoCropFrame.classList.remove("is-dragging");
+      });
+    });
+    logoCropFrame?.addEventListener("wheel", (evento) => {
+      if (!logoEmpresaDataUrl) return;
+      evento.preventDefault();
+      const passo = evento.deltaY > 0 ? -12 : 12;
+      logoAjusteAtual = normalizarLogoAjuste({ ...logoAjusteAtual, zoom: logoAjusteAtual.zoom + passo });
+      renderLogo();
+      marcarSujo();
+    }, { passive: false });
 
     $(".budget-offline-page").addEventListener("input", (evento) => {
       if (evento.target.closest("#itensTabela")) return;
@@ -1239,23 +1388,55 @@
       });
   }
 
-  function prepararLogoPdf(dataUrl) {
+  function medidasLogoCropEditor() {
+    const frame = $("#logoCropFrame");
+    const imagemCrop = $("#logoCropImage");
+    if (!frame || !imagemCrop || !imagemCrop.src) return null;
+    const frameRect = frame.getBoundingClientRect();
+    const imgRect = imagemCrop.getBoundingClientRect();
+    if (!frameRect.width || !frameRect.height || !imgRect.width || !imgRect.height) return null;
+    return {
+      x: (imgRect.left - frameRect.left) / frameRect.width,
+      y: (imgRect.top - frameRect.top) / frameRect.height,
+      largura: imgRect.width / frameRect.width,
+      altura: imgRect.height / frameRect.height
+    };
+  }
+
+  function prepararLogoPdf(dataUrl, ajuste = LOGO_AJUSTE_PADRAO, medidasEditor = null) {
     if (!dataUrl || typeof Image === "undefined") return Promise.resolve(null);
+    const ajusteLogo = normalizarLogoAjuste(ajuste);
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
         try {
-          const maxW = 520;
-          const maxH = 240;
-          const escala = Math.min(maxW / img.width, maxH / img.height, 1);
+          const canvasScale = 5;
           const canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(img.width * escala));
-          canvas.height = Math.max(1, Math.round(img.height * escala));
+          canvas.width = Math.round(LOGO_AREA_PDF.largura * canvasScale);
+          canvas.height = Math.round(LOGO_AREA_PDF.altura * canvasScale);
           const ctx = canvas.getContext("2d");
           ctx.fillStyle = "#08080c";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const jpg = canvas.toDataURL("image/jpeg", 0.88);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          if (medidasEditor) {
+            ctx.drawImage(
+              img,
+              medidasEditor.x * canvas.width,
+              medidasEditor.y * canvas.height,
+              medidasEditor.largura * canvas.width,
+              medidasEditor.altura * canvas.height
+            );
+          } else {
+            const escalaBase = Math.min(canvas.width / img.width, canvas.height / img.height);
+            const escala = escalaBase * (ajusteLogo.zoom / 100);
+            const largura = img.width * escala;
+            const altura = img.height * escala;
+            const x = ((canvas.width - largura) / 2) + (ajusteLogo.offsetX * canvasScale);
+            const y = ((canvas.height - altura) / 2) + (ajusteLogo.offsetY * canvasScale);
+            ctx.drawImage(img, x, y, largura, altura);
+          }
+          const jpg = canvas.toDataURL("image/jpeg", 0.94);
           resolve({
             data: atob(jpg.split(",")[1]),
             width: canvas.width,
@@ -1285,7 +1466,8 @@
   async function criarPdfArquivo(documentoBruto) {
     const documento = normalizarDocumento(documentoBruto);
     const totais = calcularTotais(documento);
-    const logo = await prepararLogoPdf(documento.empresa.logo);
+    const ajusteLogoPdf = normalizarLogoAjuste(documento.pdf?.logo);
+    const logo = await prepararLogoPdf(documento.empresa.logo, ajusteLogoPdf, medidasLogoCropEditor());
     const pageW = 595.28;
     const pageH = 841.89;
     const paginas = [];
@@ -1344,7 +1526,7 @@
       const w = logo.width * escala;
       const h = logo.height * escala;
       const px = x + ((maxW - w) / 2);
-      const py = pageH - top - h;
+      const py = pageH - top - ((maxH + h) / 2);
       comandos.push(`q ${n(w)} 0 0 ${n(h)} ${n(px)} ${n(py)} cm /I1 Do Q`);
       return true;
     }
@@ -1360,7 +1542,7 @@
     function desenharCabecalho(comandos) {
       rect(comandos, 0, 0, pageW, 98, "#08080c");
       if (logo) {
-        imagem(comandos, 28, 26, 118, 50);
+        imagem(comandos, 18, 14, LOGO_AREA_PDF.largura, LOGO_AREA_PDF.altura);
       } else {
         cor(comandos, "#ffffff", false);
         textoAuto(comandos, 28, 40, documento.empresa.nome || "Empresa", 13, 176, true);
