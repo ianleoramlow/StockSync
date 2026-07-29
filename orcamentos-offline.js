@@ -5,6 +5,7 @@
   const VERSAO_ARQUIVO = 1;
   const categorias = ["Som", "Ilumina\u00e7\u00e3o", "Painel de LED", "Cabos", "Energia", "Estrutura", "Consumo", "V\u00eddeo", "Transporte", "M\u00e3o de obra", "Servi\u00e7os", "Outros"];
   const unidades = ["un.", "unidade", "dia", "servi\u00e7o", "servico", "metro", "hora", "pacote", "rolo", "frasco"];
+  const origensItem = ["Estoque", "Terceiros"];
   const LOGO_AREA_PDF = Object.freeze({ largura: 190, altura: 70 });
   const LOGO_AJUSTE_PADRAO = Object.freeze({ zoom: 100, offsetX: 0, offsetY: 0 });
   const LOGO_AJUSTE_LIMITES = Object.freeze({
@@ -292,10 +293,16 @@
     };
   }
 
-  function novoItem() {
+  function normalizarOrigemItem(origem) {
+    return normalizarBusca(origem) === "terceiros" ? "Terceiros" : "Estoque";
+  }
+
+  function novoItem(origem = "Estoque") {
+    const origemNormalizada = normalizarOrigemItem(origem);
     return {
       id: `ITEM-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      categoria: "Som",
+      origem: origemNormalizada,
+      categoria: origemNormalizada === "Terceiros" ? "Outros" : "Som",
       descricao: "",
       quantidade: 1,
       unidade: "un.",
@@ -351,9 +358,11 @@
   }
 
   function normalizarItem(item = {}) {
+    const origem = normalizarOrigemItem(item.origem);
     return {
       id: item.id || `ITEM-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      categoria: item.categoria || "Som",
+      origem,
+      categoria: item.categoria || (origem === "Terceiros" ? "Outros" : "Som"),
       descricao: item.descricao || item.nome || "",
       quantidade: Math.max(0, numero(item.quantidade || 1)),
       unidade: item.unidade || "un.",
@@ -791,6 +800,7 @@
     if (!itens[index] || !item) return false;
     itens[index] = {
       ...itens[index],
+      origem: "Estoque",
       categoria: categoriaOrcamento(item.categoria),
       descricao: item.nome,
       unidade: unidadeOrcamento(item.unidade, item.tipo === "consumo" ? "unidade" : "un."),
@@ -812,7 +822,24 @@
 
   function renderItens() {
     const corpo = $("#itensTabela");
-    corpo.innerHTML = itens.map((item, index) => {
+    const grupos = [
+      { titulo: "Itens do estoque", origem: "Estoque" },
+      { titulo: "Itens de terceiros", origem: "Terceiros" }
+    ].map((grupo) => ({
+      ...grupo,
+      indices: itens
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => normalizarOrigemItem(item.origem) === grupo.origem)
+    })).filter((grupo) => grupo.indices.length);
+
+    const cabecalhoEstoque = $("#itensEstoqueCabecalho");
+    if (cabecalhoEstoque) {
+      cabecalhoEstoque.hidden = !grupos.some((grupo) => grupo.origem === "Estoque");
+    }
+
+    corpo.innerHTML = grupos.map((grupo) => `
+      ${grupo.origem === "Terceiros" ? `<tr class="origin-row"><td colspan="11">${grupo.titulo}</td></tr>` : ""}
+      ${grupo.indices.map(({ item, index }) => {
       const total = calcularItem(item).total;
       return `
         <tr data-index="${index}">
@@ -824,8 +851,8 @@
               <div class="stock-suggestions" hidden></div>
             </div>
           </td>
-          <td data-label="Qtd."><input class="number-cell" data-field="quantidade" type="number" min="0" step="1" value="${textoSeguro(item.quantidade)}"></td>
-          <td data-label="Un."><select data-field="unidade">${opcoes(unidades, item.unidade)}</select></td>
+          <td data-label="Qtd." class="item-quantity-cell"><input class="number-cell" data-field="quantidade" type="number" min="0" step="1" value="${textoSeguro(item.quantidade)}"></td>
+          <td data-label="Un." class="item-unit-cell"><select data-field="unidade">${opcoes(unidades, item.unidade)}</select></td>
           <td data-label="Diarias"><input class="number-cell" data-field="diarias" type="number" min="1" step="1" value="${textoSeguro(item.diarias)}"></td>
           <td data-label="Valor unit."><input class="money-cell" data-field="valorUnitario" type="text" inputmode="decimal" value="${textoSeguro(item.valorUnitario)}"></td>
           <td data-label="Desc."><input class="money-cell" data-field="desconto" type="text" inputmode="decimal" value="${textoSeguro(item.desconto)}"></td>
@@ -840,7 +867,8 @@
             </div>
           </td>
         </tr>`;
-    }).join("");
+      }).join("")}
+    `).join("");
     atualizarResumo();
   }
 
@@ -1108,6 +1136,13 @@
       sincronizarItensDaTabela();
       sincronizarEquipeServicosDaTabela();
       itens.push(novoItem());
+      renderItens();
+      marcarSujo();
+    });
+    $("#adicionarItemTerceiro")?.addEventListener("click", () => {
+      sincronizarItensDaTabela();
+      sincronizarEquipeServicosDaTabela();
+      itens.push(novoItem("Terceiros"));
       renderItens();
       marcarSujo();
     });
@@ -1627,30 +1662,59 @@
       }));
     }
 
-    function montarLinhasTabelaOrcamento(lista, modoValores) {
-      const grupos = agruparItensOrcamento(lista);
-      if (modoValores === "agrupado") {
-        return grupos.map((grupo, idx) => ({
-          tipo: "grupo-resumo",
-          numero: idx + 1,
-          categoria: grupo.categoria,
-          itens: grupo.itens.map((item) => ({
-            descricao: item.descricao || "-",
-            quantidade: item.quantidade || 0,
-            unidade: item.unidade || "un."
-          })),
-          tipos: grupo.itens.length,
-          quantidade: grupo.quantidade,
-          total: grupo.subtotal
+    function tituloOrigemOrcamento(origem) {
+      return normalizarOrigemItem(origem) === "Terceiros" ? "ITENS DE TERCEIROS" : "";
+    }
+
+    function agruparItensPorOrigem(lista) {
+      return origensItem
+        .map((origem) => ({
+          origem,
+          titulo: tituloOrigemOrcamento(origem),
+          itens: lista.filter((item) => normalizarOrigemItem(item.origem) === origem)
+        }))
+        .filter((grupo) => grupo.itens.length)
+        .map((grupo) => ({
+          ...grupo,
+          grupos: agruparItensOrcamento(grupo.itens)
         }));
-      }
+    }
+
+    function montarLinhasTabelaOrcamento(lista, modoValores) {
+      const secoes = agruparItensPorOrigem(lista);
       const linhas = [];
+      if (modoValores === "agrupado") {
+        let numeroGrupo = 1;
+        secoes.forEach((secao) => {
+          if (secao.origem === "Terceiros") linhas.push({ tipo: "origem", titulo: secao.titulo });
+          secao.grupos.forEach((grupo) => {
+            linhas.push({
+              tipo: "grupo-resumo",
+              numero: numeroGrupo,
+              categoria: grupo.categoria,
+              itens: grupo.itens.map((item) => ({
+                descricao: item.descricao || "-",
+                quantidade: item.quantidade || 0,
+                unidade: item.unidade || "un."
+              })),
+              tipos: grupo.itens.length,
+              quantidade: grupo.quantidade,
+              total: grupo.subtotal
+            });
+            numeroGrupo += 1;
+          });
+        });
+        return linhas;
+      }
       let numeroItem = 1;
-      grupos.forEach((grupo) => {
-        linhas.push({ tipo: "grupo", categoria: grupo.categoria, total: grupo.subtotal });
-        grupo.itens.forEach((item) => {
-          linhas.push({ tipo: "item", numero: numeroItem, item });
-          numeroItem += 1;
+      secoes.forEach((secao) => {
+        if (secao.origem === "Terceiros") linhas.push({ tipo: "origem", titulo: secao.titulo });
+        secao.grupos.forEach((grupo) => {
+          linhas.push({ tipo: "grupo", categoria: grupo.categoria, total: grupo.subtotal });
+          grupo.itens.forEach((item) => {
+            linhas.push({ tipo: "item", numero: numeroItem, item });
+            numeroItem += 1;
+          });
         });
       });
       return linhas;
@@ -1681,6 +1745,7 @@
     }
 
     function alturaLinhaTabela(row, modoValores) {
+      if (row.tipo === "origem") return 18;
       if (row.tipo === "grupo") return 17;
       if (modoValores === "agrupado") {
         const linhas = (row.itens || []).reduce((total, item) => total + wrapTexto(`${item.descricao} (${item.quantidade} ${item.unidade})`, 54, 2).length, 0);
@@ -1692,9 +1757,14 @@
     function desenharLinhaTabela(comandos, row, top, h, modoValores, zebra) {
       const x = 28;
       const w = 539;
-      const fill = row.tipo === "grupo" ? "#eee9ff" : (zebra ? "#f3f4f6" : "#ffffff");
+      const fill = row.tipo === "origem" ? "#111827" : (row.tipo === "grupo" ? "#eee9ff" : (zebra ? "#f3f4f6" : "#ffffff"));
       rect(comandos, x, top, w, h, fill);
       linha(comandos, x, top + h, x + w, top + h, "#d1d5db", 0.28);
+      if (row.tipo === "origem") {
+        cor(comandos, "#ffffff", false);
+        textoAuto(comandos, 36, top + 12, row.titulo, 8, 360, true);
+        return;
+      }
       if (row.tipo === "grupo") {
         cor(comandos, "#32158a", false);
         textoAuto(comandos, 36, top + 12, row.categoria, 8.2, 330, true);
@@ -1789,7 +1859,7 @@
       cor(comandosAtual, "#111827", false);
       linhasObs.forEach((linhaTexto, idx) => texto(comandosAtual, 44, top + 38 + (idx * 10), linhaTexto, 7.0));
 
-      rect(comandosAtual, 360, top, 207, hObs, "#32158a", "#32158a");
+      rect(comandosAtual, 360, top, 207, hObs, "#111827", "#111827");
       cor(comandosAtual, "#ffffff", false);
       texto(comandosAtual, 464, top + 28, "TOTAL GERAL", 10.5, true, { align: "center" });
       textoAuto(comandosAtual, 464, top + Math.min(62, hObs - 18), dinheiro(totais.totalGeral), 18, 184, true, { align: "center" });
