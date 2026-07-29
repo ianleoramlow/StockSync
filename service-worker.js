@@ -1,12 +1,12 @@
-const STOCKSYNC_CACHE = "stocksync-pwa-20260721-card-altura-historico-v1";
+const STOCKSYNC_CACHE = "stocksync-pwa-20260728-logo-pdf-editor-match-v1";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
   "/pwa.js?v=20260721-valor-equipamento-orcamento",
   "/styles.css?v=20260721-card-altura-historico",
   "/app.js?v=20260721-valor-equipamento-orcamento",
   "/14-orcamentos.html",
-  "/orcamentos-offline.css?v=20260721-valor-equipamento-orcamento",
-  "/orcamentos-offline.js?v=20260721-valor-equipamento-orcamento",
+  "/orcamentos-offline.css?v=20260728-logo-pdf-editor-match",
+  "/orcamentos-offline.js?v=20260728-logo-pdf-editor-match",
   "/assets/pwa-icon-192.png",
   "/assets/pwa-icon-512.png",
   "/assets/logo-stocksync-icon.png",
