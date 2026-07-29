@@ -899,7 +899,7 @@
             <div class="item-actions">
               <button class="item-action" type="button" data-team-action="subir" title="Mover para cima">&#8593;</button>
               <button class="item-action" type="button" data-team-action="descer" title="Mover para baixo">&#8595;</button>
-              <button class="item-action" type="button" data-team-action="duplicar" title="Duplicar servi&ccedil;o">&#10761;</button>
+              <button class="item-action" type="button" data-team-action="duplicar" title="Duplicar servi&ccedil;o">⧉</button>
               <button class="item-action danger" type="button" data-team-action="remover" title="Remover servi&ccedil;o">&times;</button>
             </div>
           </td>
