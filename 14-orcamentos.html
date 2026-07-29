@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/pwa-icon-192.png">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
   <link rel="stylesheet" href="styles.css?v=20260721-valor-equipamento-orcamento">
-  <link rel="stylesheet" href="orcamentos-offline.css?v=20260721-valor-equipamento-orcamento">
+  <link rel="stylesheet" href="orcamentos-offline.css?v=20260728-logo-pdf-editor-match">
 </head>
 <body>
 <aside class="sidebar">
@@ -66,10 +66,36 @@
         <label class="span-2">Endere&ccedil;o<input class="form-input" id="empresaEndereco" type="text"></label>
         <div class="logo-picker span-2">
           <div class="logo-preview" id="logoPreview">Logo</div>
-          <div>
+          <div class="logo-picker-actions">
             <label class="file-button" for="empresaLogo">Selecionar logo local</label>
             <input id="empresaLogo" type="file" accept="image/png,image/jpeg,image/webp" hidden>
             <button class="btn btn-ghost btn-small" id="removerLogo" type="button">Remover logo</button>
+          </div>
+        </div>
+        <div class="logo-adjustments span-2">
+          <div class="logo-adjustment-head">
+            <div>
+              <strong>Enquadramento da logo</strong>
+              <span>Arraste a logo dentro da moldura e ajuste o zoom como em uma foto de perfil</span>
+            </div>
+            <button class="btn btn-ghost btn-small" id="resetarLogoAjuste" type="button">Resetar</button>
+          </div>
+          <div class="logo-crop-editor">
+            <div class="logo-crop-stage" id="logoCropStage">
+              <div class="logo-crop-frame" id="logoCropFrame">
+                <img id="logoCropImage" alt="Logo enquadrada" draggable="false">
+                <span id="logoCropPlaceholder">Selecione uma logo</span>
+              </div>
+            </div>
+            <div class="logo-crop-controls">
+              <label>Zoom da logo
+                <input class="logo-range" id="logoZoom" type="range" min="50" max="600" step="1" value="100">
+              </label>
+              <div class="logo-crop-actions">
+                <button class="btn btn-ghost btn-small" id="centralizarLogoAjuste" type="button">Centralizar</button>
+                <span class="logo-adjustment-values" id="logoAjusteResumo">Zoom 100% &middot; X 0 &middot; Y 0</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -227,7 +253,7 @@
 </main>
 
 <script src="app.js?v=20260721-valor-equipamento-orcamento"></script>
-<script src="orcamentos-offline.js?v=20260721-valor-equipamento-orcamento" defer></script>
+<script src="orcamentos-offline.js?v=20260728-logo-pdf-editor-match" defer></script>
 <script src="pwa.js?v=20260721-valor-equipamento-orcamento" defer></script>
 </body>
 </html>
